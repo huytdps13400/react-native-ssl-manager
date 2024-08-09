@@ -10908,7 +10908,7 @@ __metadata:
     react: "*"
     react-native: "*"
   bin:
-    react-native-use-ssl: ./bin/linkConfig.js
+    react-native-use-ssl: ./src/bin/linkConfig.js
   languageName: unknown
   linkType: soft
 
