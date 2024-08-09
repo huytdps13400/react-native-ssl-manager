@@ -14,7 +14,8 @@
     "lib",
     "android",
     "ios",
-    "react-native-use-ssl-pinning.podspec"
+    "react-native-use-ssl-pinning.podspec",
+    "package.json"
   ],
   "scripts": {
     "example": "yarn workspace react-native-use-ssl-pinning-example",
