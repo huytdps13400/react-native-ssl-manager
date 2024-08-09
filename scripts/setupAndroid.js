@@ -35,20 +35,6 @@ if (!fs.existsSync(mainApplicationPath)) {
 let mainApplicationContent = fs.readFileSync(mainApplicationPath, 'utf8');
 
 // Check if the OkHttpClientProvider import is already there
-if (
-  !mainApplicationContent.includes(
-    'import com.facebook.react.modules.network.OkHttpClientProvider'
-  )
-) {
-  const importStatements = `
-import com.facebook.react.modules.network.OkHttpClientProvider
-import com.yourcompany.sslpinning.SSLPinnerFactory`;
-
-  mainApplicationContent = mainApplicationContent.replace(
-    'import android.app.Application',
-    `import android.app.Application${importStatements}`
-  );
-}
 
 // Check if the line to set the OkHttpClientFactory is already there
 if (
