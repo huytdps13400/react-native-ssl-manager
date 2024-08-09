@@ -13,7 +13,19 @@ if (!fs.existsSync(configFilePath)) {
 
 const config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
 
-// Here you can add code to link the config to your native module
-// For example, writing it to a specific location or applying it directly
+// Define the path to save the config on the Android side
+const androidConfigPath = path.resolve(
+  process.cwd(),
+  'android/app/src/main/assets/ssl_config.json'
+);
 
-console.log('Successfully linked config.json.');
+// Ensure the assets directory exists
+const assetsDir = path.dirname(androidConfigPath);
+if (!fs.existsSync(assetsDir)) {
+  fs.mkdirSync(assetsDir, { recursive: true });
+}
+
+// Write the config to the assets directory for Android
+fs.writeFileSync(androidConfigPath, JSON.stringify(config, null, 2));
+
+console.log('Successfully linked config.json to Android assets.');
