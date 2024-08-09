@@ -1,13 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-// Path to AndroidManifest.xml
+// Adjust the path based on your project structure
 const manifestPath = path.resolve(
-  process.cwd(),
-  'android/app/src/main/AndroidManifest.xml'
+  __dirname,
+  '../example/android/app/src/main/AndroidManifest.xml'
 );
 
-// Function to extract the package name from AndroidManifest.xml
 function getPackageName() {
   if (!fs.existsSync(manifestPath)) {
     throw new Error(`AndroidManifest.xml not found at ${manifestPath}`);
@@ -25,11 +24,10 @@ const packageName = getPackageName();
 
 // Construct the path to MainApplication.kt
 const mainApplicationPath = path.resolve(
-  process.cwd(),
-  `android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
+  __dirname,
+  `../example/android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
 );
 
-// Read the MainApplication.kt file
 if (!fs.existsSync(mainApplicationPath)) {
   throw new Error(`MainApplication.kt not found at ${mainApplicationPath}`);
 }
