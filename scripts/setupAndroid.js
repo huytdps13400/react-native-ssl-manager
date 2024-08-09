@@ -1,33 +1,30 @@
 const fs = require('fs');
 const path = require('path');
 
-// Adjust the path based on your project structure
-const manifestPath = path.resolve(
-  __dirname,
-  '../node_modules/android/app/src/main/AndroidManifest.xml'
-);
+// Path to build.gradle
+const gradlePath = path.resolve(__dirname, '../android/app/build.gradle');
 
-function getPackageName() {
-  if (!fs.existsSync(manifestPath)) {
-    throw new Error(
-      `AndroidManifest.xml not found at ${manifestPath}${__dirname}`
-    );
+// Function to extract the package name from build.gradle
+function getPackageNameFromGradle() {
+  if (!fs.existsSync(gradlePath)) {
+    throw new Error(`build.gradle not found at ${gradlePath}`);
   }
 
-  const manifestContent = fs.readFileSync(manifestPath, 'utf8');
-  const match = manifestContent.match(/package="(.+?)"/);
+  const gradleContent = fs.readFileSync(gradlePath, 'utf8');
+  const match = gradleContent.match(/applicationId\s+"(.+?)"/);
   if (match && match[1]) {
     return match[1];
   }
-  throw new Error('Package name not found in AndroidManifest.xml');
+  throw new Error('Package name not found in build.gradle');
 }
 
-const packageName = getPackageName();
+// Get the package name
+const packageName = getPackageNameFromGradle();
 
 // Construct the path to MainApplication.kt
 const mainApplicationPath = path.resolve(
   __dirname,
-  `../node_modules/android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
+  `../android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
 );
 
 if (!fs.existsSync(mainApplicationPath)) {
@@ -35,8 +32,6 @@ if (!fs.existsSync(mainApplicationPath)) {
 }
 
 let mainApplicationContent = fs.readFileSync(mainApplicationPath, 'utf8');
-
-// Check if the OkHttpClientProvider import is already there
 
 // Check if the line to set the OkHttpClientFactory is already there
 if (
@@ -57,8 +52,8 @@ if (
     mainApplicationContent = `
 ${beforeOnCreate}
 
-// Set the custom OkHttpClientFactory
-OkHttpClientProvider.setOkHttpClientFactory(SSLPinnerFactory(this));
+  // Set the custom OkHttpClientFactory
+  OkHttpClientProvider.setOkHttpClientFactory(SSLPinnerFactory(this));
 
 ${afterOnCreate}`;
   }
