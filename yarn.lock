@@ -10871,13 +10871,13 @@ __metadata:
 
 "react-native-use-ssl-pinning@https://github.com/huytdps13400/react-native-use-ssl-pinning.git":
   version: 0.1.0
-  resolution: "react-native-use-ssl-pinning@https://github.com/huytdps13400/react-native-use-ssl-pinning.git#commit=bdf7bcdff8429a92245959048ecb053d9a8ed934"
+  resolution: "react-native-use-ssl-pinning@https://github.com/huytdps13400/react-native-use-ssl-pinning.git#commit=9044b42723fad91b997d55bfea1f439775a61447"
   peerDependencies:
     react: "*"
     react-native: "*"
   bin:
-    react-native-use-ssl: ./bin/linkConfig.js
-  checksum: c92e89e5a18d825d4493e7205c2af201e6878900a98052a1922e0accf50f07a611492f68948b6fe1f598d639409cc236c68b0fc164ea648d36c7ee21175ab3d5
+    react-native-use-ssl: ./src/bin/linkConfig.js
+  checksum: 83370b5716f975afeb5a8612b1b45895a35762ae87f4199e698ef28715e2a5de28ca11c96fe0588b5ccfa8fed53dcbf52cbe045c6fcc21b92adaee49eb59cfbc
   languageName: node
   linkType: hard
 
