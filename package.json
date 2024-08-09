@@ -30,7 +30,6 @@
     "!**/.*"
   ],
   "scripts": {
-    "postinstall": "node ./scripts/setupAndroid.js",
     "example": "yarn workspace react-native-use-ssl-pinning-example",
     "test": "jest",
     "typecheck": "tsc --noEmit",
