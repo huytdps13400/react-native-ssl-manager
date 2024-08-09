@@ -20,3 +20,11 @@ const UseSslPinning = NativeModules.UseSslPinning
 export function multiply(a: number, b: number): Promise<number> {
   return UseSslPinning.multiply(a, b);
 }
+
+export const setUseSSLPinning = (usePinning: boolean) => {
+  UseSslPinning.setUseSSLPinning(usePinning);
+};
+
+export const getUseSSLPinning = async (): Promise<boolean> => {
+  return await UseSslPinning.getUseSSLPinning();
+};

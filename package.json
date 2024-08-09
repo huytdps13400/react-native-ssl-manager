@@ -7,6 +7,9 @@
   "types": "lib/typescript/src/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
+  "bin": {
+    "react-native-use-ssl": "./bin/linkConfig.js"
+  },
   "files": [
     "src",
     "lib",
@@ -71,7 +74,7 @@
     "react-native-builder-bob": "^0.20.0",
     "release-it": "^15.0.0",
     "turbo": "^1.10.7",
-    "typescript": "^5.2.2"
+    "typescript": "5.1.x"
   },
   "resolutions": {
     "@types/react": "^18.2.44"
