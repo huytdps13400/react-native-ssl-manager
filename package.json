@@ -11,11 +11,23 @@
     "react-native-use-ssl": "./src/bin/linkConfig.js"
   },
   "files": [
+    "src",
     "lib",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
     "android",
     "ios",
-    "react-native-use-ssl-pinning.podspec",
-    "package.json"
+    "cpp",
+    "*.podspec",
+    "!lib/typescript/example",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/.*"
   ],
   "scripts": {
     "example": "yarn workspace react-native-use-ssl-pinning-example",
@@ -24,8 +36,7 @@
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "prepare": "bob build",
-    "release": "release-it",
-    "build": "rimraf ./dist && tsc"
+    "release": "release-it"
   },
   "keywords": [
     "react-native",
