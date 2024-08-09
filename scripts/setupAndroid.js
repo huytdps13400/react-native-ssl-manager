@@ -3,12 +3,16 @@ const path = require('path');
 
 // Path to AndroidManifest.xml
 const manifestPath = path.resolve(
-  __dirname,
-  '../android/app/src/main/AndroidManifest.xml'
+  process.cwd(),
+  'android/app/src/main/AndroidManifest.xml'
 );
 
 // Function to extract the package name from AndroidManifest.xml
 function getPackageName() {
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`AndroidManifest.xml not found at ${manifestPath}`);
+  }
+
   const manifestContent = fs.readFileSync(manifestPath, 'utf8');
   const match = manifestContent.match(/package="(.+?)"/);
   if (match && match[1]) {
@@ -21,11 +25,15 @@ const packageName = getPackageName();
 
 // Construct the path to MainApplication.kt
 const mainApplicationPath = path.resolve(
-  __dirname,
-  `../android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
+  process.cwd(),
+  `android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
 );
 
 // Read the MainApplication.kt file
+if (!fs.existsSync(mainApplicationPath)) {
+  throw new Error(`MainApplication.kt not found at ${mainApplicationPath}`);
+}
+
 let mainApplicationContent = fs.readFileSync(mainApplicationPath, 'utf8');
 
 // Check if the OkHttpClientProvider import is already there
@@ -34,11 +42,13 @@ if (
     'import com.facebook.react.modules.network.OkHttpClientProvider'
   )
 ) {
+  const importStatements = `
+import com.facebook.react.modules.network.OkHttpClientProvider
+import com.yourcompany.sslpinning.SSLPinnerFactory`;
+
   mainApplicationContent = mainApplicationContent.replace(
     'import android.app.Application',
-    `import android.app.Application
-import com.facebook.react.modules.network.OkHttpClientProvider
-import com.yourcompany.sslpinning.SSLPinnerFactory`
+    `import android.app.Application${importStatements}`
   );
 }
 
@@ -48,13 +58,24 @@ if (
     'OkHttpClientProvider.setOkHttpClientFactory(SSLPinnerFactory(this))'
   )
 ) {
-  mainApplicationContent = mainApplicationContent.replace(
-    'super.onCreate()',
-    `super.onCreate()
+  const onCreateIndex = mainApplicationContent.indexOf('super.onCreate()');
+  if (onCreateIndex !== -1) {
+    const beforeOnCreate = mainApplicationContent.substring(
+      0,
+      onCreateIndex + 'super.onCreate()'.length
+    );
+    const afterOnCreate = mainApplicationContent.substring(
+      onCreateIndex + 'super.onCreate()'.length
+    );
 
-        // Set the custom OkHttpClientFactory
-        OkHttpClientProvider.setOkHttpClientFactory(SSLPinnerFactory(this))`
-  );
+    mainApplicationContent = `
+${beforeOnCreate}
+
+// Set the custom OkHttpClientFactory
+OkHttpClientProvider.setOkHttpClientFactory(SSLPinnerFactory(this));
+
+${afterOnCreate}`;
+  }
 }
 
 // Write the modified content back to MainApplication.kt
