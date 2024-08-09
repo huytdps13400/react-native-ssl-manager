@@ -9,7 +9,9 @@ const manifestPath = path.resolve(
 
 function getPackageName() {
   if (!fs.existsSync(manifestPath)) {
-    throw new Error(`AndroidManifest.xml not found at ${manifestPath}`);
+    throw new Error(
+      `AndroidManifest.xml not found at ${manifestPath}${__dirname}`
+    );
   }
 
   const manifestContent = fs.readFileSync(manifestPath, 'utf8');
