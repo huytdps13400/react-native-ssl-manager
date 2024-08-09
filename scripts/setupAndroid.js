@@ -4,7 +4,7 @@ const path = require('path');
 // Adjust the path based on your project structure
 const manifestPath = path.resolve(
   __dirname,
-  '../android/app/src/main/AndroidManifest.xml'
+  'android/app/src/main/AndroidManifest.xml'
 );
 
 function getPackageName() {
@@ -25,7 +25,7 @@ const packageName = getPackageName();
 // Construct the path to MainApplication.kt
 const mainApplicationPath = path.resolve(
   __dirname,
-  `../android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
+  `android/app/src/main/java/${packageName.replace(/\./g, '/')}/MainApplication.kt`
 );
 
 if (!fs.existsSync(mainApplicationPath)) {
