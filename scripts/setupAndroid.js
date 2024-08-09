@@ -2,10 +2,20 @@ const fs = require('fs');
 const path = require('path');
 
 // Path to build.gradle
-const projectRoot = path.resolve(__dirname, '../..');
+const findBuildGradle = (startDir) => {
+  let dir = startDir;
+  while (dir !== path.parse(dir).root) {
+    const gradlePath = path.join(dir, 'android/app/build.gradle');
+    if (fs.existsSync(gradlePath)) {
+      return gradlePath;
+    }
+    dir = path.dirname(dir);
+  }
+  throw new Error('build.gradle not found');
+};
 
-// Resolve the path to the build.gradle file
-const gradlePath = path.join(projectRoot, 'android/app/build.gradle');
+const gradlePath = findBuildGradle(__dirname);
+console.log('Resolved path to build.gradle:', gradlePath);
 
 // Function to extract the package name from build.gradle
 function getPackageNameFromGradle() {
