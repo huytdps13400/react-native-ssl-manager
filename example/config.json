@@ -1,0 +1,16 @@
+{
+  "domains": {
+    "development": "sbkh.wrapperuat.sbuxkh.com",
+    "production": "sbkh.wrapper.sbuxkh.com"
+  },
+  "sha256Keys": {
+    "sbkh.wrapperuat.sbuxkh.com": [
+      "sha256/sBf0r4Q9EN/B38KJGqHIv2Q6Ci8CzBCQf9DAwh1R6sd=",
+      "sha256/vxRon/El5KuI4vx5ey1DgmsYmRY0nDd5Cg4GfJ8S+be="
+    ],
+    "sbkh.wrapper.sbuxkh.com": [
+      "sha256/QEuhqjVEYL4+BfdzRFOxabrohDyL440YU5MPMJAKPGM=",
+      "sha256/18tkPyr2nckv4fgo0dhAkaUtJ2hu2831xlO2SKhq8dg="
+    ]
+  }
+}

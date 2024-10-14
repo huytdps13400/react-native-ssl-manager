@@ -1,7 +1,6 @@
 package com.usesslpinning
 
 import android.content.Context
-import android.content.SharedPreferences
 import com.facebook.react.modules.network.OkHttpClientFactory
 import com.facebook.react.modules.network.ReactCookieJarContainer
 import okhttp3.CertificatePinner
@@ -11,17 +10,28 @@ import java.io.InputStream
 
 class UseSslPinningFactory(private val context: Context) : OkHttpClientFactory {
 
+    private var useSSLPinning: Boolean = true
+    private var config: JSONObject? = null
+
+    fun setUseSSLPinning(use: Boolean) {
+        useSSLPinning = use
+    }
+
+    fun setConfig(newConfig: String) {
+        config = try {
+            JSONObject(newConfig)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            null
+        }
+    }
+
     override fun createNewNetworkModuleClient(): OkHttpClient {
-        val sharedPreferences = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-        val useSSLPinning = sharedPreferences.getBoolean("useSSLPinning", true)
-
-        val config = loadConfig(context)
-
         val clientBuilder = OkHttpClient.Builder().cookieJar(ReactCookieJarContainer()).apply {
             if (useSSLPinning && config != null) {
                 val certificatePinnerBuilder = CertificatePinner.Builder()
 
-                val sha256Keys = config.getJSONObject("sha256Keys")
+                val sha256Keys = config!!.getJSONObject("sha256Keys")
                 for (domain in sha256Keys.keys()) {
                     val keys = sha256Keys.getJSONArray(domain)
                     for (i in 0 until keys.length()) {
@@ -48,5 +58,3 @@ class UseSslPinningFactory(private val context: Context) : OkHttpClientFactory {
         }
     }
 }
-
-

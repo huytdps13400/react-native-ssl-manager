@@ -8,15 +8,22 @@ import com.facebook.react.bridge.Promise
 class UseSslPinningModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
+  private val sslPinningFactory = UseSslPinningFactory(reactContext)
+
   override fun getName(): String {
     return NAME
   }
 
-  // Example method
-  // See https://reactnative.dev/docs/native-modules-android
   @ReactMethod
-  fun multiply(a: Double, b: Double, promise: Promise) {
-    promise.resolve(a * b)
+  fun setUseSSLPinning(use: Boolean, promise: Promise) {
+    sslPinningFactory.setUseSSLPinning(use)
+    promise.resolve(null)
+  }
+
+  @ReactMethod
+  fun setConfig(config: String, promise: Promise) {
+    sslPinningFactory.setConfig(config)
+    promise.resolve(null)
   }
 
   companion object {
