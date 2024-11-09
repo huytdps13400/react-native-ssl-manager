@@ -17,14 +17,25 @@ const UseSslPinning = NativeModules.UseSslPinning
       }
     );
 
-export function multiply(a: number, b: number): Promise<number> {
-  return UseSslPinning.multiply(a, b);
-}
-
-export const setUseSSLPinning = (usePinning: boolean) => {
+export const setUseSSLPinning = (usePinning: boolean): void => {
   UseSslPinning.setUseSSLPinning(usePinning);
 };
 
+/**
+ * Retrieves the current state of SSL pinning usage.
+ *
+ * @returns A promise that resolves to a boolean indicating whether SSL pinning is being used.
+ */
 export const getUseSSLPinning = async (): Promise<boolean> => {
   return await UseSslPinning.getUseSSLPinning();
+};
+
+/**
+ * Initializes SSL pinning with the provided configuration.
+ *
+ * @param {any} configJsonString - The JSON string containing the SSL pinning configuration.
+ * @returns {Promise<any>} A promise that resolves when the SSL pinning is initialized.
+ */
+export const initializeSslPinning = async (configJsonString: any) => {
+  return await UseSslPinning.initializeSslPinning(configJsonString);
 };

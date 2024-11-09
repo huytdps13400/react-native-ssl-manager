@@ -10931,8 +10931,6 @@ __metadata:
   peerDependencies:
     react: "*"
     react-native: "*"
-  bin:
-    react-native-use-ssl: ./src/bin/linkConfig.js
   languageName: unknown
   linkType: soft
 

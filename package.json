@@ -5,11 +5,15 @@
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
-  "react-native": "src/index",
-  "source": "src/index",
-  "bin": {
-    "react-native-use-ssl": "./src/bin/linkConfig.js"
+  "react-native": {
+    "android": {
+      "source": "android/src/main/java/com/usesslpinning/UseSslPinningPackage.kt"
+    },
+    "ios": {
+      "podspec": "./ios/MyAwesomeLibrary.podspec"
+    }
   },
+  "source": "src/index",
   "files": [
     "src",
     "lib",
