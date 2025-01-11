@@ -33,9 +33,11 @@ export const getUseSSLPinning = async (): Promise<boolean> => {
 /**
  * Initializes SSL pinning with the provided configuration.
  *
- * @param {any} configJsonString - The JSON string containing the SSL pinning configuration.
+ * @param {string} configJsonString - The JSON string containing the SSL pinning configuration.
  * @returns {Promise<any>} A promise that resolves when the SSL pinning is initialized.
  */
-export const initializeSslPinning = async (configJsonString: any) => {
+export const initializeSslPinning = async (
+  configJsonString: string
+): Promise<any> => {
   return await UseSslPinning.initializeSslPinning(configJsonString);
 };

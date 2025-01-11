@@ -1,16 +1,16 @@
 {
   "domains": {
-    "development": "sbkh.wrapperuat.sbuxkh.com",
-    "production": "sbkh.wrapper.sbuxkh.com"
+    "development": "api.example.dev.com",
+    "production": "api.example.production.com"
   },
   "sha256Keys": {
-    "sbkh.wrapperuat.sbuxkh.com": [
-      "sha256/sBf0r4Q9EN/B38KJGqHIv2Q6Ci8CzBCQf9DAwh1R6sd=",
-      "sha256/vxRon/El5KuI4vx5ey1DgmsYmRY0nDd5Cg4GfJ8S+be="
+    "api.example.dev.com": [
+      "sha256/sBf1r4Q9EN/B38KJGqHIv2Q6Ci8CzBCQf9iawh1R6sd=",
+      "sha256/vxRoo/El5KuI4vx5ey1DgmsYmRYyuDd5Cg4GfJ8S+be="
     ],
-    "sbkh.wrapper.sbuxkh.com": [
-      "sha256/QEuhqjVEYL4+BfdzRFOxabrohDyL440YU5MPMJAKPGM=",
-      "sha256/18tkPyr2nckv4fgo0dhAkaUtJ2hu2831xlO2SKhq8dg="
+    "api.example.production.com": [
+      "sha256/QEuhqjVEYL4+BfdzRFOxabrohDyL480YU5MPMJAKPGM=",
+      "sha256/18tkPyr2nckv4f9o0dhAkaUtJ2hu2831xlO2SK90odg="
     ]
   }
 }

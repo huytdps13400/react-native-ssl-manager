@@ -1,6 +1,6 @@
 {
-  "name": "react-native-use-ssl-pinning",
-  "version": "0.1.0",
+  "name": "@huymobile/react-native-use-ssl-pinning",
+  "version": "1.0.0",
   "description": "React Native Awesome Module provides seamless SSL Pinning integration for enhanced network security in React Native apps. This module enables developers to easily implement certificate pinning, safeguarding their app against man-in-the-middle (MITM) attacks. With simple setup and cross-platform support for both Android and iOS, integrating SSL Pinning into your React Native project has never been easier.",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -58,7 +58,8 @@
   },
   "homepage": "https://github.com/huytdps13400/react-native-use-ssl-pinning#readme",
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^17.0.2",
