@@ -1,7 +1,7 @@
 {
   "name": "react-native-ssl-manager",
   "version": "1.0.0",
-  "description": "React Native Awesome Module provides seamless SSL Pinning integration for enhanced network security in React Native apps. This module enables developers to easily implement certificate pinning, safeguarding their app against man-in-the-middle (MITM) attacks. With simple setup and cross-platform support for both Android and iOS, integrating SSL Pinning into your React Native project has never been easier.",
+  "description": "React Native SSL Pinning provides seamless SSL certificate pinning integration for enhanced network security in React Native apps. This module enables developers to easily implement and manage certificate pinning, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's particularly useful for development and testing scenarios.",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",

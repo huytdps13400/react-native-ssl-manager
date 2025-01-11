@@ -1,0 +1,8 @@
+src/
+examples/
+.github/
+.vscode/
+node_modules/
+.gitignore
+.prettierrc
+tsconfig.json 
