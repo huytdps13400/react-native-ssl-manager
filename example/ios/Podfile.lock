@@ -944,7 +944,12 @@ PODS:
   - React-Mapbuffer (0.73.6):
     - glog
     - React-debug
-  - react-native-use-ssl-pinning (0.1.0):
+  - react-native-ssl-manager (1.0.0):
+    - glog
+    - RCT-Folly (= 2022.05.16.00)
+    - React-Core
+    - TrustKit
+  - react-native-use-ssl-pinning (1.0.0):
     - glog
     - RCT-Folly (= 2022.05.16.00)
     - React-Core
@@ -1173,7 +1178,8 @@ DEPENDENCIES:
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector-modern`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
-  - react-native-use-ssl-pinning (from `../..`)
+  - react-native-ssl-manager (from `../..`)
+  - react-native-use-ssl-pinning (from `../node_modules/react-native-ssl-manager`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -1269,8 +1275,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   React-Mapbuffer:
     :path: "../node_modules/react-native/ReactCommon"
-  react-native-use-ssl-pinning:
+  react-native-ssl-manager:
     :path: "../.."
+  react-native-use-ssl-pinning:
+    :path: "../node_modules/react-native-ssl-manager"
   React-nativeconfig:
     :path: "../node_modules/react-native/ReactCommon"
   React-NativeModulesApple:
@@ -1354,7 +1362,8 @@ SPEC CHECKSUMS:
   React-jsinspector: 85583ef014ce53d731a98c66a0e24496f7a83066
   React-logger: 55764cd993880c6f887505854581c9faf68feff2
   React-Mapbuffer: 15dfcfeb4428d8799cce75e7fe85b18b706029e0
-  react-native-use-ssl-pinning: 198ee09eb2c136b2ea9f284c95eb79d295de3356
+  react-native-ssl-manager: c951a911749e6826cd5a85583cccf97d58241248
+  react-native-use-ssl-pinning: 0ab8d4c67f3104a7d66269866fb6f2b3e260a6ee
   React-nativeconfig: b4d4e9901d4cabb57be63053fd2aa6086eb3c85f
   React-NativeModulesApple: 541d64309a3037060cc416db5c8a63ee5884048e
   React-perflogger: 5f49905de275bac07ac7ea7f575a70611fa988f2

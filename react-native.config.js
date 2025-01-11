@@ -1,6 +1,6 @@
 module.exports = {
   dependencies: {
-    'react-native-use-ssl-pinning': {
+    'react-native-ssl-manager': {
       platforms: {
         android: {
           packageImportPath: 'import com.usesslpinning.UseSslPinningPackage;',

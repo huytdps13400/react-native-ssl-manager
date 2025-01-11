@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "react-native-use-ssl-pinning": ["./src/index"]
+      "react-native-ssl-manager": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

@@ -4,7 +4,7 @@ import {
   getUseSSLPinning,
   initializeSslPinning,
   setUseSSLPinning,
-} from 'react-native-use-ssl-pinning';
+} from 'react-native-ssl-manager';
 import config from '../ssl_config.json';
 
 export default function App() {

@@ -1,5 +1,5 @@
 {
-  "name": "react-native-use-ssl-pinning-example",
+  "name": "react-native-ssl-manager-example",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "18.2.0",
     "react-native": "0.73.6",
-    "react-native-use-ssl-pinning": "https://github.com/huytdps13400/react-native-use-ssl-pinning.git"
+    "react-native-ssl-manager": "https://github.com/huytdps13400/react-native-ssl-manager.git"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
