@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+description: React Native SSL Manager project overview and structure
+---
+
+# React Native SSL Manager - Project Overview
+
+This is a React Native library providing seamless SSL certificate pinning integration for enhanced network security. The main purpose is to protect applications against man-in-the-middle (MITM) attacks.
+
+## Key Components
+
+- **Main Library**: [src/index.tsx](mdc:src/index.tsx) - Core SSL pinning functionality
+- **Android Implementation**: [android/src/main/java/com/usesslpinning/](mdc:android/src/main/java/com/usesslpinning/) - Native Android SSL pinning
+- **iOS Implementation**: [ios/UseSslPinning.swift](mdc:ios/UseSslPinning.swift) and [ios/UseSslPinning.mm](mdc:ios/UseSslPinning.mm) - Native iOS SSL pinning
+- **Example App**: [example/](mdc:example/) - Complete implementation example
+- **Configuration**: Uses `ssl_config.json` files for certificate management
+
+## Core Features
+
+- 🔒 Easy SSL certificate pinning implementation
+- 🔄 Dynamic enabling/disabling of SSL pinning
+- ⚡ Optimized for development and testing workflows
+- 📱 Cross-platform support (iOS & Android)
+- 🛠️ Simple configuration using JSON
+- 🚀 Performance-optimized implementation
+
+## Main API Functions
+
+- `initializeSslPinning(configJsonString: string)`: Initialize SSL pinning with configuration
+- `setUseSSLPinning(usePinning: boolean)`: Enable/disable SSL pinning dynamically
+- `getUseSSLPinning()`: Get current SSL pinning state
+
+⚠️ **Important**: App restart required after `setUseSSLPinning` changes for native-level changes to take effect.

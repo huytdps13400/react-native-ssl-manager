@@ -1,0 +1,83 @@
+---
+globs: *.ts,*.tsx,*.js,*.jsx
+description: SSL pinning API usage patterns and TypeScript integration
+---
+
+# SSL Pinning API Usage Patterns
+
+## Proper Import Pattern
+```typescript
+import { 
+  initializeSslPinning, 
+  setUseSSLPinning, 
+  getUseSSLPinning 
+} from 'react-native-ssl-manager';
+```
+
+## Initialization Pattern
+Always initialize SSL pinning with proper error handling:
+
+```typescript
+const sslConfig = {
+  "domains": {
+    "development": "api.dev.example.com",
+    "production": "api.example.com"
+  },
+  "sha256Keys": {
+    "api.dev.example.com": [
+      "sha256/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=",
+      "sha256/YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY="
+    ],
+    "api.example.com": [
+      "sha256/ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ=",
+      "sha256/WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW="
+    ]
+  }
+};
+
+try {
+  await initializeSslPinning(JSON.stringify(sslConfig));
+  console.log('SSL Pinning initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize SSL Pinning:', error);
+}
+```
+
+## Toggle Pattern with Restart
+When toggling SSL pinning, always handle app restart:
+
+```typescript
+import RNRestart from 'react-native-restart';
+
+const toggleSSLPinning = async (enabled: boolean) => {
+  try {
+    await setUseSSLPinning(enabled);
+    // Restart required for native changes
+    RNRestart.Restart();
+  } catch (error) {
+    console.error('Failed to toggle SSL Pinning:', error);
+  }
+};
+```
+
+## State Check Pattern
+Always check current state before operations:
+
+```typescript
+const checkSSLPinningStatus = async () => {
+  try {
+    const isEnabled = await getUseSSLPinning();
+    console.log('SSL Pinning status:', isEnabled);
+    return isEnabled;
+  } catch (error) {
+    console.error('Failed to get SSL Pinning status:', error);
+    return false;
+  }
+};
+```
+
+## Error Handling Best Practices
+- Always wrap SSL pinning calls in try-catch blocks
+- Log errors appropriately for debugging
+- Provide fallback behavior when SSL operations fail
+- Handle network errors gracefully when SSL pinning is active

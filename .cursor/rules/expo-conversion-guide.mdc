@@ -1,0 +1,617 @@
+# Expo Module Conversion Guide for React Native SSL Manager
+
+## Overview
+
+This guide outlines the complete process to convert the existing React Native SSL Manager library to support both traditional React Native CLI projects and Expo projects (including EAS Build).
+
+**⚠️ Important Limitations:**
+- SSL pinning will **NOT work with Expo Go** due to native code requirements
+- Users will need **EAS Build** or **Expo Development Build** for native functionality
+- App restart is still required after `setUseSSLPinning` changes
+
+## Phase 1: Project Structure Setup
+
+### 1.1 Update Package.json Configuration
+
+```json
+{
+  "name": "react-native-ssl-manager",
+  "version": "1.1.0",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "plugin",
+    "android", 
+    "ios",
+    "src",
+    "*.podspec",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__"
+  ],
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module build"
+  },
+  "dependencies": {
+    "expo": "~50.0.0"
+  },
+  "devDependencies": {
+    "expo-module-scripts": "^3.4.0",
+    "@expo/config-plugins": "^7.0.0"
+  },
+  "expo": {
+    "platforms": ["android", "ios"]
+  }
+}
+```
+
+### 1.2 Create Expo Module Configuration
+
+Create `expo-module.config.json`:
+```json
+{
+  "platforms": ["android", "ios"],
+  "android": {
+    "modules": ["com.usesslpinning.UseSslPinningModule"]
+  },
+  "ios": {
+    "modules": ["UseSslPinning"]
+  }
+}
+```
+
+### 1.3 Update Folder Structure
+
+```
+react-native-ssl-manager/
+├── src/
+│   ├── index.ts                    # Main TypeScript entry
+│   └── UseSslPinning.types.ts      # TypeScript definitions
+├── android/
+│   └── src/
+│       └── main/
+│           ├── java/
+│           │   └── expo/
+│           │       └── modules/
+│           │           └── usesslpinning/
+│           │               ├── UseSslPinningModule.kt
+│           │               └── UseSslPinningFactory.kt
+│           └── AndroidManifest.xml
+├── ios/
+│   ├── UseSslPinningModule.swift
+│   ├── UseSslPinningModule.podspec
+│   └── UseSslPinning.swift
+├── plugin/
+│   ├── src/
+│   │   ├── index.ts               # Main plugin entry
+│   │   ├── android.ts             # Android modifications
+│   │   └── ios.ts                 # iOS modifications
+│   └── build/                     # Compiled plugin
+├── build/                         # Compiled module
+├── expo-module.config.json
+└── package.json
+```
+
+## Phase 2: Convert Native Modules to Expo Modules
+
+### 2.1 iOS Module Conversion
+
+Create `ios/UseSslPinningModule.swift`:
+```swift
+import ExpoModulesCore
+import TrustKit
+
+public class UseSslPinningModule: Module {
+  private let userDefaults = UserDefaults.standard
+  private let useSSLPinningKey = "useSSLPinning"
+  
+  public func definition() -> ModuleDefinition {
+    Name("UseSslPinning")
+    
+    AsyncFunction("initializeSslPinning") { (configJsonString: String, promise: Promise) in
+      self.initializeSslPinning(configJsonString, promise: promise)
+    }
+    
+    Function("setUseSSLPinning") { (usePinning: Bool) in
+      self.setUseSSLPinning(usePinning)
+    }
+    
+    AsyncFunction("getUseSSLPinning") { (promise: Promise) in
+      let usePinning = self.userDefaults.bool(forKey: self.useSSLPinningKey)
+      promise.resolve(usePinning)
+    }
+  }
+  
+  private func initializeSslPinning(_ configJsonString: String, promise: Promise) {
+    // Your existing iOS SSL pinning logic here
+    // Convert from RCT promises to Expo promises
+    let isSSLPinningEnabled = userDefaults.bool(forKey: useSSLPinningKey)
+    
+    if isSSLPinningEnabled {
+      // Initialize TrustKit with configuration
+      // (Keep your existing logic but adapt promise handling)
+      promise.resolve([
+        "message": "SSL Pinning initialized successfully",
+        "isEnabled": true
+      ])
+    } else {
+      promise.resolve([
+        "message": "SSL Pinning is disabled",
+        "isEnabled": false
+      ])
+    }
+  }
+  
+  private func setUseSSLPinning(_ usePinning: Bool) {
+    userDefaults.set(usePinning, forKey: useSSLPinningKey)
+    userDefaults.synchronize()
+  }
+}
+```
+
+Update `ios/UseSslPinningModule.podspec`:
+```ruby
+Pod::Spec.new do |s|
+  s.name = 'UseSslPinningModule'
+  s.version = '1.0.0'
+  s.summary = 'SSL Pinning Expo Module'
+  s.author = 'Your Name'
+  s.homepage = 'https://github.com/yourusername/react-native-ssl-manager'
+  s.platforms = { :ios => '13.0' }
+  s.source = { :git => 'https://github.com/yourusername/react-native-ssl-manager' }
+  s.source_files = '**/*.{h,m,swift}'
+  s.dependency 'ExpoModulesCore'
+  s.dependency 'TrustKit'
+end
+```
+
+### 2.2 Android Module Conversion
+
+Create `android/src/main/java/expo/modules/usesslpinning/UseSslPinningModule.kt`:
+```kotlin
+package expo.modules.usesslpinning
+
+import android.content.Context
+import android.util.Log
+import expo.modules.kotlin.modules.Module
+import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.Promise
+import com.facebook.react.modules.network.OkHttpClientProvider
+
+class UseSslPinningModule : Module() {
+  override fun definition() = ModuleDefinition {
+    Name("UseSslPinning")
+    
+    AsyncFunction("initializeSslPinning") { configJsonString: String, promise: Promise ->
+      initializeSslPinning(configJsonString, promise)
+    }
+    
+    Function("setUseSSLPinning") { usePinning: Boolean ->
+      setUseSSLPinning(usePinning)
+    }
+    
+    AsyncFunction("getUseSSLPinning") { promise: Promise ->
+      getUseSSLPinning(promise)
+    }
+  }
+  
+  private val context: Context
+    get() = requireNotNull(appContext.reactContext)
+  
+  private fun setUseSSLPinning(usePinning: Boolean) {
+    val sharedPreferences = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+    sharedPreferences.edit().putBoolean("useSSLPinning", usePinning).apply()
+  }
+  
+  private fun getUseSSLPinning(promise: Promise) {
+    val sharedPreferences = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+    val usePinning = sharedPreferences.getBoolean("useSSLPinning", true)
+    promise.resolve(usePinning)
+  }
+  
+  private fun initializeSslPinning(configJsonString: String, promise: Promise) {
+    try {
+      // Your existing Android SSL pinning logic
+      OkHttpClientProvider.setOkHttpClientFactory(
+        UseSslPinningFactory(context, configJsonString)
+      )
+      Log.d("UseSslPinning", "SSL Pinning initialized successfully")
+      promise.resolve(mapOf(
+        "message" to "SSL Pinning initialized successfully",
+        "isEnabled" to true
+      ))
+    } catch (e: Exception) {
+      promise.reject("SSL_PINNING_ERROR", "Failed to initialize SSL Pinning", e)
+    }
+  }
+}
+```
+
+Create `android/src/main/AndroidManifest.xml`:
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="expo.modules.usesslpinning">
+</manifest>
+```
+
+### 2.3 Update TypeScript Entry Point
+
+Update `src/index.ts`:
+```typescript
+import { NativeModulesProxy } from 'expo-modules-core';
+import UseSslPinningModule from './UseSslPinningModule';
+
+export interface SslPinningConfig {
+  domains: {
+    development: string;
+    production: string;
+  };
+  sha256Keys: {
+    [domain: string]: string[];
+  };
+}
+
+export interface SslPinningResult {
+  message: string;
+  isEnabled: boolean;
+  domains?: string[];
+}
+
+/**
+ * Set whether SSL pinning should be used
+ * ⚠️ Requires app restart to take effect
+ */
+export const setUseSSLPinning = (usePinning: boolean): void => {
+  return UseSslPinningModule.setUseSSLPinning(usePinning);
+};
+
+/**
+ * Get current SSL pinning state
+ */
+export const getUseSSLPinning = async (): Promise<boolean> => {
+  return await UseSslPinningModule.getUseSSLPinning();
+};
+
+/**
+ * Initialize SSL pinning with configuration
+ */
+export const initializeSslPinning = async (
+  configJsonString: string
+): Promise<SslPinningResult> => {
+  return await UseSslPinningModule.initializeSslPinning(configJsonString);
+};
+
+// For backward compatibility
+export default {
+  setUseSSLPinning,
+  getUseSSLPinning,
+  initializeSslPinning,
+};
+```
+
+## Phase 3: Create Expo Plugin
+
+### 3.1 Main Plugin File
+
+Create `plugin/src/index.ts`:
+```typescript
+import { ConfigPlugin } from '@expo/config-plugins';
+import { withAndroidSSLPinning } from './android';
+import { withIOSSSLPinning } from './ios';
+
+export interface SslPinningPluginOptions {
+  enableAndroid?: boolean;
+  enableIOS?: boolean;
+  configPath?: string;
+}
+
+const withUseSslPinning: ConfigPlugin<SslPinningPluginOptions> = (
+  config,
+  options = {}
+) => {
+  const { enableAndroid = true, enableIOS = true } = options;
+
+  if (enableAndroid) {
+    config = withAndroidSSLPinning(config, options);
+  }
+
+  if (enableIOS) {
+    config = withIOSSSLPinning(config, options);
+  }
+
+  return config;
+};
+
+export default withUseSslPinning;
+```
+
+### 3.2 Android Plugin Configuration
+
+Create `plugin/src/android.ts`:
+```typescript
+import { ConfigPlugin, AndroidConfig } from '@expo/config-plugins';
+import { SslPinningPluginOptions } from './index';
+
+export const withAndroidSSLPinning: ConfigPlugin<SslPinningPluginOptions> = (
+  config,
+  options
+) => {
+  return AndroidConfig.Permissions.withPermissions(config, [
+    'android.permission.INTERNET',
+    'android.permission.ACCESS_NETWORK_STATE',
+  ]);
+};
+```
+
+### 3.3 iOS Plugin Configuration  
+
+Create `plugin/src/ios.ts`:
+```typescript
+import { ConfigPlugin, IOSConfig } from '@expo/config-plugins';
+import { SslPinningPluginOptions } from './index';
+
+export const withIOSSSLPinning: ConfigPlugin<SslPinningPluginOptions> = (
+  config,
+  options
+) => {
+  // Add TrustKit dependency to iOS
+  config = IOSConfig.XcodeProjectFile.withBuildProperties(config, {
+    ios: {
+      pods: {
+        TrustKit: '^3.0.0'
+      }
+    }
+  });
+
+  return config;
+};
+```
+
+### 3.4 Build Plugin
+
+Add to `plugin/package.json`:
+```json
+{
+  "name": "react-native-ssl-manager/plugin",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "types": "build/index.d.ts"
+}
+```
+
+## Phase 4: Testing & Validation
+
+### 4.1 Create Test Expo App
+
+```bash
+npx create-expo-app@latest ssl-manager-expo-test
+cd ssl-manager-expo-test
+```
+
+Add to `app.json`:
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-ssl-manager",
+        {
+          "enableAndroid": true,
+          "enableIOS": true
+        }
+      ]
+    ]
+  }
+}
+```
+
+### 4.2 Test Implementation
+
+Create test implementation:
+```typescript
+import { 
+  initializeSslPinning, 
+  setUseSSLPinning, 
+  getUseSSLPinning 
+} from 'react-native-ssl-manager';
+
+const sslConfig = {
+  "domains": {
+    "development": "api.dev.example.com",
+    "production": "api.example.com"
+  },
+  "sha256Keys": {
+    "api.dev.example.com": [
+      "sha256/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=",
+      "sha256/YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY="
+    ]
+  }
+};
+
+// Test initialization
+const testSSLPinning = async () => {
+  try {
+    await initializeSslPinning(JSON.stringify(sslConfig));
+    console.log('✅ SSL Pinning initialized successfully');
+    
+    const isEnabled = await getUseSSLPinning();
+    console.log('SSL Pinning enabled:', isEnabled);
+  } catch (error) {
+    console.error('❌ SSL Pinning failed:', error);
+  }
+};
+```
+
+### 4.3 Test Checklist
+
+- [ ] **Expo Development Build**: Test with `expo run:ios` and `expo run:android`
+- [ ] **EAS Build**: Test production builds with `eas build`
+- [ ] **Expo Go Limitation**: Verify graceful failure with clear error message
+- [ ] **Traditional RN**: Ensure backward compatibility with CLI projects
+- [ ] **SSL Validation**: Test actual SSL pinning with valid/invalid certificates
+- [ ] **Configuration**: Test various SSL configurations
+- [ ] **State Management**: Test enable/disable functionality
+
+## Phase 5: Documentation & Publishing
+
+### 5.1 Update README.md
+
+```markdown
+# React Native SSL Manager
+
+## Expo Installation
+
+```bash
+npx expo install react-native-ssl-manager
+```
+
+Add plugin to your `app.json`:
+```json
+{
+  "expo": {
+    "plugins": ["react-native-ssl-manager"]
+  }
+}
+```
+
+### Expo Limitations
+
+- ❌ **Not compatible with Expo Go** - requires native code
+- ✅ **Works with EAS Build** - full functionality
+- ✅ **Works with Expo Development Build** - full functionality
+
+### Build Requirements
+
+```bash
+# For development
+expo run:ios
+expo run:android
+
+# For production
+eas build --platform all
+```
+```
+
+### 5.2 Publishing Steps
+
+1. **Build the module:**
+   ```bash
+   expo-module build
+   ```
+
+2. **Test in example app:**
+   ```bash
+   cd example
+   expo run:ios
+   expo run:android
+   ```
+
+3. **Publish to NPM:**
+   ```bash
+   npm version patch
+   npm publish
+   ```
+
+## Phase 6: Migration Guide for Users
+
+### 6.1 For Existing React Native CLI Users
+
+No changes needed - backward compatibility maintained.
+
+### 6.2 For New Expo Users
+
+Create migration documentation:
+
+```markdown
+# Migration to Expo
+
+## 1. Install
+```bash
+npx expo install react-native-ssl-manager
+```
+
+## 2. Configure
+Add to `app.json`:
+```json
+{
+  "expo": {
+    "plugins": ["react-native-ssl-manager"]
+  }
+}
+```
+
+## 3. Build
+```bash
+# Development
+expo run:ios
+
+# Production  
+eas build
+```
+
+## 4. Usage
+Same API as traditional React Native - no code changes needed!
+```
+
+## Success Criteria Checklist
+
+### Technical Requirements
+- [ ] Expo Module successfully created and builds
+- [ ] Expo Plugin properly configures native dependencies
+- [ ] iOS TrustKit integration works in Expo
+- [ ] Android SSL pinning works in Expo
+- [ ] TypeScript definitions are complete
+- [ ] Backward compatibility with RN CLI maintained
+
+### Testing Requirements  
+- [ ] Works in Expo Development Build
+- [ ] Works in EAS Build (iOS/Android)
+- [ ] Fails gracefully in Expo Go with clear message
+- [ ] All existing functionality preserved
+- [ ] SSL pinning validates correctly
+- [ ] Configuration parsing works
+
+### Documentation Requirements
+- [ ] Updated README with Expo instructions
+- [ ] Migration guide created
+- [ ] Plugin configuration documented
+- [ ] Limitations clearly stated
+- [ ] Examples provided for both RN CLI and Expo
+
+### Publishing Requirements
+- [ ] NPM package updated with Expo support
+- [ ] Plugin published separately if needed
+- [ ] Version bumped appropriately
+- [ ] Changelog updated with Expo support
+
+## Expected Timeline
+
+- **Phase 1-2**: 2-3 days (Module conversion)
+- **Phase 3**: 1-2 days (Plugin creation)  
+- **Phase 4**: 1-2 days (Testing)
+- **Phase 5-6**: 1 day (Documentation & Publishing)
+
+**Total**: ~1 week for complete Expo compatibility
+
+## Common Issues & Solutions
+
+### Issue: TrustKit not found in Expo
+**Solution**: Ensure plugin properly adds TrustKit to Podfile
+
+### Issue: Module not registered
+**Solution**: Check expo-module.config.json platform settings
+
+### Issue: SSL pinning not working
+**Solution**: Verify EAS Build is used, not Expo Go
+
+### Issue: TypeScript errors
+**Solution**: Update @types/expo and expo-modules-core versions
+description:
+globs:
+alwaysApply: false
+---
