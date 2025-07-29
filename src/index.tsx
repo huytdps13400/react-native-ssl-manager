@@ -1,4 +1,14 @@
 import { NativeModules, Platform } from 'react-native';
+import type { SslPinningResult } from './UseSslPinning.types';
+
+// Export types from the library
+export type {
+  SslPinningConfig,
+  SslPinningResult,
+  SslPinningPluginOptions,
+  SslPinningError,
+} from './UseSslPinning.types';
+export { SslPinningErrorType } from './UseSslPinning.types';
 
 const LINKING_ERROR =
   `The package 'react-native-ssl-manager' doesn't seem to be linked. Make sure: \n\n` +
@@ -17,8 +27,8 @@ const UseSslPinning = NativeModules.UseSslPinning
       }
     );
 
-export const setUseSSLPinning = (usePinning: boolean): void => {
-  UseSslPinning.setUseSSLPinning(usePinning);
+export const setUseSSLPinning = (usePinning: boolean): Promise<void> => {
+  return UseSslPinning.setUseSSLPinning(usePinning);
 };
 
 /**
@@ -34,10 +44,10 @@ export const getUseSSLPinning = async (): Promise<boolean> => {
  * Initializes SSL pinning with the provided configuration.
  *
  * @param {string} configJsonString - The JSON string containing the SSL pinning configuration.
- * @returns {Promise<any>} A promise that resolves when the SSL pinning is initialized.
+ * @returns {Promise<SslPinningResult>} A promise that resolves when the SSL pinning is initialized.
  */
 export const initializeSslPinning = async (
   configJsonString: string
-): Promise<any> => {
+): Promise<SslPinningResult> => {
   return await UseSslPinning.initializeSslPinning(configJsonString);
 };
