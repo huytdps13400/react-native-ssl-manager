@@ -7,6 +7,9 @@ module.exports = {
             'import com.usesslpinning.cli.UseSslPinningPackage;',
           packageInstance: 'new UseSslPinningPackage()',
         },
+        ios: {
+          podspecPath: 'UseSslPinningModule.podspec',
+        },
       },
     },
   },
