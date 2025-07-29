@@ -4,6 +4,7 @@ const LINKING_ERROR = `The package 'react-native-ssl-manager' doesn't seem to be
     Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
     '- You rebuilt the app after installing the package\n' +
     '- You are not using Expo Go\n';
+// Try to get the module from NativeModules
 const UseSslPinning = NativeModules.UseSslPinning
     ? NativeModules.UseSslPinning
     : new Proxy({}, {
@@ -11,6 +12,12 @@ const UseSslPinning = NativeModules.UseSslPinning
             throw new Error(LINKING_ERROR);
         },
     });
+/**
+ * Sets whether SSL pinning should be used.
+ *
+ * @param {boolean} usePinning - Whether to enable SSL pinning
+ * @returns {Promise<void>} A promise that resolves when the setting is saved
+ */
 export const setUseSSLPinning = (usePinning) => {
     return UseSslPinning.setUseSSLPinning(usePinning);
 };

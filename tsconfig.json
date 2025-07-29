@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "rootDir": ".",
+    "outDir": "lib",
     "paths": {
       "react-native-ssl-manager": ["./src/index"]
     },

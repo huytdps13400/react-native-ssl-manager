@@ -1,9 +1,9 @@
 {
   "platforms": ["android", "ios"],
   "android": {
-    "modules": ["expo.modules.usesslpinning.UseSslPinningModule"]
+    "modules": ["com.usesslpinning.expo.UseSslPinningExpoModule"]
   },
   "ios": {
-    "modules": ["UseSslPinningModule"]
+    "modules": ["UseSslPinningExpoModule"]
   }
 }

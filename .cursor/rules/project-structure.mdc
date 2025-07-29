@@ -1,0 +1,144 @@
+---
+alwaysApply: true
+---
+
+# React Native SSL Manager - Project Structure
+
+This project has been restructured to support both React Native CLI and Expo with shared logic.
+
+## Complete Directory Structure
+
+```
+react-native-ssl-manager/
+├── android/
+│   ├── build.gradle                                    # Android build configuration
+│   ├── gradle.properties                               # Gradle properties
+│   └── src/main/java/com/usesslpinning/
+│       ├── cli/
+│       │   ├── UseSslPinningModule.kt                  # React Native CLI module
+│       │   └── UseSslPinningPackage.kt                 # React Native CLI package
+│       ├── expo/
+│       │   └── UseSslPinningExpoModule.kt              # Expo module (Expo Modules API)
+│       └── SharedLogic.kt                              # Shared logic for both CLI and Expo
+├── ios/
+│   ├── UseSslPinning.h                                 # Main header file
+│   ├── cli/
+│   │   └── UseSslPinningModule.swift                   # React Native CLI module
+│   ├── expo/
+│   │   └── UseSslPinningExpoModule.swift               # Expo module (Expo Modules API)
+│   ├── SharedLogic.swift                               # Shared logic for both CLI and Expo
+│   └── UseSslPinningModule.podspec                     # CocoaPods specification
+├── plugin/
+│   ├── package.json                                    # Plugin package configuration
+│   └── src/
+│       ├── index.js                                    # Plugin entry point
+│       └── index.ts                                    # TypeScript plugin entry point
+├── src/
+│   ├── index.js                                        # JavaScript entry point
+│   ├── index.tsx                                       # TypeScript entry point
+│   ├── UseSslPinning.types.js                          # JavaScript type definitions
+│   ├── UseSslPinning.types.ts                          # TypeScript type definitions
+│   └── __tests__/                                      # Test files
+├── example/                                            # React Native CLI example
+├── example-expo/                                       # Expo example
+├── scripts/
+│   ├── build.sh                                        # Build script
+│   └── expo-podspec-switch.js                          # Expo podspec switching script
+├── expo-module.config.json                             # Expo module configuration
+├── react-native.config.js                              # React Native autolinking configuration
+├── package.json                                        # Main package configuration
+├── tsconfig.json                                       # TypeScript configuration
+├── babel.config.js                                     # Babel configuration
+├── STRUCTURE.md                                        # Structure documentation
+└── README.md                                           # Main documentation
+```
+
+## Key Files and Their Purposes
+
+### Shared Logic Files
+- [android/src/main/java/com/usesslpinning/SharedLogic.kt](mdc:android/src/main/java/com/usesslpinning/SharedLogic.kt) - Android shared logic
+- [ios/SharedLogic.swift](mdc:ios/SharedLogic.swift) - iOS shared logic
+
+### React Native CLI Modules
+- [android/src/main/java/com/usesslpinning/cli/UseSslPinningModule.kt](mdc:android/src/main/java/com/usesslpinning/cli/UseSslPinningModule.kt) - Android CLI module
+- [android/src/main/java/com/usesslpinning/cli/UseSslPinningPackage.kt](mdc:android/src/main/java/com/usesslpinning/cli/UseSslPinningPackage.kt) - Android CLI package
+- [ios/cli/UseSslPinningModule.swift](mdc:ios/cli/UseSslPinningModule.swift) - iOS CLI module
+
+### Expo Modules
+- [android/src/main/java/com/usesslpinning/expo/UseSslPinningExpoModule.kt](mdc:android/src/main/java/com/usesslpinning/expo/UseSslPinningExpoModule.kt) - Android Expo module
+- [ios/expo/UseSslPinningExpoModule.swift](mdc:ios/expo/UseSslPinningExpoModule.swift) - iOS Expo module
+
+### Configuration Files
+- [expo-module.config.json](mdc:expo-module.config.json) - Expo module configuration
+- [react-native.config.js](mdc:react-native.config.js) - React Native autolinking
+- [ios/UseSslPinningModule.podspec](mdc:ios/UseSslPinningModule.podspec) - iOS CocoaPods spec
+- [package.json](mdc:package.json) - Main package configuration
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript configuration
+- [babel.config.js](mdc:babel.config.js) - Babel configuration
+
+### JavaScript/TypeScript Interface
+- [src/index.tsx](mdc:src/index.tsx) - Main TypeScript wrapper
+- [src/index.js](mdc:src/index.js) - Main JavaScript wrapper
+- [src/UseSslPinning.types.ts](mdc:src/UseSslPinning.types.ts) - TypeScript definitions
+- [src/UseSslPinning.types.js](mdc:src/UseSslPinning.types.js) - JavaScript definitions
+
+### Plugin System
+- [plugin/src/index.ts](mdc:plugin/src/index.ts) - Expo config plugin
+- [plugin/package.json](mdc:plugin/package.json) - Plugin package configuration
+
+### Build and Scripts
+- [scripts/build.sh](mdc:scripts/build.sh) - Build automation script
+- [scripts/expo-podspec-switch.js](mdc:scripts/expo-podspec-switch.js) - Expo podspec switching
+
+## Module Architecture
+
+### Shared Logic
+The shared logic contains common functionality used by both React Native CLI and Expo modules:
+- SSL pinning state management (SharedPreferences/UserDefaults)
+- Configuration parsing and validation
+- Common utility functions
+- TrustKit configuration (iOS)
+
+### React Native CLI Modules
+These modules use the React Native bridge API and are designed for traditional React Native CLI projects:
+- Use React Native's `ReactContextBaseJavaModule` (Android)
+- Use React Native's `RCTBridgeModule` protocol (iOS)
+- Register with `ReactPackage` (Android) and native modules (iOS)
+
+### Expo Modules
+These modules use the Expo Modules API and are designed for Expo projects:
+- Use Expo's `Module` class with `ModuleDefinition` (Android)
+- Use Expo's `Module` class with `ModuleDefinition` (iOS)
+- Automatically registered via `expo-module.config.json`
+
+## Development Guidelines
+
+1. **Always use shared logic** for common functionality to avoid code duplication
+2. **Update both CLI and Expo modules** when adding new features
+3. **Test on both platforms** (React Native CLI and Expo)
+4. **Use TypeScript** for all new code
+5. **Follow the existing naming conventions** for consistency
+6. **Keep shared logic platform-agnostic** when possible
+7. **Update both JavaScript and TypeScript entry points** when adding new exports
+
+## Build Commands
+
+- `yarn build:all` - Build the entire project
+- `yarn build:examples` - Build with examples
+- `yarn typecheck` - Run TypeScript checks
+- `yarn test` - Run tests
+- `yarn lint` - Run linting
+- `yarn clean` - Clean build artifacts
+
+## Platform Detection
+
+The library automatically detects whether it's running in a React Native CLI or Expo environment and uses the appropriate native module. The JavaScript API remains the same regardless of the platform.
+
+## File Naming Conventions
+
+- **Shared Logic**: `SharedLogic.kt` / `SharedLogic.swift`
+- **CLI Modules**: `UseSslPinningModule.kt` / `UseSslPinningModule.swift`
+- **Expo Modules**: `UseSslPinningExpoModule.kt` / `UseSslPinningExpoModule.swift`
+- **Packages**: `UseSslPinningPackage.kt`
+- **Headers**: `UseSslPinning.h`
+- **Podspecs**: `UseSslPinningModule.podspec`

@@ -3,21 +3,23 @@
   "version": "1.0.0",
   "description": "React Native SSL Pinning provides seamless SSL certificate pinning integration for enhanced network security in React Native apps. This module enables developers to easily implement and manage certificate pinning, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's particularly useful for development and testing scenarios.",
   "main": "src/index.js",
-  "types": "src/index.tsx",
+  "types": "src/UseSslPinning.types.ts",
   "react-native": {
     "android": {
-      "source": "android/src/main/java/com/usesslpinning/UseSslPinningPackage.kt"
+      "source": "android/src/main/java/com/usesslpinning/cli/UseSslPinningPackage.kt"
     },
     "ios": {
-      "podspec": "react-native-ssl-manager.podspec"
+      "podspec": "ios/UseSslPinningModule.podspec"
     }
   },
   "source": "src/index",
   "files": [
+    "lib",
     "src",
     "build",
     "android",
     "ios",
+    "plugin",
     "*.podspec",
     "!**/__tests__",
     "!**/__fixtures__",
@@ -33,13 +35,15 @@
     "!**/.*"
   ],
   "scripts": {
-    "build": "react-native-builder-bob build",
+    "build": "tsc",
     "clean": "expo-module clean",
     "lint": "expo-module lint",
     "test": "expo-module test",
     "prepare": "echo 'Skipping prepare script'",
     "typecheck": "tsc --noEmit",
     "release": "release-it",
+    "build:all": "./scripts/build.sh",
+    "build:examples": "./scripts/build.sh --with-examples",
     "example:install": "cd example && yarn install",
     "example:ios": "cd example && npx react-native run-ios",
     "example:android": "cd example && npx react-native run-android",

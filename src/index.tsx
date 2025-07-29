@@ -16,6 +16,7 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
+// Try to get the module from NativeModules
 const UseSslPinning = NativeModules.UseSslPinning
   ? NativeModules.UseSslPinning
   : new Proxy(
@@ -27,6 +28,12 @@ const UseSslPinning = NativeModules.UseSslPinning
       }
     );
 
+/**
+ * Sets whether SSL pinning should be used.
+ *
+ * @param {boolean} usePinning - Whether to enable SSL pinning
+ * @returns {Promise<void>} A promise that resolves when the setting is saved
+ */
 export const setUseSSLPinning = (usePinning: boolean): Promise<void> => {
   return UseSslPinning.setUseSSLPinning(usePinning);
 };

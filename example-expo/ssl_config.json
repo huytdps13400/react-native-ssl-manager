@@ -1,0 +1,16 @@
+{
+  "domains": {
+    "development": "api.dev.example.com",
+    "production": "api.example.com"
+  },
+  "sha256Keys": {
+    "api.dev.example.com": [
+      "sha256/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=",
+      "sha256/YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY="
+    ],
+    "api.example.com": [
+      "sha256/ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ=",
+      "sha256/WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW="
+    ]
+  }
+} 

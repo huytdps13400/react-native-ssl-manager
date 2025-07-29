@@ -3,7 +3,8 @@ module.exports = {
     'react-native-ssl-manager': {
       platforms: {
         android: {
-          packageImportPath: 'import com.usesslpinning.UseSslPinningPackage;',
+          packageImportPath:
+            'import com.usesslpinning.cli.UseSslPinningPackage;',
           packageInstance: 'new UseSslPinningPackage()',
         },
       },
