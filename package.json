@@ -10,7 +10,7 @@
       "source": "android/src/main/java/com/usesslpinning/cli/UseSslPinningPackage.kt"
     },
     "ios": {
-      "podspec": "ios/UseSslPinningModule.podspec"
+      "podspec": "UseSslPinningModule.podspec"
     }
   },
   "source": "src/index",

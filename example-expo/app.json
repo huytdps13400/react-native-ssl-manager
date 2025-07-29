@@ -35,8 +35,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      "react-native-ssl-manager"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

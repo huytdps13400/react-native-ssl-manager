@@ -7,9 +7,9 @@ Pod::Spec.new do |s|
     s.platforms = { :ios => '13.0' }
     s.source = { :git => 'https://github.com/huytdps13400/react-native-ssl-manager' }
     s.source_files = [
-      'SharedLogic.swift',
-      'cli/**/*.{h,m,swift}',
-      'expo/**/*.{h,m,swift}'
+      'ios/SharedLogic.swift',
+      'ios/cli/**/*.{h,m,swift}',
+      'ios/expo/**/*.{h,m,swift}'
     ]
     s.dependency 'ExpoModulesCore'
     s.dependency 'TrustKit'
