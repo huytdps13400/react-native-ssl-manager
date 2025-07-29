@@ -22,6 +22,7 @@
     "ios",
     "plugin",
     "*.podspec",
+    "UseSslPinningModule.podspec",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__",
