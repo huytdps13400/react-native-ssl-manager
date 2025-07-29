@@ -1,6 +1,7 @@
 {
   "name": "react-native-ssl-manager",
   "version": "1.0.0",
+  "type": "module",
   "description": "React Native SSL Pinning provides seamless SSL certificate pinning integration for enhanced network security in React Native apps. This module enables developers to easily implement and manage certificate pinning, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's particularly useful for development and testing scenarios.",
   "main": "src/index.js",
   "types": "src/UseSslPinning.types.ts",

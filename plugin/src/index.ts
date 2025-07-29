@@ -109,3 +109,6 @@ const withUseSslPinning: ConfigPlugin<SslPinningPluginOptions> = (
 };
 
 export default withUseSslPinning;
+
+// Export for Expo config plugins
+module.exports = withUseSslPinning;

@@ -2,8 +2,8 @@
   "name": "react-native-ssl-manager",
   "version": "1.0.0",
   "description": "Expo config plugin for react-native-ssl-manager",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
@@ -32,4 +32,4 @@
   "peerDependencies": {
     "expo": "*"
   }
-} 
+}
