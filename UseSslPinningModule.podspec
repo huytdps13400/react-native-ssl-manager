@@ -1,5 +1,5 @@
 Pod::Spec.new do |s|
-    s.name = 'UseSslPinningModule'
+    s.name = 'react-native-ssl-manager'
     s.version = '1.0.0'
     s.summary = 'SSL Pinning Module for React Native and Expo'
     s.author = 'Huy Tran'
