@@ -5,8 +5,8 @@ import React
  * React Native CLI module for SSL Pinning
  * Uses the shared logic for common functionality
  */
-@objc(UseSslPinningModule)
-class UseSslPinningModule: NSObject {
+@objc(UseSslPinning)
+class UseSslPinning: NSObject {
     
     @objc
     func setUseSSLPinning(_ usePinning: Bool, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
@@ -22,48 +22,15 @@ class UseSslPinningModule: NSObject {
     
     @objc
     func initializeSslPinning(_ configJsonString: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
-        let usePinning = SharedLogic.getUseSSLPinning()
-        
-        if !usePinning {
-            let result: [String: Any] = [
-                "message": "SSL Pinning is disabled",
-                "isEnabled": false,
-                "domains": []
-            ]
+        do {
+            let result = try SharedLogic.initializeSslPinning(configJsonString)
             resolve(result)
-            return
+        } catch let error as SSLPinningError {
+            NSLog("❌ SSL Pinning Error: %@", error.message)
+            reject("SSL_PINNING_ERROR", error.message, error)
+        } catch {
+            NSLog("❌ Unexpected Error: %@", error.localizedDescription)
+            reject("SSL_PINNING_ERROR", "Unexpected error during SSL pinning initialization", error)
         }
-        
-        guard let config = SharedLogic.parseSslPinningConfig(configJsonString) else {
-            reject("INVALID_CONFIGURATION", "Invalid SSL pinning configuration format", nil)
-            return
-        }
-        
-        guard SharedLogic.validateSslPinningConfig(config) else {
-            reject("INVALID_CONFIGURATION", "Invalid SSL pinning configuration format", nil)
-            return
-        }
-        
-        // Here you would implement the actual SSL pinning logic
-        // For now, we'll just return a success response
-        guard let sha256Keys = config["sha256Keys"] as? [String: [String]] else {
-            reject("INVALID_CONFIGURATION", "Invalid SSL pinning configuration format", nil)
-            return
-        }
-        
-        let domains = Array(sha256Keys.keys)
-        
-        let result: [String: Any] = [
-            "message": "SSL Pinning initialized successfully",
-            "isEnabled": true,
-            "domains": domains
-        ]
-        
-        resolve(result)
     }
-    
-    @objc
-    static func requiresMainQueueSetup() -> Bool {
-        return false
-    }
-} 
+}

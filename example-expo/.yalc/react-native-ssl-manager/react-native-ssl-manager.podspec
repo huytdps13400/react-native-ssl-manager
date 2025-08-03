@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
     s.author = 'Huy Tran'
     s.homepage = 'https://github.com/huytdps13400/react-native-ssl-manager'
     s.platforms = { :ios => '13.0' }
-    s.source = { :git => 'https://github.com/huytdps13400/react-native-ssl-manager' }
+    s.source  = { :path => '.' } 
     s.source_files = [
       'ios/SharedLogic.swift',
       'ios/cli/**/*.{h,m,swift}',

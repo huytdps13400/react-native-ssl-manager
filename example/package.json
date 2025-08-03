@@ -12,6 +12,7 @@
   "dependencies": {
     "react": "18.2.0",
     "react-native": "0.73.6",
+    "react-native-restart": "^0.0.27",
     "react-native-ssl-manager": "file:../"
   },
   "devDependencies": {

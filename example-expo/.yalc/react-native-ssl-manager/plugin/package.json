@@ -1,0 +1,35 @@
+{
+  "name": "react-native-ssl-manager",
+  "version": "1.0.0",
+  "description": "Expo config plugin for react-native-ssl-manager",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "ssl-pinning",
+    "config-plugin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huytdps13400/react-native-ssl-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/huytdps13400/react-native-ssl-manager/issues"
+  },
+  "author": "Trần Đình Huy <kingonwork@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/huytdps13400/react-native-ssl-manager#readme",
+  "devDependencies": {
+    "expo-module-scripts": "^3.4.0"
+  },
+  "peerDependencies": {
+    "expo": "*"
+  }
+}

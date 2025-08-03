@@ -52,16 +52,6 @@ android {
       }
     }
   }
-  
-  // Only include CLI files for React Native CLI environment
-  sourceSets {
-    main {
-      java {
-        srcDirs = ['src/main/java']
-        exclude '**/expo/**'
-      }
-    }
-  }
 
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 

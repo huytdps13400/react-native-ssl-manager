@@ -10,47 +10,45 @@ This project has been restructured to support both React Native CLI and Expo wit
 
 ```
 react-native-ssl-manager/
-├── android/
-│   ├── build.gradle                                    # Android build configuration
-│   ├── gradle.properties                               # Gradle properties
+├── android/                                    # Android native code
+│   ├── build.gradle                            # Android build configuration
+│   ├── gradle.properties                       # Gradle properties
 │   └── src/main/java/com/usesslpinning/
-│       ├── cli/
-│       │   ├── UseSslPinningModule.kt                  # React Native CLI module
-│       │   └── UseSslPinningPackage.kt                 # React Native CLI package
-│       ├── expo/
-│       │   └── UseSslPinningExpoModule.kt              # Expo module (Expo Modules API)
-│       └── SharedLogic.kt                              # Shared logic for both CLI and Expo
-├── ios/
-│   ├── UseSslPinning.h                                 # Main header file
+│       ├── SharedLogic.kt                      # Logic chung
+│       ├── cli/                                # React Native CLI modules
+│       │   ├── UseSslPinningModule.kt
+│       │   └── UseSslPinningPackage.kt
+│       └── expo/                               # Expo modules  
+│           └── UseSslPinningExpoModule.kt
+├── ios/                                        # iOS native code
+│   ├── UseSslPinning.h                         # Main header file
+│   ├── SharedLogic.swift                       # Logic chung
 │   ├── cli/
-│   │   └── UseSslPinningModule.swift                   # React Native CLI module
-│   ├── expo/
-│   │   └── UseSslPinningExpoModule.swift               # Expo module (Expo Modules API)
-│   ├── SharedLogic.swift                               # Shared logic for both CLI and Expo
-│   └── UseSslPinningModule.podspec                     # CocoaPods specification
-├── plugin/
-│   ├── package.json                                    # Plugin package configuration
+│   │   └── UseSslPinningModule.swift           # React Native CLI module
+│   └── expo/
+│       └── UseSslPinningExpoModule.swift       # Expo module
+├── src/                                        # TypeScript source
+│   ├── index.tsx                               # Entry point chính
+│   ├── UseSslPinning.types.ts                  # Type definitions
+│   └── __tests__/                              # Test files
+├── lib/                                        # Compiled output (auto-generated)
+│   ├── index.js + index.d.ts                   # Compiled entry point
+│   └── UseSslPinning.types.js + .d.ts          # Compiled types
+├── plugin/                                     # Expo config plugin
+│   ├── package.json                            # Plugin package configuration
 │   └── src/
-│       ├── index.js                                    # Plugin entry point
-│       └── index.ts                                    # TypeScript plugin entry point
-├── src/
-│   ├── index.js                                        # JavaScript entry point
-│   ├── index.tsx                                       # TypeScript entry point
-│   ├── UseSslPinning.types.js                          # JavaScript type definitions
-│   ├── UseSslPinning.types.ts                          # TypeScript type definitions
-│   └── __tests__/                                      # Test files
-├── example/                                            # React Native CLI example
-├── example-expo/                                       # Expo example
+│       └── index.ts                            # TypeScript plugin source code
+├── example/                                    # React Native CLI example
+├── example-expo/                               # Expo example 
 ├── scripts/
-│   ├── build.sh                                        # Build script
-│   └── expo-podspec-switch.js                          # Expo podspec switching script
-├── expo-module.config.json                             # Expo module configuration
-├── react-native.config.js                              # React Native autolinking configuration
-├── package.json                                        # Main package configuration
-├── tsconfig.json                                       # TypeScript configuration
-├── babel.config.js                                     # Babel configuration
-├── STRUCTURE.md                                        # Structure documentation
-└── README.md                                           # Main documentation
+│   └── build.sh                                # Build script
+├── expo-module.config.json                     # Expo module config
+├── react-native.config.js                      # React Native autolinking
+├── react-native-ssl-manager.podspec            # iOS CocoaPods spec
+├── package.json                                # Main package config
+├── tsconfig.json                               # TypeScript configuration
+├── babel.config.js                             # Babel configuration
+└── README.md                                   # Main documentation
 ```
 
 ## Key Files and Their Purposes
@@ -71,16 +69,15 @@ react-native-ssl-manager/
 ### Configuration Files
 - [expo-module.config.json](mdc:expo-module.config.json) - Expo module configuration
 - [react-native.config.js](mdc:react-native.config.js) - React Native autolinking
-- [ios/UseSslPinningModule.podspec](mdc:ios/UseSslPinningModule.podspec) - iOS CocoaPods spec
+- [ios/react-native-ssl-manager.podspec](mdc:ios/react-native-ssl-manager.podspec) - iOS CocoaPods spec
 - [package.json](mdc:package.json) - Main package configuration
 - [tsconfig.json](mdc:tsconfig.json) - TypeScript configuration
 - [babel.config.js](mdc:babel.config.js) - Babel configuration
 
 ### JavaScript/TypeScript Interface
-- [src/index.tsx](mdc:src/index.tsx) - Main TypeScript wrapper
-- [src/index.js](mdc:src/index.js) - Main JavaScript wrapper
-- [src/UseSslPinning.types.ts](mdc:src/UseSslPinning.types.ts) - TypeScript definitions
-- [src/UseSslPinning.types.js](mdc:src/UseSslPinning.types.js) - JavaScript definitions
+- [src/index.tsx](mdc:src/index.tsx) - Main TypeScript entry point
+- [src/UseSslPinning.types.ts](mdc:src/UseSslPinning.types.ts) - TypeScript type definitions
+- [lib/index.js + index.d.ts](mdc:lib/) - Compiled JavaScript output with type definitions
 
 ### Plugin System
 - [plugin/src/index.ts](mdc:plugin/src/index.ts) - Expo config plugin
@@ -88,7 +85,6 @@ react-native-ssl-manager/
 
 ### Build and Scripts
 - [scripts/build.sh](mdc:scripts/build.sh) - Build automation script
-- [scripts/expo-podspec-switch.js](mdc:scripts/expo-podspec-switch.js) - Expo podspec switching
 
 ## Module Architecture
 
@@ -116,10 +112,11 @@ These modules use the Expo Modules API and are designed for Expo projects:
 1. **Always use shared logic** for common functionality to avoid code duplication
 2. **Update both CLI and Expo modules** when adding new features
 3. **Test on both platforms** (React Native CLI and Expo)
-4. **Use TypeScript** for all new code
+4. **Use TypeScript only** - All source code is written in TypeScript
 5. **Follow the existing naming conventions** for consistency
 6. **Keep shared logic platform-agnostic** when possible
-7. **Update both JavaScript and TypeScript entry points** when adding new exports
+7. **Build with `yarn build`** to generate compiled JavaScript and type definitions in `lib/`
+8. **Test examples** to ensure library integration works correctly
 
 ## Build Commands
 
@@ -132,7 +129,7 @@ These modules use the Expo Modules API and are designed for Expo projects:
 
 ## Platform Detection
 
-The library automatically detects whether it's running in a React Native CLI or Expo environment and uses the appropriate native module. The JavaScript API remains the same regardless of the platform.
+The library automatically detects whether it's running in a React Native CLI or Expo environment and uses the appropriate native module. The TypeScript API remains the same regardless of the platform. Compiled JavaScript files in `lib/` provide the runtime bridge between TypeScript and native modules.
 
 ## File Naming Conventions
 
@@ -141,4 +138,4 @@ The library automatically detects whether it's running in a React Native CLI or 
 - **Expo Modules**: `UseSslPinningExpoModule.kt` / `UseSslPinningExpoModule.swift`
 - **Packages**: `UseSslPinningPackage.kt`
 - **Headers**: `UseSslPinning.h`
-- **Podspecs**: `UseSslPinningModule.podspec`
+- **Podspecs**: `react-native-ssl-manager.podspec`

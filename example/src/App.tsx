@@ -6,6 +6,7 @@ import {
   setUseSSLPinning,
 } from 'react-native-ssl-manager';
 import config from '../ssl_config.json';
+import RNRestart from 'react-native-restart';
 
 export default function App() {
   const [imageUri, setImageUri] = useState<string>('');
@@ -39,12 +40,15 @@ export default function App() {
   const toggleSSLPinning = async (value: boolean) => {
     setIsSSLEnabled(value);
     setUseSSLPinning(value);
+    setTimeout(() => {
+      RNRestart.restart();
+    }, 300);
   };
 
   const getMoviesFromApiAsync = async () => {
     try {
       const response = await fetch(
-        'https://api.example.com/api/home/home-banner'
+        'https://sbkh.wrapper.sbuxkh.com/ms-customer/api/home/home-banner'
       );
       const json = await response.json();
       console.log('JSON', json);

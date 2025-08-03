@@ -19,43 +19,15 @@ public class UseSslPinningExpoModule: Module {
         }
         
         AsyncFunction("initializeSslPinning") { (configJsonString: String) -> [String: Any] in
-            let usePinning = SharedLogic.getUseSSLPinning()
-            
-            if !usePinning {
-                return [
-                    "message": "SSL Pinning is disabled",
-                    "isEnabled": false,
-                    "domains": []
-                ]
+            do {
+                return try SharedLogic.initializeSslPinning(configJsonString)
+            } catch let error as SSLPinningError {
+                NSLog("❌ SSL Pinning Error: %@", error.message)
+                throw Exception(name: "SSL_PINNING_ERROR", description: error.message)
+            } catch {
+                NSLog("❌ Unexpected Error: %@", error.localizedDescription)
+                throw Exception(name: "SSL_PINNING_ERROR", description: "Unexpected error during SSL pinning initialization")
             }
-            
-            guard let config = SharedLogic.parseSslPinningConfig(configJsonString) else {
-                throw Exception(name: "INVALID_CONFIGURATION", description: "Invalid SSL pinning configuration format")
-            }
-            
-            guard SharedLogic.validateSslPinningConfig(config) else {
-                throw Exception(name: "INVALID_CONFIGURATION", description: "Invalid SSL pinning configuration format")
-            }
-            
-            guard let trustKitConfig = SharedLogic.createTrustKitConfig(from: config) else {
-                throw Exception(name: "INVALID_CONFIGURATION", description: "Failed to create TrustKit configuration")
-            }
-            
-            guard let sha256Keys = config["sha256Keys"] as? [String: [String]] else {
-                throw Exception(name: "INVALID_CONFIGURATION", description: "Invalid SSL pinning configuration format")
-            }
-            
-            let domains = Array(sha256Keys.keys)
-            
-            DispatchQueue.main.async {
-                TrustKit.initSharedInstance(withConfiguration: trustKitConfig)
-            }
-            
-            return [
-                "message": "SSL Pinning initialized successfully",
-                "isEnabled": true,
-                "domains": domains
-            ]
         }
     }
 } 

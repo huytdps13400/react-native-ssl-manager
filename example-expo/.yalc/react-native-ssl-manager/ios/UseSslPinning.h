@@ -1,5 +1,5 @@
 #import <React/RCTBridgeModule.h>
 
-// Forward declaration for Swift module
 @interface UseSslPinningModule : NSObject <RCTBridgeModule>
+
 @end
