@@ -47,35 +47,6 @@ class UseSslPinningModule(reactContext: ReactApplicationContext) :
         promise.resolve(usePinning)
     }
 
-  @ReactMethod
-  fun initializeSslPinning(configJsonString: String, promise: Promise) {
-    try {
-      Log.d(NAME, "📋 initializeSslPinning called - saving config")
-      
-      val sharedPreferences = reactApplicationContext.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-      sharedPreferences.edit().putString("sslConfig", configJsonString).apply()
-      
-      Log.d(NAME, "✅ SSL config saved successfully")
-      promise.resolve("SSL config saved - will be applied on next request")
-    } catch (e: Exception) {
-      promise.reject("SSL_PINNING_ERROR", "Failed to save SSL config", e)
-    }
-  }
-
-  @ReactMethod
-  fun updateSslConfig(configJsonString: String, promise: Promise) {
-    try {
-      Log.d(NAME, "📋 updateSslConfig called - updating config")
-      
-      val sharedPreferences = reactApplicationContext.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-      sharedPreferences.edit().putString("sslConfig", configJsonString).apply()
-      
-      Log.d(NAME, "✅ SSL config updated successfully")
-      promise.resolve("SSL config updated - will be applied on next request")
-    } catch (e: Exception) {
-      promise.reject("SSL_CONFIG_UPDATE_ERROR", "Failed to update SSL config", e)
-    }
-  }
 
     companion object {
         const val NAME = "UseSslPinning"

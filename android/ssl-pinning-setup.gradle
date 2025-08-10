@@ -1,6 +1,3 @@
-// ===== SSL Pinning: copy ssl_config.json to app/src/main/assets =====
-
-// ---- helpers ----
 def findSslConfigFile() {
     def candidates = [
         file("${project.rootDir}/../ssl_config.json"), // repo root (android/ là thư mục con)
