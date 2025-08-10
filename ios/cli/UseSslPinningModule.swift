@@ -8,6 +8,23 @@ import React
 @objc(UseSslPinning)
 class UseSslPinning: NSObject {
     
+    override init() {
+        super.init()
+        
+        // Early initialization - setup SSL pinning if enabled
+        let isEnabled = SharedLogic.getUseSSLPinning()
+        if isEnabled {
+            do {
+                let _ = try SharedLogic.initializeSslPinningFromBundle()
+                NSLog("✅ SSL Pinning early initialization successful")
+            } catch {
+                NSLog("❌ SSL Pinning early initialization failed: %@", error.localizedDescription)
+            }
+        } else {
+            NSLog("🔓 SSL Pinning disabled on startup")
+        }
+    }
+    
     @objc
     func setUseSSLPinning(_ usePinning: Bool, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
         SharedLogic.setUseSSLPinning(usePinning)
@@ -20,17 +37,5 @@ class UseSslPinning: NSObject {
         resolve(usePinning)
     }
     
-    @objc
-    func initializeSslPinning(_ configJsonString: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
-        do {
-            let result = try SharedLogic.initializeSslPinning(configJsonString)
-            resolve(result)
-        } catch let error as SSLPinningError {
-            NSLog("❌ SSL Pinning Error: %@", error.message)
-            reject("SSL_PINNING_ERROR", error.message, error)
-        } catch {
-            NSLog("❌ Unexpected Error: %@", error.localizedDescription)
-            reject("SSL_PINNING_ERROR", "Unexpected error during SSL pinning initialization", error)
-        }
-    }
+    
 }

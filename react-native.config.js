@@ -22,7 +22,10 @@ module.exports = {
           console.log('🔗 React Native SSL Manager linked successfully');
           console.log('📋 SSL config auto-copy script is now available');
           console.log(
-            '💡 Run "cd android && ./gradlew checkSslConfig" to verify setup'
+            '💡 Android: Run "cd android && ./gradlew checkSslConfig" to verify setup'
+          );
+          console.log(
+            '💡 iOS: ssl_config.json will be auto-copied during build'
           );
         },
       },

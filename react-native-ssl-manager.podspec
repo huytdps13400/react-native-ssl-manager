@@ -6,21 +6,95 @@ Pod::Spec.new do |s|
   s.homepage = 'https://github.com/huytdps13400/react-native-ssl-manager'
   s.platforms = { :ios => '13.0' }
   s.source = { :git => 'https://github.com/huytdps13400/react-native-ssl-manager' }
-  # Default to CLI files only for React Native CLI environment  
+  
+
+  
+  # Always include shared logic and CLI files
   s.source_files = [
     'ios/SharedLogic.swift',
     'ios/cli/**/*.{h,m,swift}',
     'ios/UseSslPinning.h'
   ]
   
-  # Only include Expo files if ExpoModulesCore is available
+  # Conditionally include Expo files if ExpoModulesCore is available
+  expo_available = false
   begin
     require 'expo_modules_core'
+    expo_available = true
+  rescue LoadError
+    # ExpoModulesCore not available
+  end
+  
+  if expo_available
     s.source_files += ['ios/expo/**/*.{h,m,swift}']
     s.dependency 'ExpoModulesCore'
-  rescue LoadError
-    # ExpoModulesCore not available, stick with CLI files only
   end
+  
+  # Use script phase to copy ssl_config.json during app build
+  s.script_phases = [
+    {
+      :name => 'Copy SSL Config to App Bundle',
+      :script => '
+        echo "🔧 SSL Manager: Copying ssl_config.json to app bundle..."
+        
+        # Look for ssl_config.json in parent directories of SRCROOT
+        SSL_CONFIG_SOURCE=""
+        
+        # Check common locations and verify content is not empty
+        if [ -f "${SRCROOT}/../ssl_config.json" ]; then
+          CONTENT=$(cat "${SRCROOT}/../ssl_config.json" | tr -d " \\n\\r")
+          if [ "$CONTENT" != "{}" ]; then
+            SSL_CONFIG_SOURCE="${SRCROOT}/../ssl_config.json"
+            echo "📄 Found ssl_config.json at: $SSL_CONFIG_SOURCE"
+          fi
+        fi
+        
+        if [ -z "$SSL_CONFIG_SOURCE" ] && [ -f "${SRCROOT}/../../ssl_config.json" ]; then
+          CONTENT=$(cat "${SRCROOT}/../../ssl_config.json" | tr -d " \\n\\r")
+          if [ "$CONTENT" != "{}" ]; then
+            SSL_CONFIG_SOURCE="${SRCROOT}/../../ssl_config.json"
+            echo "📄 Found ssl_config.json at: $SSL_CONFIG_SOURCE"
+          fi
+        fi
+        
+        if [ -z "$SSL_CONFIG_SOURCE" ] && [ -f "${SRCROOT}/../../../ssl_config.json" ]; then
+          CONTENT=$(cat "${SRCROOT}/../../../ssl_config.json" | tr -d " \\n\\r")
+          if [ "$CONTENT" != "{}" ]; then
+            SSL_CONFIG_SOURCE="${SRCROOT}/../../../ssl_config.json"
+            echo "📄 Found ssl_config.json at: $SSL_CONFIG_SOURCE"
+          fi
+        fi
+        
+        if [ -n "$SSL_CONFIG_SOURCE" ]; then
+          # Copy to app bundle resources
+          cp "$SSL_CONFIG_SOURCE" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/"
+          echo "✅ SSL config copied to app bundle"
+        else
+          echo "⚠️ ssl_config.json not found in common locations"
+          echo "🔍 Searching for ssl_config.json with content..."
+          
+          # Search for any ssl_config.json with content
+          for path in $(find "${SRCROOT}/../.." -name "ssl_config.json" -type f 2>/dev/null); do
+            CONTENT=$(cat "$path" | tr -d " \\n\\r")
+            if [ "$CONTENT" != "{}" ]; then
+              SSL_CONFIG_SOURCE="$path"
+              echo "📄 Found ssl_config.json with content at: $SSL_CONFIG_SOURCE"
+              cp "$SSL_CONFIG_SOURCE" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/"
+              echo "✅ SSL config copied to app bundle"
+              break
+            fi
+          done
+          
+          if [ -z "$SSL_CONFIG_SOURCE" ]; then
+            echo "💡 SRCROOT: $SRCROOT"
+            echo "💡 Create ssl_config.json at project root for SSL pinning to work"
+            exit 0
+          fi
+        fi
+      ',
+      :execution_position => :before_compile
+    }
+  ]
   
   s.dependency 'TrustKit'
   s.dependency 'React-Core'
