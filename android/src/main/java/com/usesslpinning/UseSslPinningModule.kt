@@ -1,15 +1,23 @@
 package com.usesslpinning
 
-import android.content.Context // Thêm dòng này
-import android.util.Log
+import android.content.Context 
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.modules.network.OkHttpClientProvider
 
+
 class UseSslPinningModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
+
+    init {
+        try {
+            OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(reactContext))
+        } catch (e: Exception) {
+            // SSL Factory setup failed - continue without custom factory
+        }
+    }
 
     override fun getName(): String {
         return NAME
@@ -19,6 +27,9 @@ class UseSslPinningModule(reactContext: ReactApplicationContext) :
     fun setUseSSLPinning(usePinning: Boolean) {
         val sharedPreferences = reactApplicationContext.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
         sharedPreferences.edit().putBoolean("useSSLPinning", usePinning).apply()
+        
+        // Force new factory creation to bypass RN client cache
+        OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(reactApplicationContext))
     }
 
     @ReactMethod
@@ -28,16 +39,6 @@ class UseSslPinningModule(reactContext: ReactApplicationContext) :
         promise.resolve(usePinning)
     }
 
-  @ReactMethod
-  fun initializeSslPinning(configJsonString: String, promise: Promise) {
-    try {
-      OkHttpClientProvider.setOkHttpClientFactory(UseSslPinningFactory(reactApplicationContext, configJsonString))
-      Log.d("MyLibrary", "SSL Pinning initialized successfully")
-      promise.resolve("SSL Pinning initialized successfully")
-    } catch (e: Exception) {
-      promise.reject("SSL_PINNING_ERROR", "Failed to initialize SSL Pinning", e)
-    }
-  }
 
     companion object {
         const val NAME = "UseSslPinning"

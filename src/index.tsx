@@ -1,24 +1,50 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
-const LINKING_ERROR =
-  `The package 'react-native-ssl-manager' doesn't seem to be linked. Make sure: \n\n` +
-  Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
-  '- You rebuilt the app after installing the package\n' +
-  '- You are not using Expo Go\n';
+// Export types from the library
+export type { SslPinningConfig, SslPinningError } from './UseSslPinning.types';
 
-const UseSslPinning = NativeModules.UseSslPinning
-  ? NativeModules.UseSslPinning
-  : new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(LINKING_ERROR);
-        },
+// New Architecture and Legacy Architecture support
+let UseSslPinning: any;
+
+try {
+  // Try New Architecture first (TurboModule)
+  if (Platform.OS === 'android' || Platform.OS === 'ios') {
+    try {
+      UseSslPinning = require('./NativeUseSslPinning').default;
+    } catch (turboModuleError) {
+      // Fallback to Legacy Architecture
+      try {
+        const { NativeModules } = require('react-native');
+        UseSslPinning = NativeModules.UseSslPinning;
+      } catch (legacyError) {
+        UseSslPinning = null;
       }
-    );
+    }
+  }
+} catch (error) {
+  UseSslPinning = null;
+}
 
-export const setUseSSLPinning = (usePinning: boolean): void => {
-  UseSslPinning.setUseSSLPinning(usePinning);
+// Fallback implementation if native module is not available
+if (!UseSslPinning) {
+  UseSslPinning = {
+    setUseSSLPinning: (_usePinning: boolean) => {
+      return Promise.resolve();
+    },
+    getUseSSLPinning: () => {
+      return Promise.resolve(true);
+    },
+  };
+}
+
+/**
+ * Sets whether SSL pinning should be used.
+ *
+ * @param {boolean} usePinning - Whether to enable SSL pinning
+ * @returns {Promise<void>} A promise that resolves when the setting is saved
+ */
+export const setUseSSLPinning = (usePinning: boolean): Promise<void> => {
+  return UseSslPinning.setUseSSLPinning(usePinning);
 };
 
 /**
@@ -28,16 +54,4 @@ export const setUseSSLPinning = (usePinning: boolean): void => {
  */
 export const getUseSSLPinning = async (): Promise<boolean> => {
   return await UseSslPinning.getUseSSLPinning();
-};
-
-/**
- * Initializes SSL pinning with the provided configuration.
- *
- * @param {string} configJsonString - The JSON string containing the SSL pinning configuration.
- * @returns {Promise<any>} A promise that resolves when the SSL pinning is initialized.
- */
-export const initializeSslPinning = async (
-  configJsonString: string
-): Promise<any> => {
-  return await UseSslPinning.initializeSslPinning(configJsonString);
 };

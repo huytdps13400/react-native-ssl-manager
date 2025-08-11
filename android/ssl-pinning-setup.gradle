@@ -1,0 +1,148 @@
+def findSslConfigFile() {
+    def candidates = [
+        file("${project.rootDir}/../ssl_config.json"), // repo root (android/ là thư mục con)
+        file("${project.rootDir}/ssl_config.json"),    // android root
+        file("${projectDir}/../../ssl_config.json"),   // monorepo fallback
+        file("${projectDir}/../ssl_config.json")
+    ]
+    for (f in candidates) {
+        if (f.exists()) return f
+    }
+    return null
+}
+
+def ensureAssetsDir() {
+    def d = file("${projectDir}/src/main/assets")
+    if (!d.exists()) d.mkdirs()
+    return d
+}
+
+def assetsDir = file("${projectDir}/src/main/assets")
+def destFile  = file("${projectDir}/src/main/assets/ssl_config.json")
+
+plugins.withId('com.android.application') {
+
+    // ===== AGP 7/8: androidComponents DSL =====
+    if (project.extensions.findByName("androidComponents") != null) {
+        androidComponents {
+            onVariants(selector().all()) { variant ->   // <-- Sửa chỗ này
+                def vName = variant.name
+                def vNameCap = vName.substring(0,1).toUpperCase() + vName.substring(1)
+                def taskName = "copySslConfig${vNameCap}"
+
+                tasks.register(taskName, Copy) {
+                    group = "SSL Pinning"
+                    description = "Copy ssl_config.json to assets for ${vName}"
+
+                    def sourceFile = findSslConfigFile()
+
+                    onlyIf {
+                        if (sourceFile) {
+                            println "📋 SSL Config found: ${sourceFile.absolutePath}"
+                            true
+                        } else {
+                            println "⚠️ SSL Config not found in expected locations"
+                            false
+                        }
+                    }
+
+                    doFirst {
+                        ensureAssetsDir()
+                        println "🔄 Copying SSL config for variant: ${vName}"
+                        println "📂 To: ${assetsDir}"
+                    }
+
+                    from { sourceFile }
+                    into assetsDir
+
+                    doLast {
+                        if (destFile.exists()) {
+                            println "✅ SSL config copied: ${destFile} (${destFile.length()} bytes)"
+                        } else {
+                            println "❌ SSL config copy failed"
+                        }
+                    }
+                }
+
+                // Hook chắc chắn cho assemble/install/mergeAssets
+                tasks.matching { it.name == "merge${vNameCap}Assets" }.configureEach { dependsOn taskName }
+                tasks.matching { it.name == "install${vNameCap}" }.configureEach   { dependsOn taskName }
+                tasks.matching { it.name == "assemble${vNameCap}" }.configureEach  { dependsOn taskName }
+            }
+        }
+
+    } else {
+        // ===== Fallback: API cũ applicationVariants =====
+        afterEvaluate {
+            android.applicationVariants.all { variant ->
+                def bt = variant.buildType.name
+                def fl = variant.flavorName ?: ""
+                def vNameCap = (fl ? "${fl.capitalize()}${bt.capitalize()}" : bt.capitalize())
+                def taskName = "copySslConfig${vNameCap}"
+
+                def copyTask = tasks.create(taskName, Copy) {
+                    group = "SSL Pinning"
+                    description = "Copy ssl_config.json to assets for ${vNameCap}"
+
+                    def sourceFile = findSslConfigFile()
+
+                    onlyIf {
+                        if (sourceFile) {
+                            println "📋 SSL Config found: ${sourceFile.absolutePath}"
+                            true
+                        } else {
+                            println "⚠️ SSL Config not found in expected locations"
+                            false
+                        }
+                    }
+
+                    doFirst {
+                        ensureAssetsDir()
+                        println "🔄 Copying SSL config for variant: ${vNameCap}"
+                        println "📂 To: ${assetsDir}"
+                    }
+
+                    from { sourceFile }
+                    into assetsDir
+
+                    doLast {
+                        if (destFile.exists()) {
+                            println "✅ SSL config copied: ${destFile} (${destFile.length()} bytes)"
+                        } else {
+                            println "❌ SSL config copy failed"
+                        }
+                    }
+                }
+
+                try {
+                    if (variant.hasProperty("mergeAssetsProvider")) {
+                        variant.mergeAssetsProvider.configure { dependsOn copyTask }
+                    } else {
+                        tasks.named("merge${vNameCap}Assets").configure { dependsOn copyTask }
+                    }
+                } catch (ignored) { }
+                try { tasks.named("install${vNameCap}").configure { dependsOn copyTask } } catch (ignored) { }
+                try { tasks.named("assemble${vNameCap}").configure { dependsOn copyTask } } catch (ignored) { }
+            }
+        }
+    }
+
+    // ===== Utility =====
+    tasks.register("checkSslConfig") {
+        group = "SSL Pinning"
+        description = "Check SSL config file status"
+        doLast {
+            def source = findSslConfigFile()
+            println "\n📋 SSL Pinning Configuration Status:"
+            println "   Source config: " + (source ? "✅ Found at ${source.absolutePath}" : "❌ Not found")
+            println "   Assets config: " + (destFile.exists() ? "✅ Found at ${destFile.absolutePath}" : "❌ Not found")
+            if (!source) {
+                println "💡 Create ssl_config.json tại repo root (ngang 'android/') hoặc trong 'android/'."
+            } else if (!destFile.exists()) {
+                println "💡 Run: ./gradlew copySslConfigDebug (hoặc biến thể tương ứng)"
+            } else {
+                println "✅ SSL config is properly setup"
+            }
+        }
+    }
+}

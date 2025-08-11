@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "npx react-native run-ios --simulator='iPhone 16'",
     "start": "react-native start",
     "build:android": "cd android && ./gradlew assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a",
     "build:ios": "cd ios && xcodebuild -workspace UseSslPinningExample.xcworkspace -scheme UseSslPinningExample -configuration Debug -sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO"
@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "18.2.0",
     "react-native": "0.73.6",
-    "react-native-ssl-manager": "https://github.com/huytdps13400/react-native-ssl-manager.git"
+    "react-native-ssl-manager": "file:../"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

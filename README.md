@@ -1,53 +1,99 @@
-# react-native-ssl-manager
+# 🔒 react-native-ssl-manager
 
-React Native SSL Pinning provides seamless SSL certificate pinning integration for enhanced network security in React Native apps. This module enables developers to easily implement and manage certificate pinning, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's particularly useful for development and testing scenarios.
+**Production-ready SSL certificate pinning for React Native and Expo apps.** This library provides seamless SSL certificate pinning integration for enhanced network security, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's perfect for both development and production environments.
 
-## Features
+## ✨ Features
 
-- 🔒 Easy SSL certificate pinning implementation
-- 🔄 Dynamic enabling/disabling of SSL pinning
-- ⚡ Optimized for development and testing workflows
-- 📱 Cross-platform support (iOS & Android)
-- 🛠️ Simple configuration using JSON
-- 🚀 Performance-optimized implementation
+- 🔒 **Easy SSL certificate pinning** - Simple setup with JSON configuration
+- 🔄 **Dynamic SSL control** - Enable/disable SSL pinning at runtime
+- 🏗️ **New Architecture Ready** - Full support for React Native's New Architecture (Fabric/TurboModules)
+- 🏛️ **Legacy Compatible** - Works with both New and Legacy Architecture
+- 📱 **Cross-platform** - Native support for iOS & Android
+- 🚀 **Expo Compatible** - Built-in Expo plugin with auto-configuration
+- ⚡ **Zero Configuration** - Auto-setup with smart fallbacks
+- 🧪 **Developer Friendly** - Perfect for development and testing workflows
+- 🎯 **Production Ready** - Optimized performance, no debug logs
 
-## Installation
+## 📦 Installation
 
-```sh
+### For React Native CLI Projects
+
+```bash
+# Using npm
 npm install react-native-ssl-manager
+
+# Using yarn
+yarn add react-native-ssl-manager
+
+# Using bun
+bun add react-native-ssl-manager
 ```
 
-## Usage
+For iOS, run pod install:
+```bash
+cd ios && pod install
+```
 
-### Basic Setup
+### For Expo Projects
 
-```typescript
-import { 
-  initializeSslPinning, 
-  setUseSSLPinning, 
-  getUseSSLPinning 
-} from 'react-native-ssl-manager';
+```bash
+# Using expo CLI
+npx expo install react-native-ssl-manager
 
-// Initialize SSL pinning with configuration
-const sslConfig = {
-  "domains": {
-    "development": "api.dev.example.com",
-    "production": "api.example.com"
-  },
-  "sha256Keys": {
-    "api.dev.example.com": [
-      "sha256/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=",
-      "sha256/YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY="
-    ],
-    "api.example.com": [
-      "sha256/ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ=",
-      "sha256/WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW="
+# Using bun with expo
+bunx expo install react-native-ssl-manager
+```
+
+Add the plugin to your `app.json` or `app.config.js`:
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-ssl-manager",
+        {
+          "sslConfigPath": "./ssl_config.json"
+        }
+      ]
     ]
   }
-};
+}
+```
 
-// Initialize the SSL pinning
-await initializeSslPinning(JSON.stringify(sslConfig));
+## 🚀 Architecture Support
+
+This library supports **both** React Native architectures:
+
+- ✅ **New Architecture** (Fabric/TurboModules) - React Native 0.68+
+- ✅ **Legacy Architecture** - All React Native versions
+
+The library automatically detects and uses the appropriate architecture at runtime.
+
+## 🚀 Quick Start
+
+### Step 1: Create SSL Configuration
+
+Create a `ssl_config.json` file in your project root:
+
+```json
+{
+  "sha256Keys": {
+    "api.example.com": [
+      "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+    ],
+    "api.dev.example.com": [
+      "sha256/CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=",
+      "sha256/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD="
+    ]
+  }
+}
+```
+
+### Step 2: Basic Usage
+
+```typescript
+import { setUseSSLPinning, getUseSSLPinning } from 'react-native-ssl-manager';
 
 // Enable SSL pinning
 await setUseSSLPinning(true);
@@ -55,6 +101,27 @@ await setUseSSLPinning(true);
 // Check if SSL pinning is enabled
 const isEnabled = await getUseSSLPinning();
 console.log('SSL Pinning enabled:', isEnabled);
+
+// Disable SSL pinning (for development/testing)
+await setUseSSLPinning(false);
+```
+
+### Step 3: Test Your Implementation
+
+```typescript
+// Test with SSL pinning enabled
+await setUseSSLPinning(true);
+try {
+  const response = await fetch('https://api.example.com/data');
+  console.log('✅ SSL Pinning working - request succeeded');
+} catch (error) {
+  console.log('⚠️ Check your SSL configuration');
+}
+
+// Test without SSL pinning
+await setUseSSLPinning(false);
+const response = await fetch('https://api.example.com/data');
+console.log('🔓 Request without SSL pinning');
 ```
 
 ### Configuration File (ssl_config.json)
@@ -80,29 +147,63 @@ Create a configuration file with your domain certificates. Example structure:
 }
 ```
 
-### API Reference
+## 📚 API Reference
 
-#### `initializeSslPinning(configJsonString: string): Promise<any>`
-Initializes the SSL pinning configuration with the provided JSON string configuration.
+### `setUseSSLPinning(usePinning: boolean): Promise<void>`
 
-```typescript
-await initializeSslPinning(JSON.stringify(sslConfig));
-```
-
-#### `setUseSSLPinning(usePinning: boolean): void`
 Enables or disables SSL pinning dynamically.
 
 ```typescript
-await setUseSSLPinning(true); // Enable SSL pinning
-await setUseSSLPinning(false); // Disable SSL pinning
+// Enable SSL pinning
+await setUseSSLPinning(true);
+
+// Disable SSL pinning
+await setUseSSLPinning(false);
 ```
 
-#### `getUseSSLPinning(): Promise<boolean>`
+**Parameters:**
+- `usePinning` (boolean): Whether to enable SSL pinning
+
+**Returns:** Promise<void>
+
+### `getUseSSLPinning(): Promise<boolean>`
+
 Retrieves the current state of SSL pinning.
 
 ```typescript
 const isEnabled = await getUseSSLPinning();
+console.log('SSL Pinning enabled:', isEnabled);
 ```
+
+**Returns:** Promise<boolean> - Current SSL pinning status
+
+## 🔧 Configuration
+
+### SSL Configuration File Structure
+
+**⚠️ Important:** The configuration file **must** be named exactly `ssl_config.json` and placed in your project root directory.
+
+Your `ssl_config.json` should follow this structure:
+
+```json
+{
+  "sha256Keys": {
+    "your-api-domain.com": [
+      "sha256/primary-certificate-hash=",
+      "sha256/backup-certificate-hash="
+    ],
+    "another-domain.com": [
+      "sha256/another-certificate-hash="
+    ]
+  }
+}
+```
+
+**📁 File Location Requirements:**
+- ✅ **React Native CLI**: Place `ssl_config.json` in project root
+- ✅ **Expo**: Place `ssl_config.json` in project root (same level as `app.json`)
+- ❌ **Don't rename** the file - it must be exactly `ssl_config.json`
+- ❌ **Don't place** in subdirectories - must be in project root
 
 ## Important Notes ⚠️
 
@@ -186,17 +287,97 @@ const handleSSLToggle = async (enabled: boolean) => {
    - Regularly update certificates before expiration
    - Maintain multiple backup certificates
 
-## Roadmap 🗺️
+## ✅ Completed Roadmap
 
-We're actively working on expanding the capabilities of react-native-ssl-manager. Here are our planned features:
+### Recently Completed Features
+
+- ✅ **Expo Plugin Integration** - **COMPLETED!**
+  - ✅ Native SSL pinning support for Expo projects
+  - ✅ Seamless configuration through expo-config-plugin  
+  - ✅ Auto-linking capabilities for Expo development builds
+  - ✅ Support for Expo's development client
+
+- ✅ **New Architecture Support** - **COMPLETED!**
+  - ✅ Full TurboModule implementation
+  - ✅ Fabric renderer compatibility
+  - ✅ Automatic architecture detection
+  - ✅ Backward compatibility with Legacy Architecture
+
+- ✅ **Production Optimizations** - **COMPLETED!**
+  - ✅ Removed debug logs for production builds
+  - ✅ Performance optimizations
+  - ✅ Clean codebase ready for release
+
+## 🚀 Future Roadmap
 
 ### Upcoming Features
 
-- 📱 **Expo Plugin Integration**
-  - Native SSL pinning support for Expo projects
-  - Seamless configuration through expo-config-plugin
-  - Auto-linking capabilities for Expo development builds
-  - Support for Expo's development client
+- 🔄 **Advanced Certificate Management**
+  - Certificate rotation support
+  - Automatic certificate validation
+  - Certificate expiry notifications
+
+- 📊 **Enhanced Developer Experience**
+  - SSL pinning analytics and monitoring
+  - Better error reporting and debugging tools
+  - Integration with popular development tools
+
+- 🔧 **Extended Platform Support**
+  - Web support for React Native Web
+  - Additional certificate formats support
+
+## 🧪 Testing Your SSL Implementation
+
+### Using the Example App
+
+This library comes with a comprehensive test app that demonstrates SSL pinning functionality:
+
+```bash
+# Clone the repository
+git clone https://github.com/huytdps13400/react-native-ssl-manager.git
+
+# Test with React Native CLI
+cd react-native-ssl-manager/example
+npm install
+npm run ios # or npm run android
+
+# Test with Expo
+cd ../example-expo
+npm install
+npx expo run:ios # or npx expo run:android
+```
+
+The example app provides:
+- 🎛️ **SSL Control Panel** - Toggle SSL pinning on/off
+- 🧪 **Multiple Test Scenarios** - Test different API endpoints
+- 📊 **Real-time Results** - See detailed test results with timing
+- 🔍 **Visual Feedback** - Color-coded success/failure indicators
+
+### Manual Testing Steps
+
+1. **🔓 Test without SSL Pinning:**
+   ```typescript
+   await setUseSSLPinning(false);
+   // All API calls should work normally
+   ```
+
+2. **🔒 Test with SSL Pinning (Correct Certificate):**
+   ```typescript
+   await setUseSSLPinning(true);
+   // Calls to pinned domains should work
+   const response = await fetch('https://your-pinned-domain.com/api');
+   ```
+
+3. **⚠️ Test with SSL Pinning (Wrong Certificate):**
+   ```typescript
+   await setUseSSLPinning(true);
+   // Calls to non-pinned domains should fail
+   try {
+     await fetch('https://unpinned-domain.com/api');
+   } catch (error) {
+     console.log('✅ SSL Pinning working - blocked untrusted certificate');
+   }
+   ```
 
 ## Testing with Proxyman 🔍
 
@@ -251,14 +432,76 @@ This integration with Proxyman makes it easy to:
 - Validate security configurations
 - Speed up development and testing workflows
 
-## Contributing
+## 📋 Requirements & Compatibility
 
-See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the repository and the development workflow.
+### React Native Versions
+- ✅ **React Native 0.60+** (AutoLinking support)
+- ✅ **React Native 0.68+** (New Architecture support)
+- ✅ **Expo SDK 47+** (Expo plugin support)
 
-## License
+### Platform Support
+- ✅ **iOS 13.0+**
+- ✅ **Android API 21+** (Android 5.0)
 
-For open source projects, say how it is licensed.
+### Architecture Support
+- ✅ **New Architecture** (Fabric/TurboModules)
+- ✅ **Legacy Architecture** (Bridge-based)
+
+### Development Tools
+- ✅ **React Native CLI**
+- ✅ **Expo CLI**
+- ✅ **Expo Development Build**
+- ✅ **Flipper** (debugging support)
+- ✅ **Bun** (package manager support)
+
+## 🤝 Contributing
+
+We welcome contributions! See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the repository and the development workflow.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/huytdps13400/react-native-ssl-manager.git
+cd react-native-ssl-manager
+
+# Install dependencies (choose your package manager)
+npm install
+# or
+yarn install
+# or
+bun install
+
+# Build the library
+npm run build
+# or
+bun run build
+
+# Run tests
+npm test
+# or
+bun test
+
+# Test with example apps
+npm run example:ios
+npm run example:android
+npm run example-expo:ios
+npm run example-expo:android
+
+# Test Bun compatibility
+bun run bun:test-compatibility
+```
+
+## 📄 License
+
+MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
+- SSL pinning implementation inspired by industry best practices
+- Special thanks to the React Native community
 
 ---
 
-Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
+**Made with ❤️ for the React Native community**

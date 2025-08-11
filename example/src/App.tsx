@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Switch, Text, View } from 'react-native';
 import {
-  getUseSSLPinning,
-  initializeSslPinning,
-  setUseSSLPinning,
-} from 'react-native-ssl-manager';
+  Image,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Platform,
+} from 'react-native';
+import { getUseSSLPinning, setUseSSLPinning } from 'react-native-ssl-manager';
 import config from '../ssl_config.json';
 
 export default function App() {
   const [imageUri, setImageUri] = useState<string>('');
   const [isSSLEnabled, setIsSSLEnabled] = useState<boolean>(false);
+  const [testResults, setTestResults] = useState<string>('');
 
   useEffect(() => {
     getUseSSLPinning()
@@ -19,20 +26,9 @@ export default function App() {
 
   // Initialize SSL Pinning status
   useEffect(() => {
-    const initSSLStatus = () => {
-      initializeSslPinning(JSON.stringify(config))
-        .then((result) => {
-          console.log('SSL Pinning Initialized:', result);
-        })
-        .catch((error) => {
-          console.log('SSL Pinning Error:', error);
-        })
-        .finally(() => {
-          getMoviesFromApiAsync();
-        });
-    };
-
-    initSSLStatus();
+    setTimeout(() => {
+      getMoviesFromApiAsync();
+    }, 500);
   }, []);
 
   // Handle SSL Pinning toggle
@@ -44,7 +40,7 @@ export default function App() {
   const getMoviesFromApiAsync = async () => {
     try {
       const response = await fetch(
-        'https://api.example.com/api/home/home-banner'
+        'https://sbkh.wrapper.sbuxkh.com/ms-customer/api/home/home-banner'
       );
       const json = await response.json();
       console.log('JSON', json);
@@ -55,10 +51,17 @@ export default function App() {
     }
   };
 
+  // Test ContentProvider initialization
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <Text style={styles.title}>🧪 SSL Manager Test App</Text>
+
       <View style={styles.sslContainer}>
-        <Text>SSL Pinning</Text>
+        <Text style={styles.label}>SSL Pinning</Text>
         <Switch
           value={isSSLEnabled}
           onValueChange={toggleSSLPinning}
@@ -66,29 +69,208 @@ export default function App() {
           thumbColor={isSSLEnabled ? '#f5dd4b' : '#f4f3f4'}
         />
       </View>
-      <Image
-        source={{ uri: imageUri ?? '' }}
-        style={{ width: 300, height: 200 }}
-      />
-    </View>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          onPress={getMoviesFromApiAsync}
+          style={[styles.button, styles.primaryButton]}
+        >
+          <Text style={styles.buttonText}>🌐 Test API Call</Text>
+        </TouchableOpacity>
+      </View>
+
+      {imageUri !== '' && (
+        <View style={styles.imageContainer}>
+          <Text style={styles.sectionTitle}>📸 API Response Image:</Text>
+          <Image source={{ uri: imageUri }} style={styles.image} />
+        </View>
+      )}
+
+      {testResults !== '' && (
+        <View style={styles.resultsContainer}>
+          <Text style={styles.sectionTitle}>📊 Test Results:</Text>
+          <Text style={styles.resultsText}>{testResults}</Text>
+        </View>
+      )}
+
+      <View style={styles.instructionsContainer}>
+        <Text style={styles.instructionsTitle}>📝 Hướng dẫn:</Text>
+        <Text style={styles.instructionsText}>
+          • Bật SSL Pinning và test API call để kiểm tra hoạt động
+        </Text>
+        <Text style={styles.instructionsText}>
+          • Test ContentProvider để xem việc khởi tạo sớm (chỉ Android)
+        </Text>
+        <Text style={styles.instructionsText}>
+          • Kiểm tra console log để xem chi tiết
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#333',
   },
   sslContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 10,
+    justifyContent: 'space-between',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  box: {
-    width: 60,
-    height: 60,
-    marginVertical: 20,
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  buttonContainer: {
+    marginBottom: 16,
+  },
+  button: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#007AFF',
+  },
+  testButton: {
+    backgroundColor: '#34C759',
+  },
+  clearButton: {
+    backgroundColor: '#FF3B30',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  imageContainer: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  resultsContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  detailsContainer: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#333',
+  },
+  resultsText: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    color: '#333',
+    lineHeight: 20,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+  },
+  comparisonContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 6,
+  },
+  comparisonTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  comparisonResult: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  success: {
+    color: '#34C759',
+  },
+  warning: {
+    color: '#FF9500',
+  },
+  instructionsContainer: {
+    backgroundColor: '#e3f2fd',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  instructionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#1976d2',
+  },
+  instructionsText: {
+    fontSize: 14,
+    marginBottom: 4,
+    color: '#1565c0',
+    lineHeight: 18,
   },
 });

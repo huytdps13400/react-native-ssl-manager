@@ -8,11 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* UseSslPinningExampleTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* UseSslPinningExampleTests.m */; };
+		11275360908B29AF94FA5285 /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F05E6B625E1C1DB251040876 /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		31B3B8F9A60E6162E4229386 /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A822620CD10A0F401BBD2D6F /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a */; };
-		73C36439CC0FE7BB42072CEB /* libPods-UseSslPinningExample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 63AAABCD025A8F46C0FD60A8 /* libPods-UseSslPinningExample.a */; };
+		4A271FFE89FB11566C0B893D /* libPods-UseSslPinningExample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 26E08829A92CEB02D8B1D361 /* libPods-UseSslPinningExample.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
@@ -30,20 +30,20 @@
 		00E356EE1AD99517003FC87E /* UseSslPinningExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UseSslPinningExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* UseSslPinningExampleTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UseSslPinningExampleTests.m; sourceTree = "<group>"; };
-		0D90CB3452498ADCFACFD8FE /* Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig"; sourceTree = "<group>"; };
+		105DAA0C192062A4EFE88110 /* Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* UseSslPinningExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UseSslPinningExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = UseSslPinningExample/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = UseSslPinningExample/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = UseSslPinningExample/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = UseSslPinningExample/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = UseSslPinningExample/main.m; sourceTree = "<group>"; };
-		1DA2BD61F38E458C83130F60 /* Pods-UseSslPinningExample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample.release.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample.release.xcconfig"; sourceTree = "<group>"; };
-		63AAABCD025A8F46C0FD60A8 /* libPods-UseSslPinningExample.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-UseSslPinningExample.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		26E08829A92CEB02D8B1D361 /* libPods-UseSslPinningExample.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-UseSslPinningExample.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4E9C5AC17182020829F47D2D /* Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = UseSslPinningExample/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		A822620CD10A0F401BBD2D6F /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-UseSslPinningExample-UseSslPinningExampleTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BBD1B38DCEA731744743D235 /* Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig"; sourceTree = "<group>"; };
-		D23549D493EFFB3A7AB9BA3A /* Pods-UseSslPinningExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample.debug.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample.debug.xcconfig"; sourceTree = "<group>"; };
+		909A5C2749B0EAAC3445E56B /* Pods-UseSslPinningExample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample.debug.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample.debug.xcconfig"; sourceTree = "<group>"; };
+		C8AAD2A0FE77C74379E1E1FF /* Pods-UseSslPinningExample.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UseSslPinningExample.release.xcconfig"; path = "Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F05E6B625E1C1DB251040876 /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-UseSslPinningExample-UseSslPinningExampleTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,7 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				31B3B8F9A60E6162E4229386 /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a in Frameworks */,
+				11275360908B29AF94FA5285 /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,7 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				73C36439CC0FE7BB42072CEB /* libPods-UseSslPinningExample.a in Frameworks */,
+				4A271FFE89FB11566C0B893D /* libPods-UseSslPinningExample.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,8 +100,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				63AAABCD025A8F46C0FD60A8 /* libPods-UseSslPinningExample.a */,
-				A822620CD10A0F401BBD2D6F /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a */,
+				26E08829A92CEB02D8B1D361 /* libPods-UseSslPinningExample.a */,
+				F05E6B625E1C1DB251040876 /* libPods-UseSslPinningExample-UseSslPinningExampleTests.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -140,10 +140,10 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				D23549D493EFFB3A7AB9BA3A /* Pods-UseSslPinningExample.debug.xcconfig */,
-				1DA2BD61F38E458C83130F60 /* Pods-UseSslPinningExample.release.xcconfig */,
-				0D90CB3452498ADCFACFD8FE /* Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig */,
-				BBD1B38DCEA731744743D235 /* Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig */,
+				909A5C2749B0EAAC3445E56B /* Pods-UseSslPinningExample.debug.xcconfig */,
+				C8AAD2A0FE77C74379E1E1FF /* Pods-UseSslPinningExample.release.xcconfig */,
+				4E9C5AC17182020829F47D2D /* Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig */,
+				105DAA0C192062A4EFE88110 /* Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -155,12 +155,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "UseSslPinningExampleTests" */;
 			buildPhases = (
-				65060E719E4ACE53B7FD1FC8 /* [CP] Check Pods Manifest.lock */,
+				68284D04A30334D8D8B67B4F /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				9C58C337EF3920EB47B500FB /* [CP] Embed Pods Frameworks */,
-				480BD9075E44EDA9C2B1C671 /* [CP] Copy Pods Resources */,
+				C72006D76C09E66ACDA60E99 /* [CP] Embed Pods Frameworks */,
+				F42F28C2D0A2484319349BD7 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -176,13 +176,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "UseSslPinningExample" */;
 			buildPhases = (
-				9606BF026737BB862BA36C0B /* [CP] Check Pods Manifest.lock */,
+				D1A1B7CB8D55647B698E5BAB /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				DDBCBE83F88CC2971B03B66F /* [CP] Embed Pods Frameworks */,
-				8C8AD6B95EA91DBA5726D8BC /* [CP] Copy Pods Resources */,
+				6C9099410A8C76AFCC6D8D59 /* [CP] Embed Pods Frameworks */,
+				35EE81DA21BC45ABD3AA7B99 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -265,24 +265,24 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"../node_modules/react-native/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		480BD9075E44EDA9C2B1C671 /* [CP] Copy Pods Resources */ = {
+		35EE81DA21BC45ABD3AA7B99 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		65060E719E4ACE53B7FD1FC8 /* [CP] Check Pods Manifest.lock */ = {
+		68284D04A30334D8D8B67B4F /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -304,24 +304,41 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8C8AD6B95EA91DBA5726D8BC /* [CP] Copy Pods Resources */ = {
+		6C9099410A8C76AFCC6D8D59 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			name = "[CP] Copy Pods Resources";
+			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9606BF026737BB862BA36C0B /* [CP] Check Pods Manifest.lock */ = {
+		C72006D76C09E66ACDA60E99 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		D1A1B7CB8D55647B698E5BAB /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -343,38 +360,21 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9C58C337EF3920EB47B500FB /* [CP] Embed Pods Frameworks */ = {
+		F42F28C2D0A2484319349BD7 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			name = "[CP] Embed Pods Frameworks";
+			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		DDBCBE83F88CC2971B03B66F /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample/Pods-UseSslPinningExample-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-UseSslPinningExample-UseSslPinningExampleTests/Pods-UseSslPinningExample-UseSslPinningExampleTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -410,7 +410,7 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0D90CB3452498ADCFACFD8FE /* Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig */;
+			baseConfigurationReference = 4E9C5AC17182020829F47D2D /* Pods-UseSslPinningExample-UseSslPinningExampleTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -437,7 +437,7 @@
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BBD1B38DCEA731744743D235 /* Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig */;
+			baseConfigurationReference = 105DAA0C192062A4EFE88110 /* Pods-UseSslPinningExample-UseSslPinningExampleTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
@@ -461,7 +461,7 @@
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D23549D493EFFB3A7AB9BA3A /* Pods-UseSslPinningExample.debug.xcconfig */;
+			baseConfigurationReference = 909A5C2749B0EAAC3445E56B /* Pods-UseSslPinningExample.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -488,7 +488,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1DA2BD61F38E458C83130F60 /* Pods-UseSslPinningExample.release.xcconfig */;
+			baseConfigurationReference = C8AAD2A0FE77C74379E1E1FF /* Pods-UseSslPinningExample.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

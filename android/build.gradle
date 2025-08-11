@@ -23,6 +23,12 @@ apply plugin: "kotlin-android"
 
 if (isNewArchitectureEnabled()) {
   apply plugin: "com.facebook.react"
+  
+  react {
+    jsRootDir = file("../src/")
+    libraryName = "UseSslPinning"
+    codegenJavaPackageName = "com.usesslpinning"
+  }
 }
 
 def getExtOrDefault(name) {
@@ -49,6 +55,16 @@ android {
     sourceSets {
       main {
         manifest.srcFile "src/main/AndroidManifestNew.xml"
+      }
+    }
+  }
+  
+  // Only include CLI files for React Native CLI environment
+  sourceSets {
+    main {
+      java {
+        srcDirs = ['src/main/java']
+        exclude '**/expo/**'
       }
     }
   }

@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "packages": {
+    "react-native-ssl-manager": {
+      "signature": "b64e003348319fa6ba61ea2c2c825f1e",
+      "file": true,
+      "replaced": "https://github.com/huytdps13400/react-native-ssl-manager.git#feature/expo-support"
+    }
+  }
+}
