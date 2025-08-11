@@ -55,18 +55,29 @@
     "build:examples": "./scripts/build.sh --with-examples",
     "example:install": "cd example && yarn install",
     "postinstall": "node scripts/postinstall.js",
+    "postinstall:bun": "bun scripts/bun-postinstall.js",
     "example:ios": "cd example && npx react-native run-ios",
     "example:android": "cd example && npx react-native run-android",
     "example-expo:install": "cd example-expo && yarn install",
     "example-expo:ios": "cd example-expo && npx expo run:ios",
     "example-expo:android": "cd example-expo && npx expo run:android",
-    "example-expo:start": "cd example-expo && npx expo start"
+    "example-expo:start": "cd example-expo && npx expo start",
+    "bun:install": "bun install",
+    "bun:build": "bun run build",
+    "bun:test": "bun test",
+    "bun:example:install": "cd example && bun install",
+    "bun:example-expo:install": "cd example-expo && bun install",
+    "bun:test-compatibility": "bun scripts/test-bun.js"
   },
   "keywords": [
     "react-native",
     "ios",
     "android",
-    "expo"
+    "expo",
+    "bun",
+    "ssl-pinning",
+    "security",
+    "certificate-pinning"
   ],
   "repository": {
     "type": "git",
@@ -110,6 +121,16 @@
     "react-native": "*"
   },
   "packageManager": "yarn@3.6.1",
+  "engines": {
+    "node": ">=16.0.0",
+    "bun": ">=1.0.0"
+  },
+  "overrides": {
+    "bun": {
+      "react": "*",
+      "react-native": "*"
+    }
+  },
   "codegenConfig": {
     "name": "RNUseSslPinningSpec",
     "type": "modules",

@@ -1,44 +1,35 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
-// React Native SSL Manager Post-Install Setup
+// React Native SSL Manager Post-Install Setup for Bun
 // Automatically applies Gradle script for SSL config auto-copy
-// Supports both npm/yarn and bun package managers
 
-const fs = require('fs');
-const path = require('path');
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
 
-console.log('🔧 React Native SSL Manager - Post-install setup');
+console.log('🔧 React Native SSL Manager - Bun Post-install setup');
 
-// Find project root (where node_modules is)
+// Find project root (where bun.lockb is)
 let projectRoot = process.cwd();
-while (
-  projectRoot !== '/' &&
-  !fs.existsSync(path.join(projectRoot, 'node_modules')) &&
-  !fs.existsSync(path.join(projectRoot, 'bun.lockb'))
-) {
-  projectRoot = path.dirname(projectRoot);
+while (projectRoot !== '/' && !existsSync(join(projectRoot, 'bun.lockb'))) {
+  projectRoot = dirname(projectRoot);
 }
 
 if (projectRoot === '/') {
-  console.log('❌ Could not find project root');
+  console.log('❌ Could not find project root with bun.lockb');
   process.exit(1);
 }
 
-// Detect package manager
-const isBun = fs.existsSync(path.join(projectRoot, 'bun.lockb'));
-const packageManager = isBun ? 'Bun' : 'npm/yarn';
-
 console.log(`📂 Project root: ${projectRoot}`);
-console.log(`📦 Package manager: ${packageManager}`);
+console.log(`📦 Package manager: Bun`);
 
 // Check if this is a React Native project
-const packageJsonPath = path.join(projectRoot, 'package.json');
-if (!fs.existsSync(packageJsonPath)) {
+const packageJsonPath = join(projectRoot, 'package.json');
+if (!existsSync(packageJsonPath)) {
   console.log('❌ package.json not found');
   process.exit(1);
 }
 
-const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const hasReactNative =
   packageJson.dependencies &&
   (packageJson.dependencies['react-native'] ||
@@ -50,24 +41,24 @@ if (!hasReactNative) {
 }
 
 // Setup Android Gradle script
-const androidBuildGradlePath = path.join(
+const androidBuildGradlePath = join(
   projectRoot,
   'android',
   'app',
   'build.gradle'
 );
-const sslGradleScriptPath = path.join(
+const sslGradleScriptPath = join(
   __dirname,
   '..',
   'android',
   'ssl-pinning-setup.gradle'
 );
 
-if (fs.existsSync(androidBuildGradlePath)) {
+if (existsSync(androidBuildGradlePath)) {
   console.log('📱 Android project detected');
 
   // Read current build.gradle
-  let buildGradleContent = fs.readFileSync(androidBuildGradlePath, 'utf8');
+  let buildGradleContent = readFileSync(androidBuildGradlePath, 'utf8');
 
   // Check if our script is already applied
   const scriptApplyLine =
@@ -80,7 +71,7 @@ if (fs.existsSync(androidBuildGradlePath)) {
     buildGradleContent += `\n\n// React Native SSL Manager - Auto-copy SSL config\n${scriptApplyLine}\n`;
 
     // Write back to file
-    fs.writeFileSync(androidBuildGradlePath, buildGradleContent);
+    writeFileSync(androidBuildGradlePath, buildGradleContent);
     console.log('✅ SSL config auto-copy script added successfully');
     console.log('💡 SSL config will now be automatically copied on build');
   } else {
@@ -95,8 +86,8 @@ if (fs.existsSync(androidBuildGradlePath)) {
 }
 
 // Check for ssl_config.json in project root
-const sslConfigPath = path.join(projectRoot, 'ssl_config.json');
-if (fs.existsSync(sslConfigPath)) {
+const sslConfigPath = join(projectRoot, 'ssl_config.json');
+if (existsSync(sslConfigPath)) {
   console.log('✅ ssl_config.json found at project root');
 } else {
   console.log('⚠️ ssl_config.json not found at project root');
@@ -105,4 +96,4 @@ if (fs.existsSync(sslConfigPath)) {
   );
 }
 
-console.log('🎉 React Native SSL Manager setup complete!');
+console.log('🎉 React Native SSL Manager Bun setup complete!');

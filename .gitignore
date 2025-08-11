@@ -84,7 +84,7 @@ ios/build/
 
 # Lock files (keep only yarn.lock)
 package-lock.json
-bun.lockb
+# bun.lockb - Keep Bun lock file for Bun users
 
 # IDE
 .cursor/

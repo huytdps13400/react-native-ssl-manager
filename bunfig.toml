@@ -1,0 +1,12 @@
+[install]
+peer = true
+cache = true
+
+[install.scopes]
+"@types" = "https://registry.npmjs.org/"
+
+[test]
+preload = ["./src/__tests__/setup.ts"]
+
+[run]
+bun = true
