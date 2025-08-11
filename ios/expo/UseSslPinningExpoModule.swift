@@ -4,8 +4,26 @@ import TrustKit
 /**
  * Expo module for SSL Pinning
  * Uses Expo Modules API and shared logic for common functionality
+ * Auto-initializes SSL pinning like CLI module for consistency
  */
 public class UseSslPinningExpoModule: Module {
+    
+    public override init() {
+        super.init()
+        
+        // Early initialization - setup SSL pinning if enabled (same as CLI module)
+        let isEnabled = SharedLogic.getUseSSLPinning()
+        if isEnabled {
+            do {
+                let _ = try SharedLogic.initializeSslPinningFromBundle()
+                NSLog("✅ SSL Pinning early initialization successful (Expo)")
+            } catch {
+                NSLog("❌ SSL Pinning early initialization failed (Expo): %@", error.localizedDescription)
+            }
+        } else {
+            NSLog("🔓 SSL Pinning disabled on startup (Expo)")
+        }
+    }
     
     public func definition() -> ModuleDefinition {
         Name("UseSslPinning")
@@ -18,16 +36,7 @@ public class UseSslPinningExpoModule: Module {
             return SharedLogic.getUseSSLPinning()
         }
         
-        AsyncFunction("initializeSslPinning") { (configJsonString: String) -> [String: Any] in
-            do {
-                return try SharedLogic.initializeSslPinning(configJsonString)
-            } catch let error as SSLPinningError {
-                NSLog("❌ SSL Pinning Error: %@", error.message)
-                throw Exception(name: "SSL_PINNING_ERROR", description: error.message)
-            } catch {
-                NSLog("❌ Unexpected Error: %@", error.localizedDescription)
-                throw Exception(name: "SSL_PINNING_ERROR", description: "Unexpected error during SSL pinning initialization")
-            }
-        }
+        // Removed initializeSslPinning function for consistency with CLI module
+        // SSL pinning is auto-initialized from bundle in init() method
     }
 } 
