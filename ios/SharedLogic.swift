@@ -38,12 +38,12 @@ class SharedLogic {
         if usePinning {
             do {
                 let _ = try initializeSslPinningFromBundle()
-                NSLog("✅ SSL Pinning auto-initialized successfully")
+
             } catch {
-                NSLog("❌ Failed to auto-initialize SSL Pinning: %@", error.localizedDescription)
+
             }
         } else {
-            NSLog("🔓 SSL Pinning disabled")
+
         }
     }
     
@@ -53,11 +53,11 @@ class SharedLogic {
     static func getUseSSLPinning() -> Bool {
         // Check if key exists, if not return default true
         if userDefaults.object(forKey: useSSLPinningKey) == nil {
-            NSLog("🔍 SSL setting not found, using default: true")
+
             return true // Default to enabled
         }
         let value = userDefaults.bool(forKey: useSSLPinningKey)
-        NSLog("🔍 SSL setting from UserDefaults: %@", value ? "true" : "false")
+
         return value
     }
     
@@ -77,8 +77,8 @@ class SharedLogic {
         // Clean up any double spaces
         cleaned = cleaned.replacingOccurrences(of: "  ", with: " ")
         
-        NSLog("Original JSON: %@", jsonString)
-        NSLog("Cleaned JSON: %@", cleaned)
+
+
         
         return cleaned
     }
@@ -88,17 +88,17 @@ class SharedLogic {
      */
     static func validateAndCleanPins(_ pins: [String], for domain: String) throws -> [String] {
         guard !pins.isEmpty else {
-            NSLog("❌ No pins provided for domain: %@", domain)
+
             throw SSLPinningError.invalidPinConfiguration(domain: domain)
         }
         
         return try pins.map { pin -> String in
             var cleanPin = pin.trimmingCharacters(in: .whitespacesAndNewlines)
-            NSLog("🔍 Processing pin for domain %@: %@", domain, cleanPin)
+
             
             // Verify pin format
             guard cleanPin.starts(with: "sha256/") else {
-                NSLog("❌ Invalid pin format (missing sha256/) for domain %@: %@", domain, cleanPin)
+
                 throw SSLPinningError.invalidPinConfiguration(domain: domain)
             }
             
@@ -107,17 +107,17 @@ class SharedLogic {
             
             // Check base64 format
             guard cleanPin.range(of: "^[A-Za-z0-9+/=]+$", options: .regularExpression) != nil else {
-                NSLog("❌ Invalid pin format (not base64) for domain %@: %@", domain, cleanPin)
+
                 throw SSLPinningError.invalidPinConfiguration(domain: domain)
             }
             
             // Check length - SHA256 pins should be 44 characters when base64 encoded
             guard cleanPin.count == 44 else {
-                NSLog("❌ Invalid pin length for domain %@ (expected 44, got %d): %@", domain, cleanPin.count, cleanPin)
+
                 throw SSLPinningError.invalidPinConfiguration(domain: domain)
             }
             
-            NSLog("✅ Valid pin for domain %@: %@", domain, cleanPin)
+
             return cleanPin
         }
     }
@@ -130,13 +130,13 @@ class SharedLogic {
         guard let path = Bundle.main.path(forResource: "ssl_config", ofType: "json"),
               let configData = NSData(contentsOfFile: path),
               let configJsonString = String(data: configData as Data, encoding: .utf8) else {
-            NSLog("❌ ssl_config.json not found in main bundle")
-            NSLog("💡 Make sure ssl_config.json exists at project root")
-            NSLog("💡 Run 'pod install' to apply script phase")
+
+
+
             throw SSLPinningError.invalidConfiguration
         }
         
-        NSLog("📄 Using ssl_config.json from main bundle (auto-copied by script)")
+
         return try initializeSslPinning(configJsonString)
     }
     
@@ -180,48 +180,48 @@ class SharedLogic {
                     kTSKPinnedDomains: pinnedDomains
                 ]
                 
-                NSLog("✅ TrustKit config: %@", trustKitConfig)
+
                 
                 // Initialize TrustKit synchronously to catch initialization errors
                 do {
-                    NSLog("🔧 Initializing TrustKit with config...")
-                    NSLog("🔧 Domains to pin: %@", Array(pinnedDomains.keys))
+
+
                     
                     // Initialize TrustKit with the configuration
-                    NSLog("🔧 About to call TrustKit.initSharedInstance...")
+
                     TrustKit.initSharedInstance(withConfiguration: trustKitConfig)
                     SharedLogic.sharedTrustKit = TrustKit.sharedInstance()
                     
-                    NSLog("🔧 TrustKit instance after init: %@", SharedLogic.sharedTrustKit ?? "nil")
+
                     
                     // Verify TrustKit is properly initialized
                     if let trustKit = SharedLogic.sharedTrustKit {
-                        NSLog("✅ TrustKit initialized successfully")
-                        NSLog("🔧 TrustKit instance: %@", trustKit)
+
+
                         
                         // Set up validation callback
                         trustKit.pinningValidatorCallback = { result, notedHostname, policy in
-                            NSLog("🌐 TrustKit callback TRIGGERED for domain: %@", notedHostname)
-                            NSLog("🔍 Trust decision: %d", result.finalTrustDecision.rawValue)
+
+
                             switch result.finalTrustDecision {
                             case .shouldBlockConnection:
-                                NSLog("⛔️ SSL Pinning BLOCKED connection for domain: %@", notedHostname)
-                                NSLog("⛔️ Policy details: %@", policy)
+
+
                             case .shouldAllowConnection:
-                                NSLog("✅ SSL Pinning ALLOWED connection for domain: %@", notedHostname)
-                                NSLog("✅ Policy details: %@", policy)
+
+
                             default:
-                                NSLog("⚠️ Unexpected SSL Pinning result for domain: %@", notedHostname)
+
                             }
                         }
                         
-                        NSLog("✅ TrustKit callback configured")
+
                     } else {
-                        NSLog("❌ TrustKit initialization failed - instance is nil")
+
                         throw SSLPinningError.invalidConfiguration
                     }
                 } catch {
-                    NSLog("❌ TrustKit initialization error: %@", error.localizedDescription)
+
                     throw error
                 }
                 
@@ -231,14 +231,14 @@ class SharedLogic {
                 ]
                 
             } catch let error as SSLPinningError {
-                NSLog("❌ SSL Pinning Error: %@", error.message)
+
                 throw error
             } catch {
-                NSLog("❌ Unexpected Error: %@", error.localizedDescription)
+
                 throw error
             }
         } else {
-            NSLog("⚠️ SSL Pinning is disabled")
+
             return [
                 "message": "SSL Pinning is disabled",
                 "domains": [],

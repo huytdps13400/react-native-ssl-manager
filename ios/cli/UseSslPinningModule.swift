@@ -16,12 +16,12 @@ class UseSslPinning: NSObject {
         if isEnabled {
             do {
                 let _ = try SharedLogic.initializeSslPinningFromBundle()
-                NSLog("✅ SSL Pinning early initialization successful")
+
             } catch {
-                NSLog("❌ SSL Pinning early initialization failed: %@", error.localizedDescription)
+
             }
         } else {
-            NSLog("🔓 SSL Pinning disabled on startup")
+
         }
     }
     

@@ -17,34 +17,21 @@ try {
         const { NativeModules } = require('react-native');
         UseSslPinning = NativeModules.UseSslPinning;
       } catch (legacyError) {
-        console.warn(
-          'react-native-ssl-manager: Could not load native module in both New and Legacy architecture'
-        );
         UseSslPinning = null;
       }
     }
   }
 } catch (error) {
-  console.warn(
-    'react-native-ssl-manager: Could not import react-native, using fallback'
-  );
   UseSslPinning = null;
 }
 
 // Fallback implementation if native module is not available
 if (!UseSslPinning) {
   UseSslPinning = {
-    setUseSSLPinning: (usePinning: boolean) => {
-      console.warn(
-        'react-native-ssl-manager: Native module not available, SSL pinning will work via TrustKit/OkHttp auto-initialization'
-      );
-      console.log('react-native-ssl-manager: SSL pinning setting:', usePinning);
+    setUseSSLPinning: (_usePinning: boolean) => {
       return Promise.resolve();
     },
     getUseSSLPinning: () => {
-      console.warn(
-        'react-native-ssl-manager: Native module not available, returning default true'
-      );
       return Promise.resolve(true);
     },
   };

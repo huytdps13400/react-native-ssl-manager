@@ -146,10 +146,6 @@ function withAndroidAssets(config, options) {
           // Copy SSL config to assets
           const targetPath = path.join(assetsDir, 'ssl_config.json');
           fs.copyFileSync(sourceConfigPath, targetPath);
-
-          console.log(
-            '✅ SSL config automatically copied to Android assets by Expo plugin'
-          );
         } else {
           console.warn(`⚠️  SSL config file not found at: ${sourceConfigPath}`);
           console.warn(
@@ -172,9 +168,7 @@ function withAndroidAssets(config, options) {
 function withIOSSslPinning(config) {
   // No Info.plist modifications needed
   // SSL pinning is initialized at runtime by SharedLogic.swift
-  console.log(
-    '✅ iOS SSL pinning will be handled at runtime by SharedLogic.swift'
-  );
+
   return config;
 }
 
@@ -211,12 +205,7 @@ function withIosAssets(config, options) {
           );
           if (fs.existsSync(appBundleDir)) {
             fs.copyFileSync(sourceConfigPath, appBundleConfigPath);
-            console.log('✅ SSL config also copied to app bundle directory');
           }
-
-          console.log('✅ SSL config copied to ios/ directory');
-          console.log(`📄 Source: ${sourceConfigPath}`);
-          console.log(`📄 Target: ${targetConfigPath}`);
         } else {
           console.warn(`⚠️  SSL config file not found at: ${sourceConfigPath}`);
           console.warn(
@@ -248,7 +237,6 @@ function withIosAssets(config, options) {
       // Ensure SSL config is copied to app bundle directory
       if (fs.existsSync(sourceConfigPath) && fs.existsSync(appBundleDir)) {
         fs.copyFileSync(sourceConfigPath, appBundleConfigPath);
-        console.log('✅ SSL config ensured in app bundle directory for Xcode');
       }
 
       try {
@@ -269,7 +257,6 @@ function withIosAssets(config, options) {
 
         // Check if already added
         if (projectContent.includes('ssl_config.json')) {
-          console.log('✅ SSL config already in Xcode project');
           return config;
         }
 
@@ -278,10 +265,6 @@ function withIosAssets(config, options) {
           'SSL' + Math.random().toString(36).substr(2, 24).toUpperCase();
         const buildFileId =
           'SSL' + Math.random().toString(36).substr(2, 24).toUpperCase();
-
-        console.log(
-          '🔧 Adding ssl_config.json to Xcode project programmatically...'
-        );
 
         // Add file reference
         const fileRefEntry = `\t\t${fileRefId} /* ssl_config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ssl_config.json; sourceTree = "<group>"; };`;
@@ -330,7 +313,6 @@ function withIosAssets(config, options) {
 
         // Write back to file
         fs.writeFileSync(projectPath, projectContent);
-        console.log('✅ SSL config added to Xcode project automatically');
       } catch (error) {
         console.warn(
           '⚠️  Failed to add SSL config to Xcode project:',

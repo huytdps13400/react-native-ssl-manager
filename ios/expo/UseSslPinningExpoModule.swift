@@ -16,12 +16,12 @@ public class UseSslPinningExpoModule: Module {
         if isEnabled {
             do {
                 let _ = try SharedLogic.initializeSslPinningFromBundle()
-                NSLog("✅ SSL Pinning early initialization successful (Expo)")
+
             } catch {
-                NSLog("❌ SSL Pinning early initialization failed (Expo): %@", error.localizedDescription)
+
             }
         } else {
-            NSLog("🔓 SSL Pinning disabled on startup (Expo)")
+
         }
     }
     
