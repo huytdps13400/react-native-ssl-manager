@@ -17,6 +17,22 @@ React Native SSL Pinning provides seamless SSL certificate pinning integration f
 npm install react-native-ssl-manager
 ```
 
+## 🚀 Auto-Initialization (NEW!)
+
+**SSL Pinning bây giờ hoàn toàn tự động và dynamic!** Không cần setup gì trong MainApplication.
+
+### ✅ Zero Configuration Setup:
+1. Install library: `npm install react-native-ssl-manager`
+2. Configure SSL at runtime (no assets needed!)
+3. **That's it!** SSL Pinning tự động hoạt động
+
+### 🎯 How it works:
+- ContentProvider tự động đăng ký ActivityLifecycleCallbacks
+- DynamicSslPinningFactory setup sẵn sàng cho runtime config
+- SSL setup chạy trước khi ReactActivity khởi động
+- Không cần can thiệp vào MainApplication
+- Không cần file assets (optional fallback)
+
 ## Usage
 
 ### Basic Setup

@@ -2,7 +2,7 @@
   "name": "react-native-ssl-manager",
   "platforms": ["android", "apple"],
   "android": {
-    "modules": ["com.usesslpinning.expo.UseSslPinningExpoModule"]
+    "modules": []
   },
   "apple": {
     "modules": ["UseSslPinningExpoModule"]

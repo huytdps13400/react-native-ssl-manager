@@ -944,8 +944,6 @@ PODS:
   - React-Mapbuffer (0.73.6):
     - glog
     - React-debug
-  - react-native-restart (0.0.27):
-    - React-Core
   - react-native-ssl-manager (1.0.0):
     - React-Core
     - TrustKit
@@ -1117,7 +1115,7 @@ PODS:
     - React-logger (= 0.73.6)
     - React-perflogger (= 0.73.6)
   - SocketRocket (0.6.1)
-  - TrustKit (3.0.4)
+  - TrustKit (3.0.7)
   - Yoga (1.14.0)
 
 DEPENDENCIES:
@@ -1173,7 +1171,6 @@ DEPENDENCIES:
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector-modern`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
-  - react-native-restart (from `../node_modules/react-native-restart`)
   - react-native-ssl-manager (from `../..`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
@@ -1270,8 +1267,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   React-Mapbuffer:
     :path: "../node_modules/react-native/ReactCommon"
-  react-native-restart:
-    :path: "../node_modules/react-native-restart"
   react-native-ssl-manager:
     :path: "../.."
   React-nativeconfig:
@@ -1336,7 +1331,7 @@ SPEC CHECKSUMS:
   hermes-engine: 9cecf9953a681df7556b8cc9c74905de8f3293c0
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   OpenSSL-Universal: ebc357f1e6bc71fa463ccb2fe676756aff50e88c
-  RCT-Folly: 7169b2b1c44399c76a47b5deaaba715eeeb476c0
+  RCT-Folly: cd21f1661364f975ae76b3308167ad66b09f53f5
   RCTRequired: ca1d7414aba0b27efcfa2ccd37637edb1ab77d96
   RCTTypeSafety: 678e344fb976ff98343ca61dc62e151f3a042292
   React: e296bcebb489deaad87326067204eb74145934ab
@@ -1357,8 +1352,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 85583ef014ce53d731a98c66a0e24496f7a83066
   React-logger: 55764cd993880c6f887505854581c9faf68feff2
   React-Mapbuffer: 15dfcfeb4428d8799cce75e7fe85b18b706029e0
-  react-native-restart: 0bc732f4461709022a742bb29bcccf6bbc5b4863
-  react-native-ssl-manager: c0565df6a43f72c4eb3a588f4beccdfb6425ae15
+  react-native-ssl-manager: d9a8350afeb912d6ed1f65cfca4a198020cb0433
   React-nativeconfig: b4d4e9901d4cabb57be63053fd2aa6086eb3c85f
   React-NativeModulesApple: 541d64309a3037060cc416db5c8a63ee5884048e
   React-perflogger: 5f49905de275bac07ac7ea7f575a70611fa988f2
@@ -1380,7 +1374,7 @@ SPEC CHECKSUMS:
   React-utils: 288c9cb9a73bb150c273c84df7c2f8546f28e23f
   ReactCommon: 2e5492a3e3a8e72d635c266405e49d12627e5bf0
   SocketRocket: f32cd54efbe0f095c4d7594881e52619cfe80b17
-  TrustKit: 403e8d2cfbff2abfc37cd41acc558dab8ec78e59
+  TrustKit: 1050f3ce0595f8ed775f1237b7f590e3a4f93e91
   Yoga: 805bf71192903b20fc14babe48080582fee65a80
 
 PODFILE CHECKSUM: 3b5e1e7ec3eba1660e34a8a508b7e0e80ad627dd

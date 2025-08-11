@@ -23,6 +23,12 @@ apply plugin: "kotlin-android"
 
 if (isNewArchitectureEnabled()) {
   apply plugin: "com.facebook.react"
+  
+  react {
+    jsRootDir = file("../src/")
+    libraryName = "UseSslPinning"
+    codegenJavaPackageName = "com.usesslpinning"
+  }
 }
 
 def getExtOrDefault(name) {

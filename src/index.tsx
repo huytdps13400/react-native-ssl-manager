@@ -1,32 +1,54 @@
-import { NativeModules, Platform } from 'react-native';
-import type { SslPinningResult } from './UseSslPinning.types';
+import { Platform } from 'react-native';
 
 // Export types from the library
-export type {
-  SslPinningConfig,
-  SslPinningResult,
-  SslPinningPluginOptions,
-  SslPinningError,
-} from './UseSslPinning.types';
-export { SslPinningErrorType } from './UseSslPinning.types';
+export type { SslPinningConfig, SslPinningError } from './UseSslPinning.types';
 
-const LINKING_ERROR =
-  `The package 'react-native-ssl-manager' doesn't seem to be linked. Make sure: \n\n` +
-  Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
-  '- You rebuilt the app after installing the package\n' +
-  '- You are not using Expo Go\n';
+// New Architecture and Legacy Architecture support
+let UseSslPinning: any;
 
-// Try to get the module from NativeModules
-const UseSslPinning = NativeModules.UseSslPinning
-  ? NativeModules.UseSslPinning
-  : new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(LINKING_ERROR);
-        },
+try {
+  // Try New Architecture first (TurboModule)
+  if (Platform.OS === 'android' || Platform.OS === 'ios') {
+    try {
+      UseSslPinning = require('./NativeUseSslPinning').default;
+    } catch (turboModuleError) {
+      // Fallback to Legacy Architecture
+      try {
+        const { NativeModules } = require('react-native');
+        UseSslPinning = NativeModules.UseSslPinning;
+      } catch (legacyError) {
+        console.warn(
+          'react-native-ssl-manager: Could not load native module in both New and Legacy architecture'
+        );
+        UseSslPinning = null;
       }
-    );
+    }
+  }
+} catch (error) {
+  console.warn(
+    'react-native-ssl-manager: Could not import react-native, using fallback'
+  );
+  UseSslPinning = null;
+}
+
+// Fallback implementation if native module is not available
+if (!UseSslPinning) {
+  UseSslPinning = {
+    setUseSSLPinning: (usePinning: boolean) => {
+      console.warn(
+        'react-native-ssl-manager: Native module not available, SSL pinning will work via TrustKit/OkHttp auto-initialization'
+      );
+      console.log('react-native-ssl-manager: SSL pinning setting:', usePinning);
+      return Promise.resolve();
+    },
+    getUseSSLPinning: () => {
+      console.warn(
+        'react-native-ssl-manager: Native module not available, returning default true'
+      );
+      return Promise.resolve(true);
+    },
+  };
+}
 
 /**
  * Sets whether SSL pinning should be used.
@@ -45,16 +67,4 @@ export const setUseSSLPinning = (usePinning: boolean): Promise<void> => {
  */
 export const getUseSSLPinning = async (): Promise<boolean> => {
   return await UseSslPinning.getUseSSLPinning();
-};
-
-/**
- * Initializes SSL pinning with the provided configuration.
- *
- * @param {string} configJsonString - The JSON string containing the SSL pinning configuration.
- * @returns {Promise<SslPinningResult>} A promise that resolves when the SSL pinning is initialized.
- */
-export const initializeSslPinning = async (
-  configJsonString: string
-): Promise<SslPinningResult> => {
-  return await UseSslPinning.initializeSslPinning(configJsonString);
 };

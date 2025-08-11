@@ -117,3 +117,9 @@ dependencies {
 }
 
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
+
+
+
+
+// React Native SSL Manager - Auto-copy SSL config
+apply from: '../../node_modules/react-native-ssl-manager/android/ssl-pinning-setup.gradle'

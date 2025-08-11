@@ -6,18 +6,21 @@
   "module": "lib/index.js",
   "types": "lib/index.d.ts",
   "source": "src/index.tsx",
+  "expo": {
+    "plugin": "./app.plugin.js"
+  },
   "react-native": {
     "android": {
-      "source": "android/src/main/java/com/usesslpinning/cli/UseSslPinningPackage.kt"
+      "sourceDir": "android/src/main/java",
+      "packageImportPath": "import com.usesslpinning.UseSslPinningPackage;"
     },
     "ios": {
-      "podspec": "react-native-ssl-manager.podspec"
+      "podspecPath": "react-native-ssl-manager.podspec"
     }
   },
   "files": [
     "lib",
     "src",
-    "build",
     "android",
     "ios",
     "plugin",
@@ -25,11 +28,13 @@
     "react-native-ssl-manager.podspec",
     "expo-module.config.json",
     "react-native.config.js",
+    "scripts/build.sh",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__",
     "!ios/build",
     "!android/build",
+    "!android/.gradle",
     "!android/gradle",
     "!android/gradlew",
     "!android/gradlew.bat",
@@ -49,6 +54,7 @@
     "build:all": "./scripts/build.sh",
     "build:examples": "./scripts/build.sh --with-examples",
     "example:install": "cd example && yarn install",
+    "postinstall": "node scripts/postinstall.js",
     "example:ios": "cd example && npx react-native run-ios",
     "example:android": "cd example && npx react-native run-android",
     "example-expo:install": "cd example-expo && yarn install",
@@ -104,6 +110,11 @@
     "react-native": "*"
   },
   "packageManager": "yarn@3.6.1",
+  "codegenConfig": {
+    "name": "RNUseSslPinningSpec",
+    "type": "modules",
+    "jsSrcsDir": "src"
+  },
   "jest": {
     "preset": "react-native",
     "modulePathIgnorePatterns": [
@@ -167,6 +178,7 @@
     "useTabs": false
   },
   "dependencies": {
+    "@babel/runtime": "^7.23.0",
     "postinstall": "^0.10.3"
   }
 }

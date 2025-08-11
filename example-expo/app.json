@@ -35,6 +35,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "react-native-ssl-manager",
+        {
+          "sslConfigPath": "./ssl_config.json"
+        }
       ]
     ],
     "experiments": {
