@@ -205,13 +205,11 @@ class SharedLogic {
 
                             switch result.finalTrustDecision {
                             case .shouldBlockConnection:
-
-
+                                break
                             case .shouldAllowConnection:
-
-
+                                break
                             default:
-
+                                break
                             }
                         }
                         
