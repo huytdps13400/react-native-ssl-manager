@@ -9,19 +9,15 @@ let UseSslPinning: any;
 try {
   // Try Legacy NativeModules first (more reliable)
   const { NativeModules } = require('react-native');
-  console.log('📋 Available NativeModules:', Object.keys(NativeModules));
 
-  // Look for our module (both architectures use same name now)
+  // Look for our universal module (works in both CLI and Expo)
   UseSslPinning = NativeModules.UseSslPinning;
 
   if (UseSslPinning) {
-    console.log('✅ NativeModule loaded successfully');
-    console.log('📋 Available methods:', Object.keys(UseSslPinning));
   } else {
     // Fallback to TurboModule if available
     try {
       UseSslPinning = require('./NativeUseSslPinning').default;
-      console.log('✅ TurboModule loaded successfully');
     } catch (turboModuleError) {
       console.log(
         '❌ TurboModule failed:',
