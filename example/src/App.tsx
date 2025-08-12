@@ -179,7 +179,7 @@ export default function App() {
           <TouchableOpacity
             onPress={() =>
               testApiCall(
-                'https://sbkh.wrapper.sbuxkh.com/ms-customer/api/home/home-banner',
+                'https://jsonplaceholder.typicode.com/posts/1',
                 'Pinned API (Should Work)'
               )
             }
