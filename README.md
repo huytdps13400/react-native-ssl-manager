@@ -2,6 +2,24 @@
 
 **Production-ready SSL certificate pinning for React Native and Expo apps.** This library provides seamless SSL certificate pinning integration for enhanced network security, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's perfect for both development and production environments.
 
+## 🎥 Live Demo
+
+### iOS Demo
+[![iOS SSL Pinning Demo](https://vumbnail.com/1109299210.jpg)](https://vimeo.com/1109299210)
+
+### Android Demo  
+[![Android SSL Pinning Demo](https://vumbnail.com/1109299632.jpg)](https://vimeo.com/1109299632)
+
+> **📱 Interactive Features Shown:**
+> - Toggle SSL pinning on/off
+> - Real-time API testing with visual feedback
+> - Certificate validation results
+> - Performance metrics display
+
+**🎬 Watch Full Demo Videos:**
+- **[iOS Demo](https://vimeo.com/1109299210)** - Complete iOS SSL pinning demonstration
+- **[Android Demo](https://vimeo.com/1109299632)** - Complete Android SSL pinning demonstration
+
 ## ✨ Features
 
 - 🔒 **Easy SSL certificate pinning** - Simple setup with JSON configuration
