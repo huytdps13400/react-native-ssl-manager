@@ -9,25 +9,16 @@ Pod::Spec.new do |s|
   
 
   
-  # Always include shared logic and CLI files
-  s.source_files = [
-    'ios/SharedLogic.swift',
-    'ios/cli/**/*.{h,m,swift}',
-    'ios/UseSslPinning.h'
-  ]
+  # RNBootSplash pattern - single implementation for all architectures  
+  s.source_files = "ios/**/*.{h,m,mm,swift}"
   
-  # Conditionally include Expo files if ExpoModulesCore is available
-  expo_available = false
-  begin
-    require 'expo_modules_core'
-    expo_available = true
-  rescue LoadError
-    # ExpoModulesCore not available
-  end
+  s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
   
-  if expo_available
-    s.source_files += ['ios/expo/**/*.{h,m,swift}']
-    s.dependency 'ExpoModulesCore'
+  if ENV['RCT_NEW_ARCH_ENABLED'] == '1' then
+    # New Architecture dependencies would go here if needed
+    s.dependency "React-Core"
+  else
+    s.dependency "React-Core"
   end
   
   # Use script phase to copy ssl_config.json during app build

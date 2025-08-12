@@ -18,6 +18,11 @@
       "podspecPath": "react-native-ssl-manager.podspec"
     }
   },
+  "codegenConfig": {
+    "name": "RNUseSslPinningSpec",
+    "type": "modules",
+    "jsSrcsDir": "src"
+  },
   "files": [
     "lib",
     "src",
@@ -197,6 +202,11 @@
     "tabWidth": 2,
     "trailingComma": "es5",
     "useTabs": false
+  },
+  "codegenConfig": {
+    "name": "RNUseSslPinningSpec",
+    "type": "modules",
+    "jsSrcsDir": "src"
   },
   "dependencies": {
     "@babel/runtime": "^7.23.0",

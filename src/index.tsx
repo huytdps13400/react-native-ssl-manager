@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+// Remove unused Platform import since we no longer check OS
 
 // Export types from the library
 export type { SslPinningConfig, SslPinningError } from './UseSslPinning.types';
@@ -7,21 +7,27 @@ export type { SslPinningConfig, SslPinningError } from './UseSslPinning.types';
 let UseSslPinning: any;
 
 try {
-  // Try New Architecture first (TurboModule)
-  if (Platform.OS === 'android' || Platform.OS === 'ios') {
+  // Try Legacy NativeModules first (more reliable)
+  const { NativeModules } = require('react-native');
+
+  // Look for our universal module (works in both CLI and Expo)
+  UseSslPinning = NativeModules.UseSslPinning;
+
+  if (UseSslPinning) {
+  } else {
+    // Fallback to TurboModule if available
     try {
       UseSslPinning = require('./NativeUseSslPinning').default;
     } catch (turboModuleError) {
-      // Fallback to Legacy Architecture
-      try {
-        const { NativeModules } = require('react-native');
-        UseSslPinning = NativeModules.UseSslPinning;
-      } catch (legacyError) {
-        UseSslPinning = null;
-      }
+      console.log(
+        '❌ TurboModule failed:',
+        (turboModuleError as Error).message
+      );
+      UseSslPinning = null;
     }
   }
 } catch (error) {
+  console.log('❌ Overall module loading failed:', (error as Error).message);
   UseSslPinning = null;
 }
 
