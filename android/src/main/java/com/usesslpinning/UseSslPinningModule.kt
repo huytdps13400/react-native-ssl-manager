@@ -24,12 +24,14 @@ class UseSslPinningModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun setUseSSLPinning(usePinning: Boolean) {
+    fun setUseSSLPinning(usePinning: Boolean, promise: Promise) {
         val sharedPreferences = reactApplicationContext.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
         sharedPreferences.edit().putBoolean("useSSLPinning", usePinning).apply()
         
         // Force new factory creation to bypass RN client cache
         OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(reactApplicationContext))
+        
+        promise.resolve(null)
     }
 
     @ReactMethod

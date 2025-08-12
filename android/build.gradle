@@ -109,5 +109,9 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
    // Add OkHttp dependency for SSL pinning
   implementation "com.squareup.okhttp3:okhttp:4.9.1"
+  
+  // Expo modules dependencies - compileOnly to avoid forcing dependency on users
+  compileOnly 'expo.modules:modules-core'
+  compileOnly 'expo.modules:modules-kotlin'
 }
 
