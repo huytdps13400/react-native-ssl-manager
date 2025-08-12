@@ -70,53 +70,13 @@ function withAndroidSslPinning(config) {
 }
 
 /**
- * Configure Android MainApplication to register SSL pinning package
+ * Configure Android MainApplication - No longer needed as autolinking handles package registration
+ * Keeping function for backward compatibility but removing auto-registration to avoid duplicates
  */
 function withAndroidMainApplication(config) {
-  return withMainApplication(config, (config) => {
-    const { modResults } = config;
-
-    // Add import for UseSslPinningPackage
-    const importStatement = 'import com.usesslpinning.UseSslPinningPackage';
-    if (!modResults.contents.includes(importStatement)) {
-      // Find the last import statement and add after it
-      const lastImportIndex = modResults.contents.lastIndexOf('import ');
-      if (lastImportIndex !== -1) {
-        const endOfLine = modResults.contents.indexOf('\n', lastImportIndex);
-        modResults.contents =
-          modResults.contents.slice(0, endOfLine + 1) +
-          importStatement +
-          '\n' +
-          modResults.contents.slice(endOfLine + 1);
-      }
-    }
-
-    // Add package to getPackages() method
-    const packageAddition = 'packages.add(UseSslPinningPackage())';
-    if (!modResults.contents.includes(packageAddition)) {
-      // Find the comment line and replace it (works for both Java and Kotlin)
-      const commentRegex = /\/\/\s*packages\.add\(MyReactNativePackage\(\)\)/;
-
-      if (commentRegex.test(modResults.contents)) {
-        // Replace the comment with our package
-        modResults.contents = modResults.contents.replace(
-          commentRegex,
-          `${packageAddition}\n            // packages.add(MyReactNativePackage())`
-        );
-      } else {
-        // Fallback: Add before return packages
-        const returnRegex = /(return packages)/;
-        if (returnRegex.test(modResults.contents)) {
-          modResults.contents = modResults.contents.replace(
-            returnRegex,
-            `${packageAddition}\n            $1`
-          );
-        }
-      }
-    }
-
-    return config;
-  });
+  // No longer auto-register package - let autolinking handle it
+  // This prevents duplicate module registration errors
+  return config;
 }
 
 /**
