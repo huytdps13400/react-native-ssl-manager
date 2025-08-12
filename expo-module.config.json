@@ -1,6 +1,6 @@
 {
   "name": "react-native-ssl-manager",
-  "platforms": ["android", "apple"],
+  "platforms": ["apple"],
   "android": {
     "modules": []
   },

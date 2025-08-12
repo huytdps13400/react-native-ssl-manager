@@ -1,5 +1,9 @@
 #import <React/RCTBridgeModule.h>
 
+#if RCT_NEW_ARCH_ENABLED
+// New Architecture - TurboModule will be handled by Swift
+#else
+// Legacy Architecture - Bridge exports for Swift module
 @interface RCT_EXTERN_MODULE(UseSslPinning, NSObject)
 
 RCT_EXTERN_METHOD(setUseSSLPinning:(BOOL)usePinning
@@ -9,12 +13,10 @@ RCT_EXTERN_METHOD(setUseSSLPinning:(BOOL)usePinning
 RCT_EXTERN_METHOD(getUseSSLPinning:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
-// Removed initializeSslPinning method for consistency with workflow
-// SSL pinning is auto-initialized in init() method
-
 + (BOOL)requiresMainQueueSetup
 {
   return NO;
 }
 
 @end
+#endif

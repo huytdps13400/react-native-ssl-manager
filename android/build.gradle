@@ -52,19 +52,12 @@ android {
   if (supportsNamespace()) {
     namespace "com.usesslpinning"
 
+    buildFeatures {
+      buildConfig true
+    }
     sourceSets {
       main {
         manifest.srcFile "src/main/AndroidManifestNew.xml"
-      }
-    }
-  }
-  
-  // Only include CLI files for React Native CLI environment
-  sourceSets {
-    main {
-      java {
-        srcDirs = ['src/main/java']
-        exclude '**/expo/**'
       }
     }
   }
@@ -72,9 +65,22 @@ android {
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
   defaultConfig {
+    buildConfigField("boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString())
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
-
+  }
+  
+  sourceSets {
+    main {
+      java {
+        if (isNewArchitectureEnabled()) {
+          srcDirs += ["src/newarch"]
+        } else {
+          srcDirs += ["src/oldarch"]
+        }
+        exclude '**/expo/**'
+      }
+    }
   }
 
   buildTypes {

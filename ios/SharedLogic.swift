@@ -21,7 +21,7 @@ enum SSLPinningError: Error {
  * Shared logic for SSL pinning functionality
  * Contains common methods used by both CLI and Expo modules
  */
-class SharedLogic {
+@objc class SharedLogic: NSObject {
     static var sharedTrustKit: TrustKit?
     private static let useSSLPinningKey = "useSSLPinning"
     private static let userDefaults = UserDefaults.standard
@@ -30,7 +30,7 @@ class SharedLogic {
      * Set SSL pinning enabled/disabled state
      * Auto-initialize SSL pinning when enabled
      */
-    static func setUseSSLPinning(_ usePinning: Bool) {
+    @objc static func setUseSSLPinning(_ usePinning: Bool) {
         userDefaults.set(usePinning, forKey: useSSLPinningKey)
         userDefaults.synchronize()
         
@@ -50,7 +50,7 @@ class SharedLogic {
     /**
      * Get current SSL pinning state
      */
-    static func getUseSSLPinning() -> Bool {
+    @objc static func getUseSSLPinning() -> Bool {
         // Check if key exists, if not return default true
         if userDefaults.object(forKey: useSSLPinningKey) == nil {
 
@@ -125,7 +125,7 @@ class SharedLogic {
     /**
      * Initialize SSL pinning from bundle (auto-read ssl_config.json)
      */
-    static func initializeSslPinningFromBundle() throws -> [String: Any] {
+    @objc static func initializeSslPinningFromBundle() throws -> [String: Any] {
         // Try to read ssl_config.json from main bundle (auto-copied by script phase)
         guard let path = Bundle.main.path(forResource: "ssl_config", ofType: "json"),
               let configData = NSData(contentsOfFile: path),

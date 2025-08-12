@@ -1,9 +1,5 @@
 #import <React/RCTBridgeModule.h>
 
-// Forward declaration for Swift module
-@interface UseSslPinningModule : NSObject <RCTBridgeModule>
-@end
-
-// CLI module interface
+// Main module interface - SharedLogic will be accessed via Swift bridging header
 @interface UseSslPinning : NSObject <RCTBridgeModule>
 @end
