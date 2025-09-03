@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-08-12
+
+### Fixed
+- Expo plugin loading: đảm bảo `app.plugin.js` nằm trong gói publish và được trỏ đúng bằng `"expo": { "plugin": "./app.plugin.js" }`.
+- Khắc phục lỗi “Cannot use import statement outside a module” khi Expo load sai entry.
+
+### Changed
+- Cập nhật `package.json.files` để include: `app.plugin.js`, `plugin/`, `android/`, `ios/`, `react-native-ssl-manager.podspec`, v.v.
+- Cải thiện README: hướng dẫn cấu hình plugin trong `app.json`, yêu cầu đặt đúng tên `ssl_config.json`.
+
+### Added
+- Tag `v1.0.2` và hướng dẫn chuỗi lệnh commit/tag/publish.
+
 ## [1.0.1] - 2024-12-19
 
 ### Added
