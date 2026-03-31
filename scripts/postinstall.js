@@ -106,6 +106,7 @@ if (fs.existsSync(sslConfigPath)) {
 }
 
 // Generate Network Security Config XML for Android
+const { generateNscXml, mergeNscXml } = require('./nsc-utils');
 const androidDir = path.join(projectRoot, 'android');
 if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
   console.log('🔄 Generating Android Network Security Config XML...');
@@ -125,46 +126,11 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
       );
       const xmlPath = path.join(xmlDir, 'network_security_config.xml');
 
-      // Default expiration: 1 year from now
-      const expDate = new Date();
-      expDate.setFullYear(expDate.getFullYear() + 1);
-      const expiration = expDate.toISOString().split('T')[0];
-
       if (fs.existsSync(xmlPath)) {
         // Merge with existing NSC
-        let existingXml = fs.readFileSync(xmlPath, 'utf8');
-        for (const [domain, pins] of Object.entries(sha256Keys)) {
-          const pinSetXml = pins
-            .map((pin) => {
-              const cleanPin = pin.replace(/^sha256\//, '');
-              return `            <pin digest="SHA-256">${cleanPin}</pin>`;
-            })
-            .join('\n');
-
-          const domainConfigBlock =
-            `    <domain-config cleartextTrafficPermitted="false">\n` +
-            `        <domain includeSubdomains="true">${domain}</domain>\n` +
-            `        <pin-set expiration="${expiration}">\n` +
-            `${pinSetXml}\n` +
-            `        </pin-set>\n` +
-            `    </domain-config>`;
-
-          const domainRegex = new RegExp(
-            `<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(/\./g, '\\.')}</domain>[\\s\\S]*?</domain-config>`,
-            'g'
-          );
-
-          if (domainRegex.test(existingXml)) {
-            console.log(`⚠️ Replacing existing pin-set for domain: ${domain}`);
-            existingXml = existingXml.replace(domainRegex, domainConfigBlock);
-          } else {
-            existingXml = existingXml.replace(
-              '</network-security-config>',
-              `${domainConfigBlock}\n</network-security-config>`
-            );
-          }
-        }
-        fs.writeFileSync(xmlPath, existingXml);
+        const existingXml = fs.readFileSync(xmlPath, 'utf8');
+        const mergedXml = mergeNscXml(existingXml, sha256Keys);
+        fs.writeFileSync(xmlPath, mergedXml);
         console.log(
           '✅ Merged SSL pins into existing network_security_config.xml'
         );
@@ -173,22 +139,7 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
         if (!fs.existsSync(xmlDir)) {
           fs.mkdirSync(xmlDir, { recursive: true });
         }
-
-        let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
-        xml += '<network-security-config>\n';
-        for (const [domain, pins] of Object.entries(sha256Keys)) {
-          xml += '    <domain-config cleartextTrafficPermitted="false">\n';
-          xml += `        <domain includeSubdomains="true">${domain}</domain>\n`;
-          xml += `        <pin-set expiration="${expiration}">\n`;
-          for (const pin of pins) {
-            const cleanPin = pin.replace(/^sha256\//, '');
-            xml += `            <pin digest="SHA-256">${cleanPin}</pin>\n`;
-          }
-          xml += '        </pin-set>\n';
-          xml += '    </domain-config>\n';
-        }
-        xml += '</network-security-config>\n';
-
+        const xml = generateNscXml(sha256Keys);
         fs.writeFileSync(xmlPath, xml);
         console.log('✅ Generated network_security_config.xml');
       }

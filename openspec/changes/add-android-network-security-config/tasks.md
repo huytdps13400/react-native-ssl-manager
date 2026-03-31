@@ -32,6 +32,6 @@
 - [ ] 6.5 Integration test: Cronet request with invalid pin fails
 - [ ] 6.6 Integration test: Coil image load with valid pin succeeds
 - [ ] 6.7 Integration test: Glide image load with valid pin succeeds
-- [ ] 6.8 E2E test: Expo prebuild generates correct XML and manifest
-- [ ] 6.9 E2E test: RN CLI postinstall generates correct XML
-- [ ] 6.10 Validate with `openspec validate add-android-network-security-config --strict`
+- [x] 6.8 E2E test: Expo prebuild generates correct XML and manifest
+- [x] 6.9 E2E test: RN CLI postinstall generates correct XML
+- [x] 6.10 Validate with `openspec validate add-android-network-security-config --strict`
