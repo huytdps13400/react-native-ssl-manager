@@ -20,6 +20,146 @@ def ensureAssetsDir() {
 def assetsDir = file("${projectDir}/src/main/assets")
 def destFile  = file("${projectDir}/src/main/assets/ssl_config.json")
 
+import groovy.xml.XmlParser
+import groovy.xml.XmlNodePrinter
+import groovy.xml.MarkupBuilder
+
+/**
+ * Generate network_security_config.xml from ssl_config.json
+ * Returns true if XML was generated, false otherwise
+ */
+def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
+    if (!sslConfigFile || !sslConfigFile.exists()) {
+        println "⚠️ SSL Config not found, skipping Network Security Config XML generation"
+        return false
+    }
+
+    def json = new groovy.json.JsonSlurper().parse(sslConfigFile)
+    def sha256Keys = json?.sha256Keys
+    if (!sha256Keys || sha256Keys.isEmpty()) {
+        println "⚠️ No sha256Keys found in ssl_config.json, skipping XML generation"
+        return false
+    }
+
+    // Calculate default expiration: 1 year from now
+    def cal = Calendar.getInstance()
+    cal.add(Calendar.YEAR, 1)
+    def expirationDate = String.format("%tF", cal) // YYYY-MM-DD format
+
+    // Ensure output directory exists
+    def xmlDir = xmlOutputFile.parentFile
+    if (!xmlDir.exists()) xmlDir.mkdirs()
+
+    // Check for existing NSC and merge if present
+    if (xmlOutputFile.exists()) {
+        println "🔄 Existing network_security_config.xml found, merging pin entries"
+        mergeNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, expirationDate)
+    } else {
+        writeNewNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, expirationDate)
+    }
+
+    return true
+}
+
+/**
+ * Write a fresh network_security_config.xml
+ */
+def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
+    def writer = new StringWriter()
+    def xml = new MarkupBuilder(writer)
+    xml.setDoubleQuotes(true)
+
+    writer.write('<?xml version="1.0" encoding="utf-8"?>\n')
+    xml.'network-security-config' {
+        sha256Keys.each { domain, pins ->
+            'domain-config'('cleartextTrafficPermitted': 'false') {
+                'domain'('includeSubdomains': 'true', domain)
+                'pin-set'('expiration': expirationDate) {
+                    pins.each { pinValue ->
+                        def cleanPin = pinValue.replaceFirst('^sha256/', '')
+                        'pin'('digest': 'SHA-256', cleanPin)
+                    }
+                }
+            }
+        }
+    }
+
+    xmlFile.text = writer.toString()
+    println "✅ Generated network_security_config.xml with ${sha256Keys.size()} domain(s)"
+}
+
+/**
+ * Merge pin-set entries into an existing network_security_config.xml
+ * Preserves existing config (debug-overrides, base-config, other domain-configs)
+ * Replaces pin-set for domains that already exist, adds new domain-configs otherwise
+ */
+def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
+    def parser = new XmlParser()
+    def root = parser.parse(xmlFile)
+
+    sha256Keys.each { domain, pins ->
+        // Find existing domain-config for this domain
+        def existingDomainConfig = root.'domain-config'.find { dc ->
+            dc.'domain'.any { d -> d.text() == domain }
+        }
+
+        if (existingDomainConfig) {
+            println "⚠️ Replacing existing pin-set for domain: ${domain}"
+            // Remove old pin-set(s)
+            existingDomainConfig.'pin-set'.each { existingDomainConfig.remove(it) }
+            // Add new pin-set
+            def pinSetNode = new Node(existingDomainConfig, 'pin-set', [expiration: expirationDate])
+            pins.each { pinValue ->
+                def cleanPin = pinValue.replaceFirst('^sha256/', '')
+                new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)
+            }
+        } else {
+            // Add new domain-config
+            def domainConfigNode = new Node(root, 'domain-config', [cleartextTrafficPermitted: 'false'])
+            new Node(domainConfigNode, 'domain', [includeSubdomains: 'true'], domain)
+            def pinSetNode = new Node(domainConfigNode, 'pin-set', [expiration: expirationDate])
+            pins.each { pinValue ->
+                def cleanPin = pinValue.replaceFirst('^sha256/', '')
+                new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)
+            }
+        }
+    }
+
+    // Write merged XML back
+    def writer = new StringWriter()
+    writer.write('<?xml version="1.0" encoding="utf-8"?>\n')
+    def printer = new XmlNodePrinter(new PrintWriter(writer))
+    printer.setPreserveWhitespace(true)
+    printer.print(root)
+    xmlFile.text = writer.toString()
+    println "✅ Merged pin entries into existing network_security_config.xml"
+}
+
+/**
+ * Patch AndroidManifest.xml to reference network_security_config if not already set
+ */
+def patchAndroidManifest(File manifestFile) {
+    if (!manifestFile || !manifestFile.exists()) {
+        println "⚠️ AndroidManifest.xml not found, skipping manifest patching"
+        return false
+    }
+
+    def content = manifestFile.text
+    if (content.contains('android:networkSecurityConfig')) {
+        println "ℹ️ AndroidManifest already has networkSecurityConfig reference, preserving existing"
+        return false
+    }
+
+    // Add networkSecurityConfig attribute to <application> tag
+    content = content.replaceFirst(
+        '(<application\\b[^>]*)(>)',
+        '$1 android:networkSecurityConfig="@xml/network_security_config"$2'
+    )
+    manifestFile.text = content
+    println "✅ Added networkSecurityConfig reference to AndroidManifest.xml"
+    return true
+}
+
 plugins.withId('com.android.application') {
 
     // ===== AGP 7/8: androidComponents DSL =====
@@ -64,10 +204,29 @@ plugins.withId('com.android.application') {
                     }
                 }
 
-                // Hook chắc chắn cho assemble/install/mergeAssets
-                tasks.matching { it.name == "merge${vNameCap}Assets" }.configureEach { dependsOn taskName }
-                tasks.matching { it.name == "install${vNameCap}" }.configureEach   { dependsOn taskName }
-                tasks.matching { it.name == "assemble${vNameCap}" }.configureEach  { dependsOn taskName }
+                // ===== Generate Network Security Config XML =====
+                def nscTaskName = "generateNetworkSecurityConfig${vNameCap}"
+                tasks.register(nscTaskName) {
+                    group = "SSL Pinning"
+                    description = "Generate network_security_config.xml for ${vName}"
+
+                    doLast {
+                        def sourceFile = findSslConfigFile()
+                        def xmlDir = file("${projectDir}/src/main/res/xml")
+                        def xmlFile = file("${xmlDir}/network_security_config.xml")
+                        if (generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
+                            // Patch manifest
+                            def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
+                            patchAndroidManifest(manifestFile)
+                        }
+                    }
+                }
+
+                // Hook both tasks before merge/assemble/install
+                tasks.matching { it.name == "merge${vNameCap}Assets" }.configureEach { dependsOn taskName; dependsOn nscTaskName }
+                tasks.matching { it.name == "install${vNameCap}" }.configureEach   { dependsOn taskName; dependsOn nscTaskName }
+                tasks.matching { it.name == "assemble${vNameCap}" }.configureEach  { dependsOn taskName; dependsOn nscTaskName }
+                tasks.matching { it.name == "merge${vNameCap}Resources" }.configureEach { dependsOn nscTaskName }
             }
         }
 
@@ -114,15 +273,33 @@ plugins.withId('com.android.application') {
                     }
                 }
 
+                // ===== Generate Network Security Config XML (legacy path) =====
+                def nscTaskName = "generateNetworkSecurityConfig${vNameCap}"
+                def nscTask = tasks.create(nscTaskName) {
+                    group = "SSL Pinning"
+                    description = "Generate network_security_config.xml for ${vNameCap}"
+
+                    doLast {
+                        def sourceFile = findSslConfigFile()
+                        def xmlDir = file("${projectDir}/src/main/res/xml")
+                        def xmlFile = file("${xmlDir}/network_security_config.xml")
+                        if (generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
+                            def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
+                            patchAndroidManifest(manifestFile)
+                        }
+                    }
+                }
+
                 try {
                     if (variant.hasProperty("mergeAssetsProvider")) {
-                        variant.mergeAssetsProvider.configure { dependsOn copyTask }
+                        variant.mergeAssetsProvider.configure { dependsOn copyTask; dependsOn nscTask }
                     } else {
-                        tasks.named("merge${vNameCap}Assets").configure { dependsOn copyTask }
+                        tasks.named("merge${vNameCap}Assets").configure { dependsOn copyTask; dependsOn nscTask }
                     }
                 } catch (ignored) { }
-                try { tasks.named("install${vNameCap}").configure { dependsOn copyTask } } catch (ignored) { }
-                try { tasks.named("assemble${vNameCap}").configure { dependsOn copyTask } } catch (ignored) { }
+                try { tasks.named("merge${vNameCap}Resources").configure { dependsOn nscTask } } catch (ignored) { }
+                try { tasks.named("install${vNameCap}").configure { dependsOn copyTask; dependsOn nscTask } } catch (ignored) { }
+                try { tasks.named("assemble${vNameCap}").configure { dependsOn copyTask; dependsOn nscTask } } catch (ignored) { }
             }
         }
     }

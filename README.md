@@ -223,6 +223,81 @@ Your `ssl_config.json` should follow this structure:
 - ❌ **Don't rename** the file - it must be exactly `ssl_config.json`
 - ❌ **Don't place** in subdirectories - must be in project root
 
+## Supported Networking Stacks
+
+This library provides SSL pinning coverage across both platforms. The table below shows which networking stacks are covered and by which mechanism.
+
+| Stack | Platform | Covered | Mechanism |
+|-------|----------|---------|-----------|
+| `fetch` / `axios` (React Native) | iOS | Yes | TrustKit swizzling (`kTSKSwizzleNetworkDelegates`) |
+| `URLSession` (Foundation) | iOS | Yes | TrustKit swizzling |
+| `SDWebImage` | iOS | Yes | TrustKit swizzling (uses URLSession) |
+| `Alamofire` | iOS | Yes | TrustKit swizzling (uses URLSession) |
+| Any URLSession-based library | iOS | Yes | TrustKit swizzling |
+| `fetch` / `axios` (React Native) | Android | Yes | OkHttpClientFactory + Network Security Config |
+| OkHttp (direct) | Android | Yes | Network Security Config |
+| Cronet (`react-native-nitro-fetch`) | Android | Yes | Network Security Config |
+| Android WebView | Android | Yes | Network Security Config |
+| Coil / Ktor with OkHttp engine | Android | Yes | Network Security Config |
+| Glide / OkHttp3 (`react-native-fast-image`) | Android | Yes | Network Security Config |
+| `HttpURLConnection` | Android | Yes | Network Security Config |
+
+### How It Works
+
+**iOS**: TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which swizzles all `URLSession` delegates at the OS level. This means any library that uses `URLSession` under the hood (including SDWebImage, Alamofire, and React Native's networking layer) is automatically covered without any additional configuration.
+
+**Android**: The library auto-generates `network_security_config.xml` from `ssl_config.json` at build time and patches `AndroidManifest.xml` to reference it. Android's Network Security Config is enforced at the platform level for all networking stacks that use the default `TrustManager` — including OkHttp, Cronet, WebView, Coil, Glide, and `HttpURLConnection`.
+
+### Known Limitations
+
+- **iOS**: Libraries that implement custom TLS stacks (not using `URLSession`) are NOT covered by TrustKit swizzling.
+- **Android**: Libraries that build Cronet or OkHttp with a custom `TrustManager` that bypasses the system default may bypass Network Security Config.
+
+### PinnedOkHttpClient (Android)
+
+For native module authors who need a pinned OkHttp client (e.g., custom Glide modules, Ktor engines), the library exposes a public singleton:
+
+```kotlin
+import com.usesslpinning.PinnedOkHttpClient
+
+// Get a pinned OkHttpClient instance
+val client = PinnedOkHttpClient.getInstance(context)
+```
+
+#### Glide Integration
+
+```kotlin
+@GlideModule
+class MyAppGlideModule : AppGlideModule() {
+    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+        val client = PinnedOkHttpClient.getInstance(context)
+        registry.replace(
+            GlideUrl::class.java,
+            InputStream::class.java,
+            OkHttpUrlLoader.Factory(client)
+        )
+    }
+}
+```
+
+#### Coil Integration
+
+```kotlin
+val imageLoader = ImageLoader.Builder(context)
+    .okHttpClient { PinnedOkHttpClient.getInstance(context) }
+    .build()
+```
+
+#### Ktor OkHttp Engine
+
+```kotlin
+val httpClient = HttpClient(OkHttp) {
+    engine {
+        preconfigured = PinnedOkHttpClient.getInstance(context)
+    }
+}
+```
+
 ## Important Notes ⚠️
 
 ### Restarting After SSL Pinning Changes
@@ -304,6 +379,82 @@ const handleSSLToggle = async (enabled: boolean) => {
    - Always enable SSL pinning in production
    - Regularly update certificates before expiration
    - Maintain multiple backup certificates
+
+## Supported Networking Stacks
+
+This library provides platform-level SSL pinning coverage across both iOS and Android. The table below shows which networking stacks are covered on each platform and the mechanism used.
+
+| Stack | Platform | Covered | Mechanism |
+|-------|----------|---------|-----------|
+| `fetch` / `axios` (React Native) | iOS | Yes | TrustKit URLSession swizzling |
+| `fetch` / `axios` (React Native) | Android | Yes | OkHttpClientFactory + Network Security Config |
+| `URLSession` (Foundation) | iOS | Yes | TrustKit swizzling (`kTSKSwizzleNetworkDelegates`) |
+| `SDWebImage` | iOS | Yes | TrustKit swizzling (uses URLSession internally) |
+| `Alamofire` | iOS | Yes | TrustKit swizzling (uses URLSession internally) |
+| Any URLSession-based library | iOS | Yes | TrustKit swizzling |
+| OkHttp | Android | Yes | Network Security Config + CertificatePinner |
+| Cronet (`react-native-nitro-fetch`) | Android | Yes | Network Security Config |
+| Android WebView | Android | Yes | Network Security Config |
+| Coil / Ktor with OkHttp engine | Android | Yes | Network Security Config |
+| Glide / OkHttp3 (`react-native-fast-image`) | Android | Yes | Network Security Config |
+| `HttpURLConnection` | Android | Yes | Network Security Config |
+
+### iOS Coverage
+
+On iOS, TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which automatically swizzles all `URLSession` delegates. This means **any library that uses `URLSession` under the hood** is covered without additional configuration — including `SDWebImage`, `Alamofire`, and React Native's built-in networking.
+
+**Known limitation:** Custom TLS stacks that do not use `URLSession` (e.g., custom OpenSSL bindings) are NOT covered by TrustKit swizzling.
+
+### Android Coverage
+
+On Android, the library generates a `network_security_config.xml` at build time from your `ssl_config.json`. This is enforced at the OS level for all networking stacks that use the platform default `TrustManager`, covering OkHttp, Cronet, WebView, Coil, Glide, and `HttpURLConnection` without per-library configuration.
+
+**Known limitation:** Libraries that build Cronet or OkHttp with a custom `TrustManager` that bypasses the system default may not be covered by Network Security Config.
+
+### PinnedOkHttpClient API (Android)
+
+For native module authors who need a pre-configured pinned OkHttp client, the library exposes `PinnedOkHttpClient`:
+
+```kotlin
+// Get the singleton pinned client
+val client = PinnedOkHttpClient.getInstance(context)
+```
+
+The client reads `ssl_config.json` and configures `CertificatePinner` when SSL pinning is enabled. It returns a plain `OkHttpClient` when pinning is disabled. The singleton is automatically invalidated when the pinning state changes.
+
+#### Glide Integration
+
+```kotlin
+@GlideModule
+class MyAppGlideModule : AppGlideModule() {
+    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+        val client = PinnedOkHttpClient.getInstance(context)
+        registry.replace(
+            GlideUrl::class.java,
+            InputStream::class.java,
+            OkHttpUrlLoader.Factory(client)
+        )
+    }
+}
+```
+
+#### Coil Integration
+
+```kotlin
+val imageLoader = ImageLoader.Builder(context)
+    .okHttpClient { PinnedOkHttpClient.getInstance(context) }
+    .build()
+```
+
+#### Ktor OkHttp Engine Integration
+
+```kotlin
+val httpClient = HttpClient(OkHttp) {
+    engine {
+        preconfigured = PinnedOkHttpClient.getInstance(context)
+    }
+}
+```
 
 ## ✅ Completed Roadmap
 
