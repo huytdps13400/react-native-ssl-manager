@@ -34,7 +34,7 @@
     "react-native-ssl-manager.podspec",
     "expo-module.config.json",
     "react-native.config.js",
-    "scripts/build.sh",
+    "scripts",
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__",
