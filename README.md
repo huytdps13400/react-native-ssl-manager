@@ -233,10 +233,10 @@ This library provides SSL pinning coverage across both platforms. The table belo
 | `URLSession` (Foundation) | iOS | Yes | TrustKit swizzling |
 | `SDWebImage` | iOS | Yes | TrustKit swizzling (uses URLSession) |
 | `Alamofire` | iOS | Yes | TrustKit swizzling (uses URLSession) |
-| Any URLSession-based library | iOS | Yes | TrustKit swizzling |
+| Most URLSession-based libraries | iOS | Yes* | TrustKit swizzling |
 | `fetch` / `axios` (React Native) | Android | Yes | OkHttpClientFactory + Network Security Config |
 | OkHttp (direct) | Android | Yes | Network Security Config |
-| Cronet (`react-native-nitro-fetch`) | Android | Yes | Network Security Config |
+| Cronet (`react-native-nitro-fetch`) | Android | Best-effort* | Network Security Config |
 | Android WebView | Android | Yes | Network Security Config |
 | Coil / Ktor with OkHttp engine | Android | Yes | Network Security Config |
 | Glide / OkHttp3 (`react-native-fast-image`) | Android | Yes | Network Security Config |
@@ -244,14 +244,16 @@ This library provides SSL pinning coverage across both platforms. The table belo
 
 ### How It Works
 
-**iOS**: TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which swizzles all `URLSession` delegates at the OS level. This means any library that uses `URLSession` under the hood (including SDWebImage, Alamofire, and React Native's networking layer) is automatically covered without any additional configuration.
+**iOS**: TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which swizzles most `URLSession` delegates at the OS level. This means most libraries that use `URLSession` under the hood (including SDWebImage, Alamofire, and React Native's networking layer) are automatically covered without any additional configuration.
 
-**Android**: The library auto-generates `network_security_config.xml` from `ssl_config.json` at build time and patches `AndroidManifest.xml` to reference it. Android's Network Security Config is enforced at the platform level for all networking stacks that use the default `TrustManager` — including OkHttp, Cronet, WebView, Coil, Glide, and `HttpURLConnection`.
+**Android**: The library auto-generates `network_security_config.xml` from `ssl_config.json` at build time and patches `AndroidManifest.xml` to reference it. Android's Network Security Config is enforced at the platform level for all networking stacks that use the default `TrustManager` — including OkHttp, WebView, Coil, Glide, and `HttpURLConnection`. Cronet coverage is best-effort and depends on whether Cronet uses the platform default TrustManager.
 
 ### Known Limitations
 
 - **iOS**: Libraries that implement custom TLS stacks (not using `URLSession`) are NOT covered by TrustKit swizzling.
-- **Android**: Libraries that build Cronet or OkHttp with a custom `TrustManager` that bypasses the system default may bypass Network Security Config.
+- **iOS**: Apps with complex custom `URLSessionDelegate` implementations or other method-swizzling libraries may experience conflicts with TrustKit's swizzling. TrustKit's own documentation notes swizzling is designed for "simple apps".
+- **Android**: Libraries that build OkHttp with a custom `TrustManager` that bypasses the system default may bypass Network Security Config.
+- **Android (Cronet)**: Cronet may use its own TLS stack rather than the platform default `TrustManager`, in which case NSC pin-sets are not enforced. For authoritative Cronet pinning, use `CronetEngine.Builder.addPublicKeyPins()` directly.
 
 ### PinnedOkHttpClient (Android)
 
@@ -294,6 +296,41 @@ val imageLoader = ImageLoader.Builder(context)
 val httpClient = HttpClient(OkHttp) {
     engine {
         preconfigured = PinnedOkHttpClient.getInstance(context)
+    }
+}
+```
+
+#### Ktor CIO Engine (Manual Pinning)
+
+The CIO engine uses its own TLS stack and is **not** covered by Network Security Config or `PinnedOkHttpClient`. You must configure a custom `TrustManager` manually:
+
+```kotlin
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import java.security.cert.X509Certificate
+import javax.net.ssl.X509TrustManager
+
+val httpClient = HttpClient(CIO) {
+    engine {
+        https {
+            trustManager = object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+                override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
+                    // Validate the leaf certificate's public key pin against
+                    // your expected SHA-256 hashes from ssl_config.json
+                    val leafCert = chain[0]
+                    val publicKeyHash = java.security.MessageDigest
+                        .getInstance("SHA-256")
+                        .digest(leafCert.publicKey.encoded)
+                    val pin = android.util.Base64.encodeToString(publicKeyHash, android.util.Base64.NO_WRAP)
+                    val expectedPins = listOf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") // from ssl_config.json
+                    if (pin !in expectedPins) {
+                        throw javax.net.ssl.SSLPeerUnverifiedException("Certificate pin mismatch for CIO engine")
+                    }
+                }
+                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+            }
+        }
     }
 }
 ```
@@ -391,9 +428,9 @@ This library provides platform-level SSL pinning coverage across both iOS and An
 | `URLSession` (Foundation) | iOS | Yes | TrustKit swizzling (`kTSKSwizzleNetworkDelegates`) |
 | `SDWebImage` | iOS | Yes | TrustKit swizzling (uses URLSession internally) |
 | `Alamofire` | iOS | Yes | TrustKit swizzling (uses URLSession internally) |
-| Any URLSession-based library | iOS | Yes | TrustKit swizzling |
+| Most URLSession-based libraries | iOS | Yes* | TrustKit swizzling |
 | OkHttp | Android | Yes | Network Security Config + CertificatePinner |
-| Cronet (`react-native-nitro-fetch`) | Android | Yes | Network Security Config |
+| Cronet (`react-native-nitro-fetch`) | Android | Best-effort* | Network Security Config |
 | Android WebView | Android | Yes | Network Security Config |
 | Coil / Ktor with OkHttp engine | Android | Yes | Network Security Config |
 | Glide / OkHttp3 (`react-native-fast-image`) | Android | Yes | Network Security Config |
@@ -401,15 +438,19 @@ This library provides platform-level SSL pinning coverage across both iOS and An
 
 ### iOS Coverage
 
-On iOS, TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which automatically swizzles all `URLSession` delegates. This means **any library that uses `URLSession` under the hood** is covered without additional configuration — including `SDWebImage`, `Alamofire`, and React Native's built-in networking.
+On iOS, TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which automatically swizzles most `URLSession` delegates. This means **most libraries that use `URLSession` under the hood** are covered without additional configuration — including `SDWebImage`, `Alamofire`, and React Native's built-in networking.
 
-**Known limitation:** Custom TLS stacks that do not use `URLSession` (e.g., custom OpenSSL bindings) are NOT covered by TrustKit swizzling.
+**Known limitations:**
+- Custom TLS stacks that do not use `URLSession` (e.g., custom OpenSSL bindings) are NOT covered by TrustKit swizzling.
+- Apps with complex custom `URLSessionDelegate` implementations or other method-swizzling libraries may experience conflicts with TrustKit's swizzling.
 
 ### Android Coverage
 
-On Android, the library generates a `network_security_config.xml` at build time from your `ssl_config.json`. This is enforced at the OS level for all networking stacks that use the platform default `TrustManager`, covering OkHttp, Cronet, WebView, Coil, Glide, and `HttpURLConnection` without per-library configuration.
+On Android, the library generates a `network_security_config.xml` at build time from your `ssl_config.json`. This is enforced at the OS level for all networking stacks that use the platform default `TrustManager`, covering OkHttp, WebView, Coil, Glide, and `HttpURLConnection` without per-library configuration. Cronet coverage is best-effort (see below).
 
-**Known limitation:** Libraries that build Cronet or OkHttp with a custom `TrustManager` that bypasses the system default may not be covered by Network Security Config.
+**Known limitations:**
+- Libraries that build OkHttp with a custom `TrustManager` that bypasses the system default may not be covered by Network Security Config.
+- **Cronet**: No authoritative documentation confirms Cronet always respects NSC `<pin-set>` directives. Cronet has its own pinning API (`CronetEngine.Builder.addPublicKeyPins()`), which should be used for guaranteed Cronet pinning.
 
 ### PinnedOkHttpClient API (Android)
 
@@ -456,6 +497,10 @@ val httpClient = HttpClient(OkHttp) {
 }
 ```
 
+#### Ktor CIO Engine (Manual Pinning)
+
+The CIO engine uses its own TLS stack and is **not** covered by Network Security Config or `PinnedOkHttpClient`. See the [Ktor CIO Engine manual pinning example](#ktor-cio-engine-manual-pinning) above for a complete code sample using a custom `TrustManager`.
+
 ## ✅ Completed Roadmap
 
 ### Recently Completed Features
@@ -494,6 +539,9 @@ val httpClient = HttpClient(OkHttp) {
 - 🔧 **Extended Platform Support**
   - Web support for React Native Web
   - Additional certificate formats support
+
+- 📦 **Optional Library Artifacts**
+  - `react-native-ssl-manager-glide` — first-class Glide integration with pre-configured `AppGlideModule` (currently manual via `PinnedOkHttpClient`)
 
 ## 🧪 Testing Your SSL Implementation
 
