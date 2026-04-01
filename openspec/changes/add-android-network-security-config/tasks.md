@@ -28,10 +28,10 @@
 - [x] 6.1 Unit test: XML generation from various `ssl_config.json` inputs
 - [x] 6.2 Unit test: XML merge with existing NSC
 - [x] 6.3 Unit test: PinnedOkHttpClient singleton returns configured client
-- [ ] 6.4 Integration test: Cronet request with valid pin succeeds
-- [ ] 6.5 Integration test: Cronet request with invalid pin fails
-- [ ] 6.6 Integration test: Coil image load with valid pin succeeds
-- [ ] 6.7 Integration test: Glide image load with valid pin succeeds
+- [x] 6.4 Integration test: Cronet request with valid pin succeeds
+- [x] 6.5 Integration test: Cronet request with invalid pin fails
+- [x] 6.6 Integration test: Coil image load with valid pin succeeds
+- [x] 6.7 Integration test: Glide image load with valid pin succeeds
 - [x] 6.8 E2E test: Expo prebuild generates correct XML and manifest
 - [x] 6.9 E2E test: RN CLI postinstall generates correct XML
 - [x] 6.10 Validate with `openspec validate add-android-network-security-config --strict`
