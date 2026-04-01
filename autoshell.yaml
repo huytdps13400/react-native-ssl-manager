@@ -1,0 +1,87 @@
+records:
+  - name: "ssl-manager-openspec"
+    schedule:
+      type: daily
+      time: "01:30"
+    working_dir: ~/Desktop/react-native-ssl-manager
+    env:
+      rvm_bash_nounset: "0"
+    commands:
+      - |
+        claude -p "You are working on the react-native-ssl-manager library. Your job is to complete the remaining OpenSpec tasks and validate documentation accuracy.
+
+        ## Context
+        Read these files FIRST before doing anything:
+        - openspec/changes/add-android-network-security-config/proposal.md — understand WHY
+        - openspec/changes/add-android-network-security-config/design.md — understand HOW (includes Decision 5: Layered Cronet Strategy)
+        - openspec/changes/add-android-network-security-config/tasks.md — the task checklist
+        - openspec/changes/add-android-network-security-config/specs/android-network-security-config/spec.md — requirements & scenarios (Cronet scenarios qualified as best-effort)
+        - openspec/changes/add-android-network-security-config/specs/android-pinned-client-api/spec.md — requirements & scenarios (includes Ktor CIO documentation requirement)
+        - openspec/changes/add-android-network-security-config/specs/ios-urlsession-documentation/spec.md — requirements & scenarios (TrustKit narrowed to 'most' with swizzling conflict limitation)
+
+        ## Current state (22/26 tasks done)
+        Tasks 1–5 and 6.1–6.3, 6.8–6.10 are COMPLETE. The remaining tasks are:
+        - 6.4 Integration test: Cronet request with valid pin succeeds
+        - 6.5 Integration test: Cronet request with invalid pin fails
+        - 6.6 Integration test: Coil image load with valid pin succeeds
+        - 6.7 Integration test: Glide image load with valid pin succeeds
+
+        These require an Android device/emulator. If no device is available, write the test scaffolding
+        (instrumented test classes in androidTest/) and mark them as scaffolded in tasks.md with a note.
+
+        ## Documentation accuracy fixes (ALREADY APPLIED — validate only)
+        The following 4 accuracy fixes have been applied to README.md and specs. VALIDATE they are correct:
+        1. Cronet + NSC: Tables say 'Best-effort*', prose does NOT claim definitive Cronet coverage, known limitations mention addPublicKeyPins()
+        2. iOS TrustKit: Tables say 'Most URLSession-based libraries | Yes*', prose says 'most' not 'all', known limitations mention swizzling conflicts
+        3. Glide: Future Roadmap has react-native-ssl-manager-glide bullet, design.md non-goals softened
+        4. Ktor CIO: README has manual TrustManager code sample for CIO engine, spec has Ktor CIO documentation requirement
+
+        ## Existing code to understand
+        - android/src/main/java/com/usesslpinning/SslPinningFactory.kt — current Android SSL pinning
+        - android/src/main/java/com/usesslpinning/PinnedOkHttpClient.kt — public pinned client API
+        - android/ssl-pinning-setup.gradle — Gradle setup with XML generation
+        - app.plugin.js — Expo plugin with NSC generation
+        - scripts/postinstall.js — postinstall with XML generation
+        - ios/SharedLogic.swift — iOS TrustKit implementation
+        - README.md — documentation (with accuracy fixes applied)
+        - __tests__/ — existing unit and E2E tests
+
+        ## Rules
+        1. Work through tasks.md IN ORDER. Find the first unchecked task (marked with [ ]) and implement it.
+        2. After completing each task, update tasks.md to mark it as done (change [ ] to [x]).
+        3. Follow the spec requirements and scenarios EXACTLY — they are your acceptance criteria.
+        4. Do NOT over-engineer. Keep implementations minimal and focused.
+        5. Do NOT modify iOS native code — it already works.
+        6. Run openspec validate add-android-network-security-config --strict after making spec-related changes.
+        7. When done with a batch of tasks, commit locally with a clear message describing what was completed.
+        8. Do NOT push to remote — only commit locally.
+        9. If ALL tasks in tasks.md are complete (all marked [x]), run a final validation pass:
+           a. openspec validate add-android-network-security-config --strict
+           b. Verify README has NO 'all URLSession' or definitive 'Cronet | Yes' claims (grep for them)
+           c. Verify Ktor CIO code sample exists in README
+           d. Reply with DONE.
+
+        ## Integration Test Implementation Details (Tasks 6.4–6.7)
+
+        These are Android instrumented tests. Place them in a test file under __tests__/ or android/src/androidTest/.
+
+        ### Task 6.4 & 6.5 (Cronet integration):
+        - Use CronetEngine.Builder to create a Cronet engine
+        - Make HTTPS request to a domain with valid/invalid pins
+        - NOTE: Cronet NSC coverage is best-effort per Decision 5. Test should document this caveat.
+        - If no Android device available, write the test class with @Ignore annotation and a TODO comment
+
+        ### Task 6.6 (Coil integration):
+        - Build a Coil ImageLoader with OkHttp engine
+        - Load image from a pinned domain
+        - Verify success with valid pin
+
+        ### Task 6.7 (Glide integration):
+        - Create a test GlideModule using PinnedOkHttpClient
+        - Load image from a pinned domain
+        - Verify success with valid pin
+
+        Start working now. Complete as many tasks as you can." --dangerously-skip-permissions
+    logging:
+      enabled: true
+      retention: 7
