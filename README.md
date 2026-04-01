@@ -1,97 +1,57 @@
-# 🔒 react-native-ssl-manager
+# react-native-ssl-manager
 
-**Production-ready SSL certificate pinning for React Native and Expo apps.** This library provides seamless SSL certificate pinning integration for enhanced network security, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's perfect for both development and production environments.
+Production-ready SSL certificate pinning for React Native and Expo. Protects against MITM attacks with platform-native enforcement on both iOS and Android.
 
-## 🎥 Live Demo
+## Features
 
-### iOS Demo
-[![iOS SSL Pinning Demo](https://vumbnail.com/1109299210.jpg)](https://vimeo.com/1109299210)
+- **Platform-native pinning** — TrustKit (iOS) + Network Security Config (Android)
+- **Single config** — one `ssl_config.json` drives both platforms
+- **Runtime toggle** — enable/disable pinning without rebuilding
+- **Expo + RN CLI** — built-in Expo plugin, auto-setup for bare projects
+- **New Architecture** — Fabric/TurboModules supported (RN 0.68+)
+- **Android NSC generation** — auto-generates `network_security_config.xml` at build time, covering OkHttp, WebView, Coil, Glide, and HttpURLConnection
 
-### Android Demo  
-[![Android SSL Pinning Demo](https://vumbnail.com/1109299632.jpg)](https://vimeo.com/1109299632)
-
-> **📱 Interactive Features Shown:**
-> - Toggle SSL pinning on/off
-> - Real-time API testing with visual feedback
-> - Certificate validation results
-> - Performance metrics display
-
-**🎬 Watch Full Demo Videos:**
-- **[iOS Demo](https://vimeo.com/1109299210)** - Complete iOS SSL pinning demonstration
-- **[Android Demo](https://vimeo.com/1109299632)** - Complete Android SSL pinning demonstration
-
-## ✨ Features
-
-- 🔒 **Easy SSL certificate pinning** - Simple setup with JSON configuration
-- 🔄 **Dynamic SSL control** - Enable/disable SSL pinning at runtime
-- 🏗️ **New Architecture Ready** - Full support for React Native's New Architecture (Fabric/TurboModules)
-- 🏛️ **Legacy Compatible** - Works with both New and Legacy Architecture
-- 📱 **Cross-platform** - Native support for iOS & Android
-- 🚀 **Expo Compatible** - Built-in Expo plugin with auto-configuration
-- ⚡ **Zero Configuration** - Auto-setup with smart fallbacks
-- 🧪 **Developer Friendly** - Perfect for development and testing workflows
-- 🎯 **Production Ready** - Optimized performance, no debug logs
-
-## 📦 Installation
-
-### For React Native CLI Projects
+## Installation
 
 ```bash
-# Using npm
 npm install react-native-ssl-manager
-
-# Using yarn
+# or
 yarn add react-native-ssl-manager
-
-# Using bun
-bun add react-native-ssl-manager
 ```
 
-For iOS, run pod install:
+iOS:
 ```bash
 cd ios && pod install
 ```
 
-### For Expo Projects
+### Expo
 
 ```bash
-# Using expo CLI
 npx expo install react-native-ssl-manager
-
-# Using bun with expo
-bunx expo install react-native-ssl-manager
 ```
 
-Add the plugin to your `app.json` or `app.config.js`:
+Add to `app.json`:
 ```json
 {
   "expo": {
     "plugins": [
-      [
-        "react-native-ssl-manager",
-        {
-          "sslConfigPath": "./ssl_config.json"
-        }
-      ]
+      ["react-native-ssl-manager", { "sslConfigPath": "./ssl_config.json" }]
     ]
   }
 }
 ```
 
-## 🚀 Architecture Support
+Expo plugin options:
 
-This library supports **both** React Native architectures:
+| Option | Default | Description |
+|--------|---------|-------------|
+| `sslConfigPath` | `"ssl_config.json"` | Path to config relative to project root |
+| `enableAndroid` | `true` | Enable Android NSC generation + manifest patching |
+| `enableIOS` | `true` | Enable iOS asset bundling |
 
-- ✅ **New Architecture** (Fabric/TurboModules) - React Native 0.68+
-- ✅ **Legacy Architecture** - All React Native versions
+## Quick Start
 
-The library automatically detects and uses the appropriate architecture at runtime.
-
-## 🚀 Quick Start
-
-### Step 1: Create SSL Configuration
-
-Create a `ssl_config.json` file in your project root:
+### 1. Create `ssl_config.json` in your project root
 
 ```json
 {
@@ -99,190 +59,121 @@ Create a `ssl_config.json` file in your project root:
     "api.example.com": [
       "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
       "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
-    ],
-    "api.dev.example.com": [
-      "sha256/CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=",
-      "sha256/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD="
     ]
   }
 }
 ```
 
-### Step 2: Basic Usage
+> Always include at least 2 pins per domain (primary + backup) to avoid lockout during certificate rotation.
+
+### 2. Use in your app
 
 ```typescript
 import { setUseSSLPinning, getUseSSLPinning } from 'react-native-ssl-manager';
 
-// Enable SSL pinning
+// Enable SSL pinning (enabled by default)
 await setUseSSLPinning(true);
 
-// Check if SSL pinning is enabled
+// Check current state
 const isEnabled = await getUseSSLPinning();
-console.log('SSL Pinning enabled:', isEnabled);
 
-// Disable SSL pinning (for development/testing)
+// Disable for development/debugging
 await setUseSSLPinning(false);
 ```
 
-### Step 3: Test Your Implementation
+**Important:** Toggling SSL pinning requires an app restart for changes to take effect. See [Runtime Toggle](#runtime-toggle) below.
 
-```typescript
-// Test with SSL pinning enabled
-await setUseSSLPinning(true);
-try {
-  const response = await fetch('https://api.example.com/data');
-  console.log('✅ SSL Pinning working - request succeeded');
-} catch (error) {
-  console.log('⚠️ Check your SSL configuration');
-}
+## How It Works
 
-// Test without SSL pinning
-await setUseSSLPinning(false);
-const response = await fetch('https://api.example.com/data');
-console.log('🔓 Request without SSL pinning');
+### iOS — TrustKit Swizzling
+
+TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which swizzles `URLSession` delegates at the OS level. Most libraries using `URLSession` under the hood are automatically covered — no per-library configuration needed.
+
+Each domain is configured with:
+```swift
+pinnedDomains[domain] = [
+    kTSKIncludeSubdomains: true,
+    kTSKEnforcePinning: true,
+    kTSKPublicKeyHashes: pins  // SHA-256 base64
+]
 ```
 
-### Configuration File (ssl_config.json)
+### Android — Network Security Config + OkHttp CertificatePinner
 
-Create a configuration file with your domain certificates. Example structure:
+Two layers of enforcement:
 
-```json
-{
-  "domains": {
-    "development": "api.dev.example.com",
-    "production": "api.example.com"
-  },
-  "sha256Keys": {
-    "api.dev.example.com": [
-      "sha256/certificate-hash-1=",
-      "sha256/certificate-hash-2="
-    ],
-    "api.example.com": [
-      "sha256/certificate-hash-3=",
-      "sha256/certificate-hash-4="
-    ]
-  }
-}
+1. **OkHttpClientFactory** — Intercepts React Native's HTTP client creation, applies `CertificatePinner` from `ssl_config.json`. Covers `fetch`/`axios` calls from JS.
+
+2. **Network Security Config (NSC)** — Auto-generated `network_security_config.xml` at build time from `ssl_config.json`. Enforced at OS level for all stacks using the platform default `TrustManager`.
+
+Generated XML format:
+```xml
+<network-security-config>
+  <domain-config cleartextTrafficPermitted="false">
+    <domain includeSubdomains="true">api.example.com</domain>
+    <pin-set expiration="2027-04-01">
+      <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+    </pin-set>
+  </domain-config>
+</network-security-config>
 ```
 
-## 📚 API Reference
-
-### `setUseSSLPinning(usePinning: boolean): Promise<void>`
-
-Enables or disables SSL pinning dynamically.
-
-```typescript
-// Enable SSL pinning
-await setUseSSLPinning(true);
-
-// Disable SSL pinning
-await setUseSSLPinning(false);
-```
-
-**Parameters:**
-- `usePinning` (boolean): Whether to enable SSL pinning
-
-**Returns:** Promise<void>
-
-### `getUseSSLPinning(): Promise<boolean>`
-
-Retrieves the current state of SSL pinning.
-
-```typescript
-const isEnabled = await getUseSSLPinning();
-console.log('SSL Pinning enabled:', isEnabled);
-```
-
-**Returns:** Promise<boolean> - Current SSL pinning status
-
-## 🔧 Configuration
-
-### SSL Configuration File Structure
-
-**⚠️ Important:** The configuration file **must** be named exactly `ssl_config.json` and placed in your project root directory.
-
-Your `ssl_config.json` should follow this structure:
-
-```json
-{
-  "sha256Keys": {
-    "your-api-domain.com": [
-      "sha256/primary-certificate-hash=",
-      "sha256/backup-certificate-hash="
-    ],
-    "another-domain.com": [
-      "sha256/another-certificate-hash="
-    ]
-  }
-}
-```
-
-**📁 File Location Requirements:**
-- ✅ **React Native CLI**: Place `ssl_config.json` in project root
-- ✅ **Expo**: Place `ssl_config.json` in project root (same level as `app.json`)
-- ❌ **Don't rename** the file - it must be exactly `ssl_config.json`
-- ❌ **Don't place** in subdirectories - must be in project root
+Pin expiration defaults to **1 year from build date**. If your app already has a `network_security_config.xml`, the library **merges** pin-set entries — existing configs (debug-overrides, base-config) are preserved.
 
 ## Supported Networking Stacks
 
-This library provides SSL pinning coverage across both platforms. The table below shows which networking stacks are covered and by which mechanism.
-
 | Stack | Platform | Covered | Mechanism |
 |-------|----------|---------|-----------|
-| `fetch` / `axios` (React Native) | iOS | Yes | TrustKit swizzling (`kTSKSwizzleNetworkDelegates`) |
-| `URLSession` (Foundation) | iOS | Yes | TrustKit swizzling |
+| `fetch` / `axios` | iOS | Yes | TrustKit swizzling |
+| `URLSession` | iOS | Yes | TrustKit swizzling |
 | `SDWebImage` | iOS | Yes | TrustKit swizzling (uses URLSession) |
 | `Alamofire` | iOS | Yes | TrustKit swizzling (uses URLSession) |
-| Most URLSession-based libraries | iOS | Yes* | TrustKit swizzling |
-| `fetch` / `axios` (React Native) | Android | Yes | OkHttpClientFactory + Network Security Config |
-| OkHttp (direct) | Android | Yes | Network Security Config |
-| Cronet (`react-native-nitro-fetch`) | Android | Best-effort* | Network Security Config |
-| Android WebView | Android | Yes | Network Security Config |
-| Coil / Ktor with OkHttp engine | Android | Yes | Network Security Config |
-| Glide / OkHttp3 (`react-native-fast-image`) | Android | Yes | Network Security Config |
-| `HttpURLConnection` | Android | Yes | Network Security Config |
+| Other URLSession-based libs | iOS | Yes* | TrustKit swizzling |
+| `fetch` / `axios` | Android | Yes | OkHttpClientFactory + NSC |
+| OkHttp (direct) | Android | Yes | NSC + CertificatePinner |
+| Android WebView | Android | Yes | NSC |
+| Coil / Ktor OkHttp engine | Android | Yes | NSC |
+| Glide / OkHttp3 | Android | Yes | NSC |
+| `HttpURLConnection` | Android | Yes | NSC |
+| Cronet | Android | Best-effort* | NSC (if using platform TrustManager) |
 
-### How It Works
+**\* Caveats:**
+- **iOS URLSession**: Apps with complex custom `URLSessionDelegate` implementations or other method-swizzling libraries may conflict with TrustKit. TrustKit docs note swizzling is designed for simple delegate setups.
+- **Android Cronet**: No authoritative docs confirm Cronet always respects NSC `<pin-set>`. Cronet has its own pinning API — use `CronetEngine.Builder.addPublicKeyPins()` for guaranteed enforcement.
+- **Custom TrustManager**: Any library (OkHttp, Cronet, etc.) that builds its own `TrustManager` bypassing the system default will not be covered by NSC.
+- **Custom TLS stacks**: iOS libraries not using `URLSession` (e.g., OpenSSL bindings) and Android Ktor CIO engine are not covered. See [Ktor CIO](#ktor-cio-engine) below.
 
-**iOS**: TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which swizzles most `URLSession` delegates at the OS level. This means most libraries that use `URLSession` under the hood (including SDWebImage, Alamofire, and React Native's networking layer) are automatically covered without any additional configuration.
+## PinnedOkHttpClient (Android)
 
-**Android**: The library auto-generates `network_security_config.xml` from `ssl_config.json` at build time and patches `AndroidManifest.xml` to reference it. Android's Network Security Config is enforced at the platform level for all networking stacks that use the default `TrustManager` — including OkHttp, WebView, Coil, Glide, and `HttpURLConnection`. Cronet coverage is best-effort and depends on whether Cronet uses the platform default TrustManager.
-
-### Known Limitations
-
-- **iOS**: Libraries that implement custom TLS stacks (not using `URLSession`) are NOT covered by TrustKit swizzling.
-- **iOS**: Apps with complex custom `URLSessionDelegate` implementations or other method-swizzling libraries may experience conflicts with TrustKit's swizzling. TrustKit's own documentation notes swizzling is designed for "simple apps".
-- **Android**: Libraries that build OkHttp with a custom `TrustManager` that bypasses the system default may bypass Network Security Config.
-- **Android (Cronet)**: Cronet may use its own TLS stack rather than the platform default `TrustManager`, in which case NSC pin-sets are not enforced. For authoritative Cronet pinning, use `CronetEngine.Builder.addPublicKeyPins()` directly.
-
-### PinnedOkHttpClient (Android)
-
-For native module authors who need a pinned OkHttp client (e.g., custom Glide modules, Ktor engines), the library exposes a public singleton:
+For native module authors who need a pinned OkHttp client outside React Native's networking layer:
 
 ```kotlin
 import com.usesslpinning.PinnedOkHttpClient
 
-// Get a pinned OkHttpClient instance
 val client = PinnedOkHttpClient.getInstance(context)
 ```
 
-#### Glide Integration
+- Singleton with double-checked locking
+- Reads `ssl_config.json` and configures `CertificatePinner` when pinning is enabled
+- Returns plain `OkHttpClient` when pinning is disabled
+- Auto-invalidates when pinning state changes via `setUseSSLPinning`
+
+### Glide
 
 ```kotlin
 @GlideModule
 class MyAppGlideModule : AppGlideModule() {
     override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
-        val client = PinnedOkHttpClient.getInstance(context)
         registry.replace(
             GlideUrl::class.java,
             InputStream::class.java,
-            OkHttpUrlLoader.Factory(client)
+            OkHttpUrlLoader.Factory(PinnedOkHttpClient.getInstance(context))
         )
     }
 }
 ```
 
-#### Coil Integration
+### Coil
 
 ```kotlin
 val imageLoader = ImageLoader.Builder(context)
@@ -290,7 +181,7 @@ val imageLoader = ImageLoader.Builder(context)
     .build()
 ```
 
-#### Ktor OkHttp Engine
+### Ktor OkHttp Engine
 
 ```kotlin
 val httpClient = HttpClient(OkHttp) {
@@ -300,13 +191,14 @@ val httpClient = HttpClient(OkHttp) {
 }
 ```
 
-#### Ktor CIO Engine (Manual Pinning)
+### Ktor CIO Engine
 
-The CIO engine uses its own TLS stack and is **not** covered by Network Security Config or `PinnedOkHttpClient`. You must configure a custom `TrustManager` manually:
+CIO uses its own TLS stack — **not covered** by NSC or `PinnedOkHttpClient`. Manual `TrustManager` required:
 
 ```kotlin
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import java.security.MessageDigest
 import java.security.cert.X509Certificate
 import javax.net.ssl.X509TrustManager
 
@@ -316,16 +208,13 @@ val httpClient = HttpClient(CIO) {
             trustManager = object : X509TrustManager {
                 override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
                 override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
-                    // Validate the leaf certificate's public key pin against
-                    // your expected SHA-256 hashes from ssl_config.json
                     val leafCert = chain[0]
-                    val publicKeyHash = java.security.MessageDigest
-                        .getInstance("SHA-256")
+                    val publicKeyHash = MessageDigest.getInstance("SHA-256")
                         .digest(leafCert.publicKey.encoded)
                     val pin = android.util.Base64.encodeToString(publicKeyHash, android.util.Base64.NO_WRAP)
-                    val expectedPins = listOf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=") // from ssl_config.json
+                    val expectedPins = listOf("YOUR_PIN_HERE") // from ssl_config.json
                     if (pin !in expectedPins) {
-                        throw javax.net.ssl.SSLPeerUnverifiedException("Certificate pin mismatch for CIO engine")
+                        throw javax.net.ssl.SSLPeerUnverifiedException("Certificate pin mismatch")
                     }
                 }
                 override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
@@ -335,390 +224,123 @@ val httpClient = HttpClient(CIO) {
 }
 ```
 
-## Important Notes ⚠️
+## Runtime Toggle
 
-### Restarting After SSL Pinning Changes
+Toggling SSL pinning requires a full app restart because pinning is enforced at the native level (TrustKit initialization on iOS, OkHttpClientFactory on Android).
 
-When using `setUseSSLPinning`, a restart of the application is required for changes to take effect. This is because SSL pinning is implemented at the native level.
-
-#### Using React Native Restart
-
-First, install react-native-restart:
-
-```sh
-# Using npm
-npm install react-native-restart
-
-# Using yarn
-yarn add react-native-restart
-```
-
-For iOS, run pod install:
-```sh
-cd ios && pod install
-```
-
-Then use it in your code:
 ```typescript
-import RNRestart from 'react-native-restart';
+import { setUseSSLPinning } from 'react-native-ssl-manager';
+import RNRestart from 'react-native-restart'; // optional
 
-const toggleSSLPinning = async (enabled: boolean) => {
-  await setUseSSLPinning(enabled);
-  // Restart the app to apply changes
-  RNRestart.Restart();
-};
+await setUseSSLPinning(false);
+RNRestart.Restart(); // apply change
+```
 
-// Example with user confirmation
-const handleSSLToggle = async (enabled: boolean) => {
-  // Save any necessary state
-  await saveAppState();
-  
-  // Update SSL pinning
-  await setUseSSLPinning(enabled);
-  
-  // Show user message
-  Alert.alert(
-    'Restart Required',
-    'The app needs to restart to apply security changes.',
-    [
-      {
-        text: 'Restart Now',
-        onPress: () => RNRestart.Restart()
-      }
+Default state is **enabled** (`true`). State is persisted in:
+- iOS: `UserDefaults`
+- Android: `SharedPreferences` (context: `AppSettings`, key: `useSSLPinning`)
+
+## API Reference
+
+### `setUseSSLPinning(usePinning: boolean): Promise<void>`
+
+Enable or disable SSL pinning. Requires app restart to take effect.
+
+### `getUseSSLPinning(): Promise<boolean>`
+
+Returns current pinning state. Defaults to `true` if never explicitly set.
+
+### Types
+
+```typescript
+interface SslPinningConfig {
+  sha256Keys: {
+    [domain: string]: string[];
+  };
+}
+
+interface SslPinningError extends Error {
+  code?: string;
+  message: string;
+}
+```
+
+## Configuration Details
+
+### `ssl_config.json`
+
+Must be named exactly `ssl_config.json` and placed in the project root.
+
+```json
+{
+  "sha256Keys": {
+    "api.example.com": [
+      "sha256/primary-cert-hash=",
+      "sha256/backup-cert-hash="
     ]
-  );
-};
-```
-
-## Development and Testing Benefits
-
-### For Developers
-- **Quick Toggling**: Easily switch SSL pinning on/off during development
-- **Performance Optimization**: Minimize SSL verification overhead during development
-- **Flexible Configuration**: Support multiple environments with different certificates
-
-### For QA Teams
-- **Efficient Testing**: Quickly verify API behavior with and without SSL pinning
-- **Issue Investigation**: Easily isolate SSL-related issues
-- **Environment Switching**: Seamlessly test across different environments
-
-## Best Practices
-
-1. **Environment Management**
-   - Keep separate configurations for development and production
-   - Store production certificates securely
-
-2. **Performance Optimization**
-   - Enable SSL pinning only when necessary during development
-   - Use development certificates for testing environments
-
-3. **Security Considerations**
-   - Always enable SSL pinning in production
-   - Regularly update certificates before expiration
-   - Maintain multiple backup certificates
-
-## Supported Networking Stacks
-
-This library provides platform-level SSL pinning coverage across both iOS and Android. The table below shows which networking stacks are covered on each platform and the mechanism used.
-
-| Stack | Platform | Covered | Mechanism |
-|-------|----------|---------|-----------|
-| `fetch` / `axios` (React Native) | iOS | Yes | TrustKit URLSession swizzling |
-| `fetch` / `axios` (React Native) | Android | Yes | OkHttpClientFactory + Network Security Config |
-| `URLSession` (Foundation) | iOS | Yes | TrustKit swizzling (`kTSKSwizzleNetworkDelegates`) |
-| `SDWebImage` | iOS | Yes | TrustKit swizzling (uses URLSession internally) |
-| `Alamofire` | iOS | Yes | TrustKit swizzling (uses URLSession internally) |
-| Most URLSession-based libraries | iOS | Yes* | TrustKit swizzling |
-| OkHttp | Android | Yes | Network Security Config + CertificatePinner |
-| Cronet (`react-native-nitro-fetch`) | Android | Best-effort* | Network Security Config |
-| Android WebView | Android | Yes | Network Security Config |
-| Coil / Ktor with OkHttp engine | Android | Yes | Network Security Config |
-| Glide / OkHttp3 (`react-native-fast-image`) | Android | Yes | Network Security Config |
-| `HttpURLConnection` | Android | Yes | Network Security Config |
-
-### iOS Coverage
-
-On iOS, TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which automatically swizzles most `URLSession` delegates. This means **most libraries that use `URLSession` under the hood** are covered without additional configuration — including `SDWebImage`, `Alamofire`, and React Native's built-in networking.
-
-**Known limitations:**
-- Custom TLS stacks that do not use `URLSession` (e.g., custom OpenSSL bindings) are NOT covered by TrustKit swizzling.
-- Apps with complex custom `URLSessionDelegate` implementations or other method-swizzling libraries may experience conflicts with TrustKit's swizzling.
-
-### Android Coverage
-
-On Android, the library generates a `network_security_config.xml` at build time from your `ssl_config.json`. This is enforced at the OS level for all networking stacks that use the platform default `TrustManager`, covering OkHttp, WebView, Coil, Glide, and `HttpURLConnection` without per-library configuration. Cronet coverage is best-effort (see below).
-
-**Known limitations:**
-- Libraries that build OkHttp with a custom `TrustManager` that bypasses the system default may not be covered by Network Security Config.
-- **Cronet**: No authoritative documentation confirms Cronet always respects NSC `<pin-set>` directives. Cronet has its own pinning API (`CronetEngine.Builder.addPublicKeyPins()`), which should be used for guaranteed Cronet pinning.
-
-### PinnedOkHttpClient API (Android)
-
-For native module authors who need a pre-configured pinned OkHttp client, the library exposes `PinnedOkHttpClient`:
-
-```kotlin
-// Get the singleton pinned client
-val client = PinnedOkHttpClient.getInstance(context)
-```
-
-The client reads `ssl_config.json` and configures `CertificatePinner` when SSL pinning is enabled. It returns a plain `OkHttpClient` when pinning is disabled. The singleton is automatically invalidated when the pinning state changes.
-
-#### Glide Integration
-
-```kotlin
-@GlideModule
-class MyAppGlideModule : AppGlideModule() {
-    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
-        val client = PinnedOkHttpClient.getInstance(context)
-        registry.replace(
-            GlideUrl::class.java,
-            InputStream::class.java,
-            OkHttpUrlLoader.Factory(client)
-        )
-    }
+  }
 }
 ```
 
-#### Coil Integration
+Pin format: `sha256/` prefix + base64-encoded SHA-256 hash of the certificate's Subject Public Key Info (SPKI). The `sha256/` prefix is stripped automatically when generating NSC XML.
 
-```kotlin
-val imageLoader = ImageLoader.Builder(context)
-    .okHttpClient { PinnedOkHttpClient.getInstance(context) }
-    .build()
+### How the config reaches each platform
+
+| Platform | RN CLI | Expo |
+|----------|--------|------|
+| **iOS** | Podspec script phase copies to app bundle | Plugin copies to `ios/` + adds to Xcode project |
+| **Android (OkHttp)** | Postinstall copies to `assets/` | Plugin copies to `app/src/main/assets/` |
+| **Android (NSC)** | Gradle task generates XML in `res/xml/` | Plugin generates XML in `res/xml/` |
+| **Android (Manifest)** | Gradle task patches manifest | Plugin patches manifest |
+
+### Verifying your setup
+
+**Android** (RN CLI): After building, run:
+```bash
+./gradlew checkSslConfig
 ```
 
-#### Ktor OkHttp Engine Integration
+**Testing with Proxyman/Charles**: Enable pinning, then attempt to intercept traffic. Requests should fail with SSL handshake errors. Disable pinning to inspect traffic during development.
 
-```kotlin
-val httpClient = HttpClient(OkHttp) {
-    engine {
-        preconfigured = PinnedOkHttpClient.getInstance(context)
-    }
-}
-```
+## Platform Requirements
 
-#### Ktor CIO Engine (Manual Pinning)
+| | Minimum |
+|---|---------|
+| iOS | 13.0 |
+| Android | API 21 (5.0) |
+| React Native | 0.60+ (AutoLinking), 0.68+ (New Architecture) |
+| Expo | SDK 47+ |
+| Node | 16+ |
 
-The CIO engine uses its own TLS stack and is **not** covered by Network Security Config or `PinnedOkHttpClient`. See the [Ktor CIO Engine manual pinning example](#ktor-cio-engine-manual-pinning) above for a complete code sample using a custom `TrustManager`.
+## Roadmap
 
-## ✅ Completed Roadmap
+- Certificate rotation support and expiry notifications
+- `react-native-ssl-manager-glide` — optional artifact with pre-configured `AppGlideModule`
+- React Native Web support
 
-### Recently Completed Features
+## Demo
 
-- ✅ **Expo Plugin Integration** - **COMPLETED!**
-  - ✅ Native SSL pinning support for Expo projects
-  - ✅ Seamless configuration through expo-config-plugin  
-  - ✅ Auto-linking capabilities for Expo development builds
-  - ✅ Support for Expo's development client
+| iOS | Android |
+|-----|---------|
+| [![iOS Demo](https://vumbnail.com/1109299210.jpg)](https://vimeo.com/1109299210) | [![Android Demo](https://vumbnail.com/1109299632.jpg)](https://vimeo.com/1109299632) |
 
-- ✅ **New Architecture Support** - **COMPLETED!**
-  - ✅ Full TurboModule implementation
-  - ✅ Fabric renderer compatibility
-  - ✅ Automatic architecture detection
-  - ✅ Backward compatibility with Legacy Architecture
-
-- ✅ **Production Optimizations** - **COMPLETED!**
-  - ✅ Removed debug logs for production builds
-  - ✅ Performance optimizations
-  - ✅ Clean codebase ready for release
-
-## 🚀 Future Roadmap
-
-### Upcoming Features
-
-- 🔄 **Advanced Certificate Management**
-  - Certificate rotation support
-  - Automatic certificate validation
-  - Certificate expiry notifications
-
-- 📊 **Enhanced Developer Experience**
-  - SSL pinning analytics and monitoring
-  - Better error reporting and debugging tools
-  - Integration with popular development tools
-
-- 🔧 **Extended Platform Support**
-  - Web support for React Native Web
-  - Additional certificate formats support
-
-- 📦 **Optional Library Artifacts**
-  - `react-native-ssl-manager-glide` — first-class Glide integration with pre-configured `AppGlideModule` (currently manual via `PinnedOkHttpClient`)
-
-## 🧪 Testing Your SSL Implementation
-
-### Using the Example App
-
-This library comes with a comprehensive test app that demonstrates SSL pinning functionality:
+## Contributing
 
 ```bash
-# Clone the repository
-git clone https://github.com/huytdps13400/react-native-ssl-manager.git
-
-# Test with React Native CLI
-cd react-native-ssl-manager/example
-npm install
-npm run ios # or npm run android
-
-# Test with Expo
-cd ../example-expo
-npm install
-npx expo run:ios # or npx expo run:android
-```
-
-The example app provides:
-- 🎛️ **SSL Control Panel** - Toggle SSL pinning on/off
-- 🧪 **Multiple Test Scenarios** - Test different API endpoints
-- 📊 **Real-time Results** - See detailed test results with timing
-- 🔍 **Visual Feedback** - Color-coded success/failure indicators
-
-### Manual Testing Steps
-
-1. **🔓 Test without SSL Pinning:**
-   ```typescript
-   await setUseSSLPinning(false);
-   // All API calls should work normally
-   ```
-
-2. **🔒 Test with SSL Pinning (Correct Certificate):**
-   ```typescript
-   await setUseSSLPinning(true);
-   // Calls to pinned domains should work
-   const response = await fetch('https://your-pinned-domain.com/api');
-   ```
-
-3. **⚠️ Test with SSL Pinning (Wrong Certificate):**
-   ```typescript
-   await setUseSSLPinning(true);
-   // Calls to non-pinned domains should fail
-   try {
-     await fetch('https://unpinned-domain.com/api');
-   } catch (error) {
-     console.log('✅ SSL Pinning working - blocked untrusted certificate');
-   }
-   ```
-
-## Testing with Proxyman 🔍
-
-Proxyman is a powerful tool for testing SSL pinning implementation. Here's how you can verify your SSL pinning configuration:
-
-### Setup Verification
-
-1. **Install Proxyman**
-   - Download and install [Proxyman](https://proxyman.io/)
-   - Install Proxyman's SSL certificate on your device/simulator
-
-2. **Testing SSL Pinning**
-   ```typescript
-   // Enable SSL Pinning
-   await setUseSSLPinning(true);
-   
-   // Make API requests through your app
-   // If SSL pinning is working correctly:
-   // - Requests will fail when Proxyman tries to intercept them
-   // - You'll see SSL/TLS handshake errors
-   
-   // Disable SSL Pinning for debugging
-   await setUseSSLPinning(false);
-   // Now you can intercept and inspect API calls with Proxyman
-   ```
-
-### Common Test Scenarios
-
-1. **Verify SSL Pinning is Active**
-   - Enable SSL pinning
-   - Attempt to intercept traffic with Proxyman
-   - Requests should fail with SSL handshake errors
-
-2. **Debug API Calls**
-   - Disable SSL pinning temporarily
-   - Use Proxyman to inspect API requests/responses
-   - Helpful for QA testing and development
-
-3. **Certificate Validation**
-   - Verify your SSL configuration matches the certificates in ssl_config.json
-   - Test against both development and production endpoints
-
-### Troubleshooting Tips
-
-- If requests succeed with Proxyman while SSL pinning is enabled, check your configuration
-- Verify that the SHA256 hashes in your config match your server certificates
-- Test both development and production environments separately
-
-This integration with Proxyman makes it easy to:
-- Verify SSL pinning implementation
-- Debug API communications
-- Validate security configurations
-- Speed up development and testing workflows
-
-## 📋 Requirements & Compatibility
-
-### React Native Versions
-- ✅ **React Native 0.60+** (AutoLinking support)
-- ✅ **React Native 0.68+** (New Architecture support)
-- ✅ **Expo SDK 47+** (Expo plugin support)
-
-### Platform Support
-- ✅ **iOS 13.0+**
-- ✅ **Android API 21+** (Android 5.0)
-
-### Architecture Support
-- ✅ **New Architecture** (Fabric/TurboModules)
-- ✅ **Legacy Architecture** (Bridge-based)
-
-### Development Tools
-- ✅ **React Native CLI**
-- ✅ **Expo CLI**
-- ✅ **Expo Development Build**
-- ✅ **Flipper** (debugging support)
-- ✅ **Bun** (package manager support)
-
-## 🤝 Contributing
-
-We welcome contributions! See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the repository and the development workflow.
-
-### Development Setup
-
-```bash
-# Clone the repository
 git clone https://github.com/huytdps13400/react-native-ssl-manager.git
 cd react-native-ssl-manager
-
-# Install dependencies (choose your package manager)
-npm install
-# or
 yarn install
-# or
-bun install
-
-# Build the library
 npm run build
-# or
-bun run build
 
-# Run tests
-npm test
-# or
-bun test
-
-# Test with example apps
+# Example apps
 npm run example:ios
 npm run example:android
 npm run example-expo:ios
 npm run example-expo:android
-
-# Test Bun compatibility
-bun run bun:test-compatibility
 ```
 
-## 📄 License
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+## License
 
-## 🙏 Acknowledgments
-
-- Built with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
-- SSL pinning implementation inspired by industry best practices
-- Special thanks to the React Native community
-
----
-
-**Made with ❤️ for the React Native community**
+MIT
