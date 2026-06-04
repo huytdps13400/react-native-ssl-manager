@@ -121,7 +121,10 @@ jobs:
         run: pod install
         env:
           NO_FLIPPER: 1
+          USE_HERMES: '0'
 
       - name: Build example for iOS
         working-directory: example
+        env:
+          USE_HERMES: '0'
         run: npm run build:ios
