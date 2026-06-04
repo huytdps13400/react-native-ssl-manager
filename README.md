@@ -168,9 +168,10 @@ Pin expiration defaults to **1 year from build date**. If your app already has a
 | `HttpURLConnection` | Android | Yes | NSC |
 | Cronet | Android | Best-effort* | NSC (if using platform TrustManager) |
 
-**\* Caveats:**
+### Known limitations
+
 - **iOS URLSession**: Apps with complex custom `URLSessionDelegate` implementations or other method-swizzling libraries may conflict with TrustKit. TrustKit docs note swizzling is designed for simple delegate setups.
-- **Android Cronet**: No authoritative docs confirm Cronet always respects NSC `<pin-set>`. Cronet has its own pinning API — use `CronetEngine.Builder.addPublicKeyPins()` for guaranteed enforcement.
+- **Android Cronet**: No authoritative docs confirm Cronet always respects NSC `<pin-set>`. Cronet may use its own TLS stack / custom TrustManager that bypasses NSC, so coverage is best-effort. For guaranteed enforcement use Cronet's own pinning API — `CronetEngine.Builder.addPublicKeyPins()`.
 - **Custom TrustManager**: Any library (OkHttp, Cronet, etc.) that builds its own `TrustManager` bypassing the system default will not be covered by NSC.
 - **Custom TLS stacks**: iOS libraries not using `URLSession` (e.g., OpenSSL bindings) and Android Ktor CIO engine are not covered. See [Ktor CIO](#ktor-cio-engine) below.
 
@@ -189,22 +190,23 @@ val client = PinnedOkHttpClient.getInstance(context)
 - Returns plain `OkHttpClient` when pinning is disabled
 - Auto-invalidates when pinning state changes via `setUseSSLPinning`
 
-### Glide
+### Glide Integration
 
 ```kotlin
 @GlideModule
 class MyAppGlideModule : AppGlideModule() {
     override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+        val client = PinnedOkHttpClient.getInstance(context)
         registry.replace(
             GlideUrl::class.java,
             InputStream::class.java,
-            OkHttpUrlLoader.Factory(PinnedOkHttpClient.getInstance(context))
+            OkHttpUrlLoader.Factory(client)
         )
     }
 }
 ```
 
-### Coil
+### Coil Integration
 
 ```kotlin
 val imageLoader = ImageLoader.Builder(context)

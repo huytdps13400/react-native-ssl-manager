@@ -23,11 +23,21 @@ object SslPinningPolicy {
      * Whether a CertificatePinner should be applied for the given configuration.
      */
     fun shouldEnforce(config: JSONObject): Boolean {
-        if (!config.optBoolean("enforcePinning", true)) {
+        val expiration = config.optString("expiration", "")
+        return shouldEnforce(
+            config.optBoolean("enforcePinning", true),
+            if (expiration.isEmpty()) null else expiration
+        )
+    }
+
+    /**
+     * Pure decision function (no org.json), unit-testable on the JVM.
+     */
+    fun shouldEnforce(enforcePinning: Boolean, expiration: String?): Boolean {
+        if (!enforcePinning) {
             return false
         }
-        val expiration = config.optString("expiration", "")
-        if (expiration.isNotEmpty() && isExpired(expiration)) {
+        if (!expiration.isNullOrEmpty() && isExpired(expiration)) {
             return false
         }
         return true

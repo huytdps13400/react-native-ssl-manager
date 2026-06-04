@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests / CI
+- Added JVM unit tests for the graceful-degradation policy
+  (`SslPinningPolicyTest`) and a CI step running
+  `:react-native-ssl-manager:testDebugUnitTest`.
+- Fixed the empty `src/__tests__/setup.ts` being collected as a test (now
+  ignored) and restored the Glide/Coil/Cronet documentation sections the
+  existing doc tests assert, so `yarn test` is green again.
+
 ### Fixed
 - **Metro/EAS bundling failure** (`Cannot find module .../lib/index.js`): the
   package's `main`/`module`/`types` pointed at `lib/`, which was never built
