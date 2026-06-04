@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Tests / CI
+- **Fixed the CI pipeline, which was failing on every run** at the dependency
+  install step: the `setup` composite action now runs `corepack enable` so
+  `yarn install` uses the pinned `yarn@3.6.1` (Yarn Berry) instead of the
+  runner's global Yarn 1.x (which refused to run and skipped all jobs).
 - Added JVM unit tests for the graceful-degradation policy
   (`SslPinningPolicyTest`) and a CI step running
   `:react-native-ssl-manager:testDebugUnitTest`.
