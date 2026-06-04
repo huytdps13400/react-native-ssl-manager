@@ -80,26 +80,26 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
  * Write a fresh network_security_config.xml
  */
 def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
-    def writer = new StringWriter()
-    def xml = new MarkupBuilder(writer)
-    xml.setDoubleQuotes(true)
-
-    writer.write('<?xml version="1.0" encoding="utf-8"?>\n')
-    xml.'network-security-config' {
-        sha256Keys.each { domain, pins ->
-            'domain-config'('cleartextTrafficPermitted': 'false') {
-                'domain'('includeSubdomains': 'true', domain)
-                'pin-set'('expiration': expirationDate) {
-                    pins.each { pinValue ->
-                        def cleanPin = pinValue.replaceFirst('^sha256/', '')
-                        'pin'('digest': 'SHA-256', cleanPin)
-                    }
-                }
-            }
+    // Build the XML as a string. (MarkupBuilder's quoted pseudo-method syntax
+    // `'domain'(attrs, text)` is misparsed as String.call(...) in this context,
+    // so we generate the markup directly — matching scripts/nsc-utils.js.)
+    def sb = new StringBuilder()
+    sb.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    sb.append('<network-security-config>\n')
+    sha256Keys.each { domain, pins ->
+        sb.append('    <domain-config cleartextTrafficPermitted="false">\n')
+        sb.append("        <domain includeSubdomains=\"true\">${domain}</domain>\n")
+        sb.append("        <pin-set expiration=\"${expirationDate}\">\n")
+        pins.each { pinValue ->
+            def cleanPin = pinValue.replaceFirst('^sha256/', '')
+            sb.append("            <pin digest=\"SHA-256\">${cleanPin}</pin>\n")
         }
+        sb.append('        </pin-set>\n')
+        sb.append('    </domain-config>\n')
     }
+    sb.append('</network-security-config>\n')
 
-    xmlFile.text = writer.toString()
+    xmlFile.text = sb.toString()
     println "✅ Generated network_security_config.xml with ${sha256Keys.size()} domain(s)"
 }
 
