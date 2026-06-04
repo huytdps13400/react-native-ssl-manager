@@ -1,0 +1,75 @@
+name: Publish to npm
+
+# Publishes the package to npm.
+#
+# Triggers:
+#  - Creating a GitHub Release (recommended): tag the release `vX.Y.Z` and the
+#    workflow verifies it matches package.json before publishing.
+#  - Manual run (workflow_dispatch): use `dry_run: true` to validate without
+#    publishing.
+#
+# Required setup (one-time, by a maintainer):
+#  - Create an npm **Automation** access token (npmjs.com -> Access Tokens).
+#  - Add it to the repo: Settings -> Secrets and variables -> Actions ->
+#    New repository secret -> name `NPM_TOKEN`.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run npm publish in --dry-run mode (no upload)'
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # enables npm provenance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://registry.npmjs.org'
+
+      # The project pins "packageManager": "yarn@3.6.1" (Yarn Berry); Corepack
+      # must be enabled so dependency install uses that version.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run tests
+        run: yarn test
+
+      - name: Verify package.json version matches the release tag
+        if: github.event_name == 'release'
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG="${{ github.event.release.tag_name }}"
+          echo "package.json version: $PKG_VERSION"
+          echo "release tag:          $TAG"
+          if [ "v$PKG_VERSION" != "$TAG" ] && [ "$PKG_VERSION" != "$TAG" ]; then
+            echo "::error::Release tag ($TAG) does not match package.json version ($PKG_VERSION). Bump the version before releasing."
+            exit 1
+          fi
+
+      - name: Publish (dry run)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: npm publish --provenance --access public --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        if: "!(github.event_name == 'workflow_dispatch' && inputs.dry_run)"
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
