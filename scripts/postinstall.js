@@ -106,7 +106,12 @@ if (fs.existsSync(sslConfigPath)) {
 }
 
 // Generate Network Security Config XML for Android
-const { generateNscXml, mergeNscXml } = require('./nsc-utils');
+const {
+  generateNscXml,
+  mergeNscXml,
+  isPinningEnforced,
+  getConfigExpiration,
+} = require('./nsc-utils');
 const androidDir = path.join(projectRoot, 'android');
 if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
   console.log('🔄 Generating Android Network Security Config XML...');
@@ -114,22 +119,22 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
   try {
     const sslConfig = JSON.parse(fs.readFileSync(sslConfigPath, 'utf8'));
     const sha256Keys = sslConfig.sha256Keys;
+    // Expiration precedence: env var > config field > default (1 year).
+    const pinExpiration =
+      process.env.SSL_PIN_EXPIRATION || getConfigExpiration(sslConfig);
 
-    if (sha256Keys && Object.keys(sha256Keys).length > 0) {
-      const xmlDir = path.join(
-        androidDir,
-        'app',
-        'src',
-        'main',
-        'res',
-        'xml'
+    if (!isPinningEnforced(sslConfig)) {
+      console.log(
+        'ℹ️ enforcePinning is false — skipping network_security_config.xml (monitor mode)'
       );
+    } else if (sha256Keys && Object.keys(sha256Keys).length > 0) {
+      const xmlDir = path.join(androidDir, 'app', 'src', 'main', 'res', 'xml');
       const xmlPath = path.join(xmlDir, 'network_security_config.xml');
 
       if (fs.existsSync(xmlPath)) {
         // Merge with existing NSC
         const existingXml = fs.readFileSync(xmlPath, 'utf8');
-        const mergedXml = mergeNscXml(existingXml, sha256Keys);
+        const mergedXml = mergeNscXml(existingXml, sha256Keys, pinExpiration);
         fs.writeFileSync(xmlPath, mergedXml);
         console.log(
           '✅ Merged SSL pins into existing network_security_config.xml'
@@ -139,7 +144,7 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
         if (!fs.existsSync(xmlDir)) {
           fs.mkdirSync(xmlDir, { recursive: true });
         }
-        const xml = generateNscXml(sha256Keys);
+        const xml = generateNscXml(sha256Keys, pinExpiration);
         fs.writeFileSync(xmlPath, xml);
         console.log('✅ Generated network_security_config.xml');
       }
@@ -168,10 +173,15 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
         }
       }
     } else {
-      console.log('⚠️ No sha256Keys in ssl_config.json, skipping XML generation');
+      console.log(
+        '⚠️ No sha256Keys in ssl_config.json, skipping XML generation'
+      );
     }
   } catch (error) {
-    console.warn('⚠️ Failed to generate Network Security Config XML:', error.message);
+    console.warn(
+      '⚠️ Failed to generate Network Security Config XML:',
+      error.message
+    );
   }
 } else if (!fs.existsSync(androidDir)) {
   console.log('ℹ️ No android/ directory found, skipping NSC XML generation');

@@ -4,7 +4,9 @@ describe('Network Security Config XML Generation', () => {
   describe('generateNscXml', () => {
     it('generates valid XML from a single domain with one pin', () => {
       const sha256Keys = {
-        'api.example.com': ['sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='],
+        'api.example.com': [
+          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        ],
       };
 
       const xml = generateNscXml(sha256Keys);
@@ -12,11 +14,15 @@ describe('Network Security Config XML Generation', () => {
       expect(xml).toContain('<?xml version="1.0" encoding="utf-8"?>');
       expect(xml).toContain('<network-security-config>');
       expect(xml).toContain('</network-security-config>');
-      expect(xml).toContain('<domain-config cleartextTrafficPermitted="false">');
+      expect(xml).toContain(
+        '<domain-config cleartextTrafficPermitted="false">'
+      );
       expect(xml).toContain(
         '<domain includeSubdomains="true">api.example.com</domain>'
       );
-      expect(xml).toContain('<pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>');
+      expect(xml).toContain(
+        '<pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>'
+      );
       // sha256/ prefix should be stripped
       expect(xml).not.toContain('sha256/');
     });
@@ -51,7 +57,9 @@ describe('Network Security Config XML Generation', () => {
 
     it('includes expiration date in YYYY-MM-DD format', () => {
       const sha256Keys = {
-        'api.example.com': ['sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='],
+        'api.example.com': [
+          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        ],
       };
 
       const xml = generateNscXml(sha256Keys);
@@ -104,7 +112,9 @@ describe('Network Security Config XML Generation', () => {
 
     it('preserves existing debug-overrides and base-config when merging', () => {
       const sha256Keys = {
-        'api.example.com': ['sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='],
+        'api.example.com': [
+          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        ],
       };
 
       const merged = mergeNscXml(existingXmlWithDebugOverrides, sha256Keys);
@@ -113,7 +123,9 @@ describe('Network Security Config XML Generation', () => {
       expect(merged).toContain('<debug-overrides>');
       expect(merged).toContain('<trust-anchors>');
       expect(merged).toContain('<certificates src="user" />');
-      expect(merged).toContain('<base-config cleartextTrafficPermitted="false" />');
+      expect(merged).toContain(
+        '<base-config cleartextTrafficPermitted="false" />'
+      );
 
       // New domain-config added
       expect(merged).toContain(

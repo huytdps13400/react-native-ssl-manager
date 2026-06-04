@@ -2,10 +2,10 @@
   "name": "react-native-ssl-manager",
   "version": "1.1.1",
   "description": "React Native SSL Pinning provides seamless SSL certificate pinning integration for enhanced network security in React Native apps. This module enables developers to easily implement and manage certificate pinning, protecting applications against man-in-the-middle (MITM) attacks. With dynamic configuration options and the ability to toggle SSL pinning, it's particularly useful for development and testing scenarios.",
-  "main": "lib/index.js",
-  "module": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "source": "src/index.tsx",
+  "main": "./src/index.tsx",
+  "module": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "source": "./src/index.tsx",
   "expo": {
     "plugin": "./app.plugin.js"
   },
@@ -109,6 +109,7 @@
     "del-cli": "^5.1.0",
     "eslint": "^8.51.0",
     "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-jest": "^26.5.3",
     "eslint-plugin-prettier": "^5.0.1",
     "expo-module-scripts": "^3.4.0",
     "jest": "^29.7.0",
@@ -143,6 +144,10 @@
       "<rootDir>/example/node_modules",
       "<rootDir>/example-expo/node_modules",
       "<rootDir>/lib/"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/src/__tests__/setup.ts"
     ]
   },
   "commitlint": {
@@ -173,6 +178,12 @@
       "@react-native",
       "prettier"
     ],
+    "plugins": [
+      "jest"
+    ],
+    "env": {
+      "jest/globals": true
+    },
     "rules": {
       "prettier/prettier": [
         "error",

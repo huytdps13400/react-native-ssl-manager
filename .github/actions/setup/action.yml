@@ -9,6 +9,13 @@ runs:
       with:
         node-version-file: .nvmrc
 
+    # The project pins "packageManager": "yarn@3.6.1" (Yarn Berry). Corepack must
+    # be enabled so `yarn install` uses that version instead of the runner's
+    # global Yarn 1.x, which refuses to run and fails the whole pipeline.
+    - name: Enable Corepack
+      run: corepack enable
+      shell: bash
+
     - name: Cache dependencies
       id: yarn-cache
       uses: actions/cache@v3

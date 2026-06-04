@@ -23,4 +23,12 @@ class UseSslPinningModule(reactContext: ReactApplicationContext) :
     override fun getUseSSLPinning(promise: Promise) {
         UseSslPinningModuleImpl.getUseSSLPinning(reactApplicationContext, promise)
     }
+
+    override fun setSSLConfig(config: String, promise: Promise) {
+        UseSslPinningModuleImpl.setSSLConfig(reactApplicationContext, config, promise)
+    }
+
+    override fun getPinnedDomains(promise: Promise) {
+        UseSslPinningModuleImpl.getPinnedDomains(reactApplicationContext, promise)
+    }
 }

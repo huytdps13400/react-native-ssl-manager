@@ -1,3 +1,7 @@
+import groovy.xml.XmlParser
+import groovy.xml.XmlNodePrinter
+import groovy.xml.MarkupBuilder
+
 def findSslConfigFile() {
     def candidates = [
         file("${project.rootDir}/../ssl_config.json"), // repo root (android/ là thư mục con)
@@ -20,10 +24,6 @@ def ensureAssetsDir() {
 def assetsDir = file("${projectDir}/src/main/assets")
 def destFile  = file("${projectDir}/src/main/assets/ssl_config.json")
 
-import groovy.xml.XmlParser
-import groovy.xml.XmlNodePrinter
-import groovy.xml.MarkupBuilder
-
 /**
  * Generate network_security_config.xml from ssl_config.json
  * Returns true if XML was generated, false otherwise
@@ -41,10 +41,25 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
         return false
     }
 
-    // Calculate default expiration: 1 year from now
-    def cal = Calendar.getInstance()
-    cal.add(Calendar.YEAR, 1)
-    def expirationDate = String.format("%tF", cal) // YYYY-MM-DD format
+    // Monitor mode (`enforcePinning: false`): NSC has no report-only equivalent,
+    // so skip generating a hard-fail pin-set rather than block traffic.
+    if (json?.enforcePinning == false) {
+        println "ℹ️ enforcePinning is false — skipping network_security_config.xml (monitor mode)"
+        return false
+    }
+
+    // Expiration precedence: `sslPinExpiration` Gradle property (YYYY-MM-DD) >
+    // the config's `expiration` field > default (1 year from now).
+    def expirationDate
+    if (project.hasProperty('sslPinExpiration') && project.property('sslPinExpiration')?.toString()?.trim()) {
+        expirationDate = project.property('sslPinExpiration').toString().trim()
+    } else if (json?.expiration?.toString()?.trim()) {
+        expirationDate = json.expiration.toString().trim()
+    } else {
+        def cal = Calendar.getInstance()
+        cal.add(Calendar.YEAR, 1)
+        expirationDate = String.format("%tF", cal) // YYYY-MM-DD format
+    }
 
     // Ensure output directory exists
     def xmlDir = xmlOutputFile.parentFile
@@ -65,26 +80,26 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
  * Write a fresh network_security_config.xml
  */
 def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
-    def writer = new StringWriter()
-    def xml = new MarkupBuilder(writer)
-    xml.setDoubleQuotes(true)
-
-    writer.write('<?xml version="1.0" encoding="utf-8"?>\n')
-    xml.'network-security-config' {
-        sha256Keys.each { domain, pins ->
-            'domain-config'('cleartextTrafficPermitted': 'false') {
-                'domain'('includeSubdomains': 'true', domain)
-                'pin-set'('expiration': expirationDate) {
-                    pins.each { pinValue ->
-                        def cleanPin = pinValue.replaceFirst('^sha256/', '')
-                        'pin'('digest': 'SHA-256', cleanPin)
-                    }
-                }
-            }
+    // Build the XML as a string. (MarkupBuilder's quoted pseudo-method syntax
+    // `'domain'(attrs, text)` is misparsed as String.call(...) in this context,
+    // so we generate the markup directly — matching scripts/nsc-utils.js.)
+    def sb = new StringBuilder()
+    sb.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    sb.append('<network-security-config>\n')
+    sha256Keys.each { domain, pins ->
+        sb.append('    <domain-config cleartextTrafficPermitted="false">\n')
+        sb.append("        <domain includeSubdomains=\"true\">${domain}</domain>\n")
+        sb.append("        <pin-set expiration=\"${expirationDate}\">\n")
+        pins.each { pinValue ->
+            def cleanPin = pinValue.replaceFirst('^sha256/', '')
+            sb.append("            <pin digest=\"SHA-256\">${cleanPin}</pin>\n")
         }
+        sb.append('        </pin-set>\n')
+        sb.append('    </domain-config>\n')
     }
+    sb.append('</network-security-config>\n')
 
-    xmlFile.text = writer.toString()
+    xmlFile.text = sb.toString()
     println "✅ Generated network_security_config.xml with ${sha256Keys.size()} domain(s)"
 }
 
@@ -214,10 +229,10 @@ plugins.withId('com.android.application') {
                         def sourceFile = findSslConfigFile()
                         def xmlDir = file("${projectDir}/src/main/res/xml")
                         def xmlFile = file("${xmlDir}/network_security_config.xml")
-                        if (generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
+                        if (this.generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
                             // Patch manifest
                             def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-                            patchAndroidManifest(manifestFile)
+                            this.patchAndroidManifest(manifestFile)
                         }
                     }
                 }
@@ -283,9 +298,9 @@ plugins.withId('com.android.application') {
                         def sourceFile = findSslConfigFile()
                         def xmlDir = file("${projectDir}/src/main/res/xml")
                         def xmlFile = file("${xmlDir}/network_security_config.xml")
-                        if (generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
+                        if (this.generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
                             def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-                            patchAndroidManifest(manifestFile)
+                            this.patchAndroidManifest(manifestFile)
                         }
                     }
                 }

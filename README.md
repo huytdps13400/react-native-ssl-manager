@@ -48,6 +48,7 @@ Expo plugin options:
 | `sslConfigPath` | `"ssl_config.json"` | Path to config relative to project root |
 | `enableAndroid` | `true` | Enable Android NSC generation + manifest patching |
 | `enableIOS` | `true` | Enable iOS asset bundling |
+| `pinExpiration` | _1 year from build_ | NSC pin-set expiration date (`YYYY-MM-DD`) |
 
 ## Quick Start
 
@@ -66,22 +67,52 @@ Expo plugin options:
 
 > Always include at least 2 pins per domain (primary + backup) to avoid lockout during certificate rotation.
 
-### 2. Use in your app
+### 2. That's it — pinning is active at launch
+
+Once `ssl_config.json` is bundled (via the Expo plugin or the CLI build
+scripts), **SSL pinning is enforced automatically at app launch — no JavaScript
+call is required.** On iOS this is wired up through an Objective-C `+load`
+bootstrap; on Android through an `androidx.startup` initializer that installs the
+pinned `OkHttpClientFactory` before the React Native bridge starts.
+
+> Earlier versions only initialized pinning inside the native module
+> constructor, which React Native instantiates lazily. That meant pinning did
+> not take effect until JS first touched the module (e.g. calling
+> `getUseSSLPinning()`). This is no longer necessary.
+
+### 3. (Optional) Control pinning from JavaScript
 
 ```typescript
-import { setUseSSLPinning, getUseSSLPinning } from 'react-native-ssl-manager';
+import {
+  setUseSSLPinning,
+  getUseSSLPinning,
+  setSSLConfig,
+  getPinnedDomains,
+  isSSLManagerAvailable,
+} from 'react-native-ssl-manager';
 
-// Enable SSL pinning (enabled by default)
-await setUseSSLPinning(true);
+// Confirm the native module is linked (false ⇒ pinning is NOT active)
+isSSLManagerAvailable();
 
-// Check current state
+// Toggle pinning (see note below about iOS)
+await setUseSSLPinning(false);
 const isEnabled = await getUseSSLPinning();
 
-// Disable for development/debugging
-await setUseSSLPinning(false);
+// Update pins at runtime
+await setSSLConfig({
+  sha256Keys: {
+    'api.example.com': ['sha256/AAAA...=', 'sha256/BBBB...='],
+  },
+});
+
+// Inspect the active configuration
+const domains = await getPinnedDomains();
 ```
 
-**Important:** Toggling SSL pinning requires an app restart for changes to take effect. See [Runtime Toggle](#runtime-toggle) below.
+**Important:** Disabling/changing pinning at runtime requires an app restart to
+fully take effect on **iOS**, because TrustKit can only be initialized once per
+process. On **Android** changes apply to subsequent requests immediately. See
+[Runtime Toggle](#runtime-toggle) below.
 
 ## How It Works
 
@@ -137,9 +168,10 @@ Pin expiration defaults to **1 year from build date**. If your app already has a
 | `HttpURLConnection` | Android | Yes | NSC |
 | Cronet | Android | Best-effort* | NSC (if using platform TrustManager) |
 
-**\* Caveats:**
+### Known limitations
+
 - **iOS URLSession**: Apps with complex custom `URLSessionDelegate` implementations or other method-swizzling libraries may conflict with TrustKit. TrustKit docs note swizzling is designed for simple delegate setups.
-- **Android Cronet**: No authoritative docs confirm Cronet always respects NSC `<pin-set>`. Cronet has its own pinning API — use `CronetEngine.Builder.addPublicKeyPins()` for guaranteed enforcement.
+- **Android Cronet**: No authoritative docs confirm Cronet always respects NSC `<pin-set>`. Cronet may use its own TLS stack / custom TrustManager that bypasses NSC, so coverage is best-effort. For guaranteed enforcement use Cronet's own pinning API — `CronetEngine.Builder.addPublicKeyPins()`.
 - **Custom TrustManager**: Any library (OkHttp, Cronet, etc.) that builds its own `TrustManager` bypassing the system default will not be covered by NSC.
 - **Custom TLS stacks**: iOS libraries not using `URLSession` (e.g., OpenSSL bindings) and Android Ktor CIO engine are not covered. See [Ktor CIO](#ktor-cio-engine) below.
 
@@ -158,22 +190,23 @@ val client = PinnedOkHttpClient.getInstance(context)
 - Returns plain `OkHttpClient` when pinning is disabled
 - Auto-invalidates when pinning state changes via `setUseSSLPinning`
 
-### Glide
+### Glide Integration
 
 ```kotlin
 @GlideModule
 class MyAppGlideModule : AppGlideModule() {
     override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+        val client = PinnedOkHttpClient.getInstance(context)
         registry.replace(
             GlideUrl::class.java,
             InputStream::class.java,
-            OkHttpUrlLoader.Factory(PinnedOkHttpClient.getInstance(context))
+            OkHttpUrlLoader.Factory(client)
         )
     }
 }
 ```
 
-### Coil
+### Coil Integration
 
 ```kotlin
 val imageLoader = ImageLoader.Builder(context)
@@ -226,14 +259,18 @@ val httpClient = HttpClient(CIO) {
 
 ## Runtime Toggle
 
-Toggling SSL pinning requires a full app restart because pinning is enforced at the native level (TrustKit initialization on iOS, OkHttpClientFactory on Android).
+- **Android:** `setUseSSLPinning(...)` and `setSSLConfig(...)` rebuild the
+  `OkHttpClientFactory` and take effect on subsequent requests immediately.
+- **iOS:** TrustKit can only be initialized once per process, so disabling or
+  changing pinning is persisted and applied on the **next app launch**. Restart
+  the app to apply.
 
 ```typescript
 import { setUseSSLPinning } from 'react-native-ssl-manager';
 import RNRestart from 'react-native-restart'; // optional
 
 await setUseSSLPinning(false);
-RNRestart.Restart(); // apply change
+RNRestart.Restart(); // apply change (required on iOS)
 ```
 
 Default state is **enabled** (`true`). State is persisted in:
@@ -244,11 +281,30 @@ Default state is **enabled** (`true`). State is persisted in:
 
 ### `setUseSSLPinning(usePinning: boolean): Promise<void>`
 
-Enable or disable SSL pinning. Requires app restart to take effect.
+Enable or disable SSL pinning. On iOS, disabling takes effect on the next app
+launch (TrustKit cannot be un-initialized within a running process).
 
 ### `getUseSSLPinning(): Promise<boolean>`
 
 Returns current pinning state. Defaults to `true` if never explicitly set.
+
+### `setSSLConfig(config: SslPinningConfig | string): Promise<void>`
+
+Update the pinning configuration at runtime. Accepts a config object or a
+pre-serialized JSON string. Rejects with an error code on malformed input.
+Android applies changes to subsequent requests immediately; iOS applies them on
+the next app launch.
+
+### `getPinnedDomains(): Promise<string[]>`
+
+Resolves with the domains in the active configuration (runtime config if set,
+otherwise the bundled `ssl_config.json`).
+
+### `isSSLManagerAvailable(): boolean`
+
+Returns whether the native module is linked. When `false`, all functions are
+no-ops and pinning is **not** enforced — rebuild the app so the native module is
+linked.
 
 ### Types
 
@@ -257,6 +313,8 @@ interface SslPinningConfig {
   sha256Keys: {
     [domain: string]: string[];
   };
+  expiration?: string; // YYYY-MM-DD — pinning fails open after this date
+  enforcePinning?: boolean; // default true; false = monitor mode (don't block)
 }
 
 interface SslPinningError extends Error {
@@ -278,11 +336,31 @@ Must be named exactly `ssl_config.json` and placed in the project root.
       "sha256/primary-cert-hash=",
       "sha256/backup-cert-hash="
     ]
-  }
+  },
+  "expiration": "2027-12-31",
+  "enforcePinning": true
 }
 ```
 
 Pin format: `sha256/` prefix + base64-encoded SHA-256 hash of the certificate's Subject Public Key Info (SPKI). The `sha256/` prefix is stripped automatically when generating NSC XML.
+
+Optional global fields:
+
+| Field | Default | Effect |
+|-------|---------|--------|
+| `expiration` | 1 year from build | `YYYY-MM-DD`. After this date pinning **fails open** on both platforms (iOS via TrustKit `kTSKExpirationDate`, Android via the NSC `pin-set expiration` and an equivalent runtime check), so cert rotation can't lock the app out permanently. |
+| `enforcePinning` | `true` | When `false`, **monitor mode**: iOS uses TrustKit report-only (`kTSKEnforcePinning: false`) and Android skips the `CertificatePinner` / NSC pin-set — a mismatch does not block the connection. |
+
+> Precedence for the build-time NSC expiration: Expo `pinExpiration` option / `sslPinExpiration` Gradle property / `SSL_PIN_EXPIRATION` env var **>** the config's `expiration` field **>** default.
+
+### Surviving certificate rotation (e.g. Cloudflare)
+
+Managed providers like Cloudflare rotate the **leaf** certificate every ~90 days, which breaks pins on the leaf. To avoid outages without dropping pinning:
+
+1. **Pin the intermediate (or root) CA SPKI**, not the leaf. The issuing CA's public key (Let's Encrypt, Google Trust Services, etc.) is stable for years, so routine leaf rotation no longer breaks your pins. Extract the SPKI hash of the intermediate from the served chain.
+2. **Always include a backup pin** (RFC 7469) — pre-generate a backup key and pin its SPKI so you can rotate instantly.
+3. **Set an `expiration`** as a safety net so an unexpected rotation degrades to fail-open instead of a hard outage.
+4. **Push new pins over the air** with `setSSLConfig()` ahead of a rotation when you need to change pins without an app release (applies immediately on Android; on next launch on iOS).
 
 ### How the config reaches each platform
 
