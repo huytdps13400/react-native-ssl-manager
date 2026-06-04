@@ -115,5 +115,8 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
    // Add OkHttp dependency for SSL pinning
   implementation "com.squareup.okhttp3:okhttp:4.9.1"
+  // androidx.startup: install the pinned OkHttpClientFactory at app launch,
+  // independent of the (lazy) React Native module lifecycle.
+  implementation "androidx.startup:startup-runtime:1.1.1"
 }
 

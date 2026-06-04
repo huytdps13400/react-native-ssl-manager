@@ -48,6 +48,7 @@ Expo plugin options:
 | `sslConfigPath` | `"ssl_config.json"` | Path to config relative to project root |
 | `enableAndroid` | `true` | Enable Android NSC generation + manifest patching |
 | `enableIOS` | `true` | Enable iOS asset bundling |
+| `pinExpiration` | _1 year from build_ | NSC pin-set expiration date (`YYYY-MM-DD`) |
 
 ## Quick Start
 
@@ -66,22 +67,52 @@ Expo plugin options:
 
 > Always include at least 2 pins per domain (primary + backup) to avoid lockout during certificate rotation.
 
-### 2. Use in your app
+### 2. That's it — pinning is active at launch
+
+Once `ssl_config.json` is bundled (via the Expo plugin or the CLI build
+scripts), **SSL pinning is enforced automatically at app launch — no JavaScript
+call is required.** On iOS this is wired up through an Objective-C `+load`
+bootstrap; on Android through an `androidx.startup` initializer that installs the
+pinned `OkHttpClientFactory` before the React Native bridge starts.
+
+> Earlier versions only initialized pinning inside the native module
+> constructor, which React Native instantiates lazily. That meant pinning did
+> not take effect until JS first touched the module (e.g. calling
+> `getUseSSLPinning()`). This is no longer necessary.
+
+### 3. (Optional) Control pinning from JavaScript
 
 ```typescript
-import { setUseSSLPinning, getUseSSLPinning } from 'react-native-ssl-manager';
+import {
+  setUseSSLPinning,
+  getUseSSLPinning,
+  setSSLConfig,
+  getPinnedDomains,
+  isSSLManagerAvailable,
+} from 'react-native-ssl-manager';
 
-// Enable SSL pinning (enabled by default)
-await setUseSSLPinning(true);
+// Confirm the native module is linked (false ⇒ pinning is NOT active)
+isSSLManagerAvailable();
 
-// Check current state
+// Toggle pinning (see note below about iOS)
+await setUseSSLPinning(false);
 const isEnabled = await getUseSSLPinning();
 
-// Disable for development/debugging
-await setUseSSLPinning(false);
+// Update pins at runtime
+await setSSLConfig({
+  sha256Keys: {
+    'api.example.com': ['sha256/AAAA...=', 'sha256/BBBB...='],
+  },
+});
+
+// Inspect the active configuration
+const domains = await getPinnedDomains();
 ```
 
-**Important:** Toggling SSL pinning requires an app restart for changes to take effect. See [Runtime Toggle](#runtime-toggle) below.
+**Important:** Disabling/changing pinning at runtime requires an app restart to
+fully take effect on **iOS**, because TrustKit can only be initialized once per
+process. On **Android** changes apply to subsequent requests immediately. See
+[Runtime Toggle](#runtime-toggle) below.
 
 ## How It Works
 
@@ -226,14 +257,18 @@ val httpClient = HttpClient(CIO) {
 
 ## Runtime Toggle
 
-Toggling SSL pinning requires a full app restart because pinning is enforced at the native level (TrustKit initialization on iOS, OkHttpClientFactory on Android).
+- **Android:** `setUseSSLPinning(...)` and `setSSLConfig(...)` rebuild the
+  `OkHttpClientFactory` and take effect on subsequent requests immediately.
+- **iOS:** TrustKit can only be initialized once per process, so disabling or
+  changing pinning is persisted and applied on the **next app launch**. Restart
+  the app to apply.
 
 ```typescript
 import { setUseSSLPinning } from 'react-native-ssl-manager';
 import RNRestart from 'react-native-restart'; // optional
 
 await setUseSSLPinning(false);
-RNRestart.Restart(); // apply change
+RNRestart.Restart(); // apply change (required on iOS)
 ```
 
 Default state is **enabled** (`true`). State is persisted in:
@@ -244,11 +279,30 @@ Default state is **enabled** (`true`). State is persisted in:
 
 ### `setUseSSLPinning(usePinning: boolean): Promise<void>`
 
-Enable or disable SSL pinning. Requires app restart to take effect.
+Enable or disable SSL pinning. On iOS, disabling takes effect on the next app
+launch (TrustKit cannot be un-initialized within a running process).
 
 ### `getUseSSLPinning(): Promise<boolean>`
 
 Returns current pinning state. Defaults to `true` if never explicitly set.
+
+### `setSSLConfig(config: SslPinningConfig | string): Promise<void>`
+
+Update the pinning configuration at runtime. Accepts a config object or a
+pre-serialized JSON string. Rejects with an error code on malformed input.
+Android applies changes to subsequent requests immediately; iOS applies them on
+the next app launch.
+
+### `getPinnedDomains(): Promise<string[]>`
+
+Resolves with the domains in the active configuration (runtime config if set,
+otherwise the bundled `ssl_config.json`).
+
+### `isSSLManagerAvailable(): boolean`
+
+Returns whether the native module is linked. When `false`, all functions are
+no-ops and pinning is **not** enforced — rebuild the app so the native module is
+linked.
 
 ### Types
 

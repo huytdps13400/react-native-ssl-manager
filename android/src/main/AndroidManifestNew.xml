@@ -1,2 +1,17 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!-- Install the pinned OkHttpClientFactory at app startup, before the
+             React Native bridge is built, so pinning is enforced without a JS call. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="com.usesslpinning.SslPinningInitializer"
+                android:value="androidx.startup" />
+        </provider>
+    </application>
 </manifest>

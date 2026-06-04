@@ -1,6 +1,7 @@
 const {
   withDangerousMod,
   withAndroidManifest,
+  withXcodeProject,
 } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
@@ -14,6 +15,7 @@ function withSslManager(config, options = {}) {
     enableAndroid = true,
     enableIOS = true,
     sslConfigPath = 'ssl_config.json',
+    pinExpiration,
   } = options;
 
   // Add Android configuration
@@ -21,7 +23,10 @@ function withSslManager(config, options = {}) {
     config = withAndroidSslPinning(config);
     config = withAndroidMainApplication(config);
     config = withAndroidAssets(config, { sslConfigPath });
-    config = withAndroidNetworkSecurityConfig(config, { sslConfigPath });
+    config = withAndroidNetworkSecurityConfig(config, {
+      sslConfigPath,
+      pinExpiration,
+    });
     config = withAndroidNscManifest(config);
   }
 
@@ -179,112 +184,43 @@ function withIosAssets(config, options) {
     },
   ]);
 
-  // Add to Xcode project programmatically - run in same withDangerousMod as file copy
-  config = withDangerousMod(config, [
-    'ios',
-    async (config) => {
-      // First ensure file is copied to app bundle directory
-      const projectName = config.modRequest.projectName || 'exampleexpo';
-      const projectRoot = config.modRequest.projectRoot;
-      const sourceConfigPath = path.resolve(projectRoot, 'ssl_config.json');
-      const appBundleDir = path.join(
-        config.modRequest.platformProjectRoot,
-        projectName
-      );
-      const appBundleConfigPath = path.join(appBundleDir, 'ssl_config.json');
+  // Add ssl_config.json to the Xcode project using the Xcode project API
+  // (robust) instead of regex string manipulation of project.pbxproj.
+  config = withXcodeProject(config, (config) => {
+    const project = config.modResults;
+    const projectName = config.modRequest.projectName;
+    const fileName = 'ssl_config.json';
+    const groupRelativePath = projectName
+      ? `${projectName}/${fileName}`
+      : fileName;
 
-      // Ensure SSL config is copied to app bundle directory
-      if (fs.existsSync(sourceConfigPath) && fs.existsSync(appBundleDir)) {
-        fs.copyFileSync(sourceConfigPath, appBundleConfigPath);
-      }
-
-      try {
-        const projectPath = path.join(
-          config.modRequest.platformProjectRoot,
-          `${projectName}.xcodeproj/project.pbxproj`
-        );
-        const sslConfigPath = appBundleConfigPath;
-
-        if (!fs.existsSync(projectPath) || !fs.existsSync(sslConfigPath)) {
-          console.warn(
-            '⚠️  Xcode project or SSL config not found, skipping automatic addition'
-          );
-          return config;
-        }
-
-        let projectContent = fs.readFileSync(projectPath, 'utf8');
-
-        // Check if already added
-        if (projectContent.includes('ssl_config.json')) {
-          return config;
-        }
-
-        // Generate unique IDs for the file
-        const fileRefId =
-          'SSL' + Math.random().toString(36).substr(2, 24).toUpperCase();
-        const buildFileId =
-          'SSL' + Math.random().toString(36).substr(2, 24).toUpperCase();
-
-        // Add file reference
-        const fileRefEntry = `\t\t${fileRefId} /* ssl_config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ssl_config.json; sourceTree = "<group>"; };`;
-        projectContent = projectContent.replace(
-          '/* End PBXFileReference section */',
-          fileRefEntry + '\n\t\t/* End PBXFileReference section */'
-        );
-
-        // Add build file
-        const buildFileEntry = `\t\t${buildFileId} /* ssl_config.json in Resources */ = {isa = PBXBuildFile; fileRef = ${fileRefId} /* ssl_config.json */; };`;
-        projectContent = projectContent.replace(
-          '/* End PBXBuildFile section */',
-          buildFileEntry + '\n\t\t/* End PBXBuildFile section */'
-        );
-
-        // Add to resources build phase
-        const resourcesPhaseMatch = projectContent.match(
-          /(\w+) \/\* Resources \*\/ = \{[^}]*files = \(([^)]*)\)/
-        );
-        if (resourcesPhaseMatch) {
-          const filesSection = resourcesPhaseMatch[2];
-          const newFilesSection =
-            filesSection +
-            `\t\t\t\t${buildFileId} /* ssl_config.json in Resources */,\n`;
-          projectContent = projectContent.replace(
-            `files = (${filesSection})`,
-            `files = (\n${newFilesSection}\t\t\t)`
-          );
-        }
-
-        // Add to main group
-        const mainGroupMatch = projectContent.match(
-          new RegExp(
-            `(\\w+) /\\* ${projectName} \\*/ = \\{[^}]*children = \\(([^)]*)\\)`
-          )
-        );
-        if (mainGroupMatch) {
-          const childrenSection = mainGroupMatch[2];
-          const newChildrenSection =
-            childrenSection + `\t\t\t\t${fileRefId} /* ssl_config.json */,\n`;
-          projectContent = projectContent.replace(
-            `children = (${childrenSection})`,
-            `children = (\n${newChildrenSection}\t\t\t)`
-          );
-        }
-
-        // Write back to file
-        fs.writeFileSync(projectPath, projectContent);
-      } catch (error) {
-        console.warn(
-          '⚠️  Failed to add SSL config to Xcode project:',
-          error.message
-        );
-        console.warn(
-          '💡 File copied to ios/ directory, manual Xcode setup may be needed'
-        );
-      }
-
+    // Skip if the resource is already referenced (idempotent prebuild).
+    if (project.hasFile(groupRelativePath) || project.hasFile(fileName)) {
       return config;
-    },
-  ]);
+    }
+
+    try {
+      const target = project.getFirstTarget().uuid;
+      const mainGroup = project.getFirstProject().firstProject.mainGroup;
+
+      // Add as a resource so it is copied into the app bundle at build time.
+      project.addResourceFile(
+        groupRelativePath,
+        { target },
+        mainGroup
+      );
+    } catch (error) {
+      console.warn(
+        '⚠️  Failed to add ssl_config.json to Xcode project:',
+        error.message
+      );
+      console.warn(
+        '💡 File copied to ios/ directory, manual Xcode setup may be needed'
+      );
+    }
+
+    return config;
+  });
 
   return config;
 }
@@ -314,7 +250,7 @@ function withAndroidNetworkSecurityConfig(config, options) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
-      const { sslConfigPath = 'ssl_config.json' } = options;
+      const { sslConfigPath = 'ssl_config.json', pinExpiration } = options;
       const projectRoot = config.modRequest.projectRoot;
       const sha256Keys = readSslConfig(projectRoot, sslConfigPath);
 
@@ -338,14 +274,14 @@ function withAndroidNetworkSecurityConfig(config, options) {
       if (fs.existsSync(xmlPath)) {
         // Merge with existing
         const existingXml = fs.readFileSync(xmlPath, 'utf8');
-        const mergedXml = mergeNscXml(existingXml, sha256Keys);
+        const mergedXml = mergeNscXml(existingXml, sha256Keys, pinExpiration);
         fs.writeFileSync(xmlPath, mergedXml);
         console.log(
           '✅ Merged SSL pins into existing network_security_config.xml'
         );
       } else {
         // Generate new
-        const xml = generateNscXml(sha256Keys);
+        const xml = generateNscXml(sha256Keys, pinExpiration);
         fs.writeFileSync(xmlPath, xml);
         console.log('✅ Generated network_security_config.xml');
       }

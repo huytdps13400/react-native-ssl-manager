@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Eager initialization**: SSL pinning is now initialized at app launch,
+  independent of the (lazy) React Native module lifecycle. iOS uses an
+  Objective-C `+load` bootstrap; Android uses an `androidx.startup` initializer.
+  Pinning is enforced from a bundled `ssl_config.json` **without requiring any
+  JavaScript call**.
+- Runtime configuration API: `setSSLConfig(config)` and `getPinnedDomains()`.
+- `isSSLManagerAvailable()` to detect whether the native module is linked.
+- Configurable Network Security Config pin-set expiration via the Expo plugin
+  option `pinExpiration`, the `sslPinExpiration` Gradle property, and the
+  `SSL_PIN_EXPIRATION` env var for the CLI postinstall script.
+
+### Changed
+- iOS TrustKit is now guarded so it initializes at most once per process,
+  preventing the "already initialized" crash. Disabling/changing pinning at
+  runtime applies on the next app launch (documented).
+- Native failures (invalid/missing config) now reject the JS promise with an
+  error code instead of resolving silently.
+- The JS fallback (native module missing) now resolves `getUseSSLPinning()` to
+  `false` and warns, so a no-op is not mistaken for active pinning.
+- Expo plugin adds `ssl_config.json` to the Xcode project via the Xcode project
+  API instead of regex manipulation of `project.pbxproj`.
+- iOS config parsing tries a direct JSON parse first, only falling back to
+  string-cleaning when needed.
+
 ## [1.0.2] - 2025-08-12
 
 ### Fixed

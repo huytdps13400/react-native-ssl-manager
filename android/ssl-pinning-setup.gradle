@@ -41,10 +41,16 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
         return false
     }
 
-    // Calculate default expiration: 1 year from now
-    def cal = Calendar.getInstance()
-    cal.add(Calendar.YEAR, 1)
-    def expirationDate = String.format("%tF", cal) // YYYY-MM-DD format
+    // Expiration: use the `sslPinExpiration` Gradle property (YYYY-MM-DD) when
+    // provided, otherwise default to 1 year from now.
+    def expirationDate
+    if (project.hasProperty('sslPinExpiration') && project.property('sslPinExpiration')?.toString()?.trim()) {
+        expirationDate = project.property('sslPinExpiration').toString().trim()
+    } else {
+        def cal = Calendar.getInstance()
+        cal.add(Calendar.YEAR, 1)
+        expirationDate = String.format("%tF", cal) // YYYY-MM-DD format
+    }
 
     // Ensure output directory exists
     def xmlDir = xmlOutputFile.parentFile
