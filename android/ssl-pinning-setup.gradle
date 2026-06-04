@@ -1,3 +1,7 @@
+import groovy.xml.XmlParser
+import groovy.xml.XmlNodePrinter
+import groovy.xml.MarkupBuilder
+
 def findSslConfigFile() {
     def candidates = [
         file("${project.rootDir}/../ssl_config.json"), // repo root (android/ là thư mục con)
@@ -19,10 +23,6 @@ def ensureAssetsDir() {
 
 def assetsDir = file("${projectDir}/src/main/assets")
 def destFile  = file("${projectDir}/src/main/assets/ssl_config.json")
-
-import groovy.xml.XmlParser
-import groovy.xml.XmlNodePrinter
-import groovy.xml.MarkupBuilder
 
 /**
  * Generate network_security_config.xml from ssl_config.json
