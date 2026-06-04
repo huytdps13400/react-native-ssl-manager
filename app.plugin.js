@@ -204,11 +204,7 @@ function withIosAssets(config, options) {
       const mainGroup = project.getFirstProject().firstProject.mainGroup;
 
       // Add as a resource so it is copied into the app bundle at build time.
-      project.addResourceFile(
-        groupRelativePath,
-        { target },
-        mainGroup
-      );
+      project.addResourceFile(groupRelativePath, { target }, mainGroup);
     } catch (error) {
       console.warn(
         '⚠️  Failed to add ssl_config.json to Xcode project:',
@@ -231,14 +227,6 @@ const {
   isPinningEnforced,
   getConfigExpiration,
 } = require('./scripts/nsc-utils');
-
-/**
- * Read ssl_config.json and return parsed sha256Keys, or null if not found
- */
-function readSslConfig(projectRoot, sslConfigPath) {
-  const config = readFullSslConfig(projectRoot, sslConfigPath);
-  return (config && config.sha256Keys) || null;
-}
 
 /**
  * Read and parse the full ssl_config.json, or null if not found/invalid.

@@ -72,9 +72,7 @@ describe('Integration: Cronet request with invalid pin fails', () => {
     const xml = generateNscXml(sha256Keys);
 
     // The generated XML has a pin that won't match the real certificate
-    expect(xml).toContain(
-      '<pin digest="SHA-256">INVALIDPINHASH=</pin>'
-    );
+    expect(xml).toContain('<pin digest="SHA-256">INVALIDPINHASH=</pin>');
     // Platform enforces pin-set — mismatched pin causes connection failure
     expect(xml).toContain('<pin-set');
     expect(xml).toContain(
@@ -109,7 +107,9 @@ describe('Integration: Coil image load with valid pin succeeds', () => {
 
   it('PinnedOkHttpClient can be used with Coil ImageLoader', () => {
     // PinnedOkHttpClient returns OkHttpClient which Coil accepts
-    expect(pinnedClientContent).toContain('fun getInstance(context: Context): OkHttpClient');
+    expect(pinnedClientContent).toContain(
+      'fun getInstance(context: Context): OkHttpClient'
+    );
     expect(pinnedClientContent).toContain('OkHttpClient.Builder()');
     expect(pinnedClientContent).toContain('CertificatePinner.Builder()');
   });
@@ -117,9 +117,7 @@ describe('Integration: Coil image load with valid pin succeeds', () => {
   it('README documents Coil integration pattern', () => {
     expect(readmeContent).toContain('Coil Integration');
     expect(readmeContent).toContain('ImageLoader.Builder(context)');
-    expect(readmeContent).toContain(
-      'PinnedOkHttpClient.getInstance(context)'
-    );
+    expect(readmeContent).toContain('PinnedOkHttpClient.getInstance(context)');
   });
 
   it('README shows Coil in supported networking stacks table', () => {
@@ -130,10 +128,7 @@ describe('Integration: Coil image load with valid pin succeeds', () => {
 describe('Integration: Glide image load with valid pin succeeds', () => {
   it('NSC XML covers Glide via platform-level Network Security Config', () => {
     const sha256Keys = {
-      'cdn.example.com': [
-        'sha256/GLIDEPINHASH1=',
-        'sha256/GLIDEPINHASH2=',
-      ],
+      'cdn.example.com': ['sha256/GLIDEPINHASH1=', 'sha256/GLIDEPINHASH2='],
     };
 
     const xml = generateNscXml(sha256Keys);
@@ -147,7 +142,9 @@ describe('Integration: Glide image load with valid pin succeeds', () => {
 
   it('PinnedOkHttpClient can be used with Glide AppGlideModule', () => {
     expect(pinnedClientContent).toContain('@JvmStatic');
-    expect(pinnedClientContent).toContain('fun getInstance(context: Context): OkHttpClient');
+    expect(pinnedClientContent).toContain(
+      'fun getInstance(context: Context): OkHttpClient'
+    );
   });
 
   it('README documents Glide integration with @GlideModule example', () => {

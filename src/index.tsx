@@ -109,7 +109,8 @@ export const getUseSSLPinning = async (): Promise<boolean> => {
 export const setSSLConfig = (
   config: SslPinningConfig | string
 ): Promise<void> => {
-  const serialized = typeof config === 'string' ? config : JSON.stringify(config);
+  const serialized =
+    typeof config === 'string' ? config : JSON.stringify(config);
   return UseSslPinning.setSSLConfig(serialized);
 };
 

@@ -106,32 +106,22 @@ describe('XML Generation', () => {
     const xml = generateNscXml(sha256Keys, EXPIRATION);
 
     // Two domain-config blocks
-    const domainConfigCount = (
-      xml.match(/<domain-config/g) || []
-    ).length;
+    const domainConfigCount = (xml.match(/<domain-config/g) || []).length;
     expect(domainConfigCount).toBe(2);
 
     // api.example.com has 2 pins
     expect(xml).toContain('api.example.com');
-    expect(xml).toContain(
-      'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
-    );
-    expect(xml).toContain(
-      'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB='
-    );
+    expect(xml).toContain('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
+    expect(xml).toContain('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=');
 
     // api.dev.example.com has 1 pin
     expect(xml).toContain('api.dev.example.com');
-    expect(xml).toContain(
-      'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC='
-    );
+    expect(xml).toContain('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=');
   });
 
   test('strips sha256/ prefix from all pins', () => {
     const sha256Keys = {
-      'example.com': [
-        'sha256/abc123def456ghi789jkl012mno345pqr678stu90v=',
-      ],
+      'example.com': ['sha256/abc123def456ghi789jkl012mno345pqr678stu90v='],
     };
 
     const xml = generateNscXml(sha256Keys, EXPIRATION);

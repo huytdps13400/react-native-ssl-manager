@@ -128,14 +128,7 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
         'ℹ️ enforcePinning is false — skipping network_security_config.xml (monitor mode)'
       );
     } else if (sha256Keys && Object.keys(sha256Keys).length > 0) {
-      const xmlDir = path.join(
-        androidDir,
-        'app',
-        'src',
-        'main',
-        'res',
-        'xml'
-      );
+      const xmlDir = path.join(androidDir, 'app', 'src', 'main', 'res', 'xml');
       const xmlPath = path.join(xmlDir, 'network_security_config.xml');
 
       if (fs.existsSync(xmlPath)) {
@@ -180,10 +173,15 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
         }
       }
     } else {
-      console.log('⚠️ No sha256Keys in ssl_config.json, skipping XML generation');
+      console.log(
+        '⚠️ No sha256Keys in ssl_config.json, skipping XML generation'
+      );
     }
   } catch (error) {
-    console.warn('⚠️ Failed to generate Network Security Config XML:', error.message);
+    console.warn(
+      '⚠️ Failed to generate Network Security Config XML:',
+      error.message
+    );
   }
 } else if (!fs.existsSync(androidDir)) {
   console.log('ℹ️ No android/ directory found, skipping NSC XML generation');

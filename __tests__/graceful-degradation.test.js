@@ -27,15 +27,23 @@ describe('config policy helpers', () => {
   });
 
   it('reads a global expiration field', () => {
-    expect(getConfigExpiration({ expiration: '2030-01-01' })).toBe('2030-01-01');
-    expect(getConfigExpiration({ expiration: '  2030-01-01  ' })).toBe('2030-01-01');
+    expect(getConfigExpiration({ expiration: '2030-01-01' })).toBe(
+      '2030-01-01'
+    );
+    expect(getConfigExpiration({ expiration: '  2030-01-01  ' })).toBe(
+      '2030-01-01'
+    );
     expect(getConfigExpiration({})).toBeUndefined();
     expect(getConfigExpiration({ expiration: '' })).toBeUndefined();
   });
 
   it('the config expiration can drive NSC generation', () => {
     const cfg = {
-      sha256Keys: { 'api.example.com': ['sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='] },
+      sha256Keys: {
+        'api.example.com': [
+          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        ],
+      },
       expiration: '2029-09-09',
     };
     const xml = generateNscXml(cfg.sha256Keys, getConfigExpiration(cfg));
@@ -74,7 +82,12 @@ describe('iOS honors expiration and enforcePinning', () => {
 describe('Android runtime honors the policy', () => {
   it('provides a shared SslPinningPolicy', () => {
     const policy = read(
-      'android', 'src', 'main', 'java', 'com', 'usesslpinning',
+      'android',
+      'src',
+      'main',
+      'java',
+      'com',
+      'usesslpinning',
       'SslPinningPolicy.kt'
     );
     expect(policy).toContain('fun shouldEnforce');
@@ -84,11 +97,21 @@ describe('Android runtime honors the policy', () => {
 
   it('the factory and pinned client gate pinning on the policy', () => {
     const factory = read(
-      'android', 'src', 'main', 'java', 'com', 'usesslpinning',
+      'android',
+      'src',
+      'main',
+      'java',
+      'com',
+      'usesslpinning',
       'SslPinningFactory.kt'
     );
     const pinned = read(
-      'android', 'src', 'main', 'java', 'com', 'usesslpinning',
+      'android',
+      'src',
+      'main',
+      'java',
+      'com',
+      'usesslpinning',
       'PinnedOkHttpClient.kt'
     );
     expect(factory).toContain('SslPinningPolicy.shouldEnforce');

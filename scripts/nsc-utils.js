@@ -109,7 +109,11 @@ function isPinningEnforced(config) {
  * ssl_config.json. Returns undefined when not present.
  */
 function getConfigExpiration(config) {
-  if (config && typeof config.expiration === 'string' && config.expiration.trim()) {
+  if (
+    config &&
+    typeof config.expiration === 'string' &&
+    config.expiration.trim()
+  ) {
     return config.expiration.trim();
   }
   return undefined;

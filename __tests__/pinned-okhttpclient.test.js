@@ -29,7 +29,9 @@ describe('PinnedOkHttpClient', () => {
   });
 
   it('exposes getInstance(context) returning OkHttpClient', () => {
-    expect(ktContent).toMatch(/fun getInstance\(context:\s*Context\):\s*OkHttpClient/);
+    expect(ktContent).toMatch(
+      /fun getInstance\(context:\s*Context\):\s*OkHttpClient/
+    );
   });
 
   it('uses @JvmStatic for Java interop', () => {

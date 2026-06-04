@@ -9,7 +9,11 @@
 
 const fs = require('fs');
 const path = require('path');
-const { generateNscXml, mergeNscXml, resolveExpiration } = require('../scripts/nsc-utils');
+const {
+  generateNscXml,
+  mergeNscXml,
+  resolveExpiration,
+} = require('../scripts/nsc-utils');
 
 const root = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(root, ...p), 'utf8');
@@ -42,7 +46,12 @@ describe('iOS eager initialization', () => {
 describe('Android eager initialization', () => {
   it('provides an androidx.startup Initializer that installs the factory', () => {
     const init = read(
-      'android', 'src', 'main', 'java', 'com', 'usesslpinning',
+      'android',
+      'src',
+      'main',
+      'java',
+      'com',
+      'usesslpinning',
       'SslPinningInitializer.kt'
     );
     expect(init).toContain('androidx.startup.Initializer');
@@ -58,7 +67,9 @@ describe('Android eager initialization', () => {
   });
 
   it('declares the androidx.startup dependency', () => {
-    expect(read('android', 'build.gradle')).toContain('androidx.startup:startup-runtime');
+    expect(read('android', 'build.gradle')).toContain(
+      'androidx.startup:startup-runtime'
+    );
   });
 });
 
@@ -77,7 +88,12 @@ describe('Runtime configuration API', () => {
 
   it('is implemented natively on both platforms', () => {
     const impl = read(
-      'android', 'src', 'main', 'java', 'com', 'usesslpinning',
+      'android',
+      'src',
+      'main',
+      'java',
+      'com',
+      'usesslpinning',
       'UseSslPinningModuleImpl.kt'
     );
     expect(impl).toContain('fun setSSLConfig');
@@ -117,11 +133,17 @@ describe('Configurable NSC expiration', () => {
 
   it('threads expiration through merge', () => {
     const base = generateNscXml(
-      { 'a.example.com': ['sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='] },
+      {
+        'a.example.com': [
+          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        ],
+      },
       '2031-06-01'
     );
     const merged = mergeNscXml(base, sha256Keys, '2031-06-01');
-    expect(merged).toContain('<domain includeSubdomains="true">api.example.com</domain>');
+    expect(merged).toContain(
+      '<domain includeSubdomains="true">api.example.com</domain>'
+    );
     expect(merged).toContain('expiration="2031-06-01"');
   });
 });

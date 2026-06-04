@@ -177,6 +177,12 @@
       "@react-native",
       "prettier"
     ],
+    "plugins": [
+      "jest"
+    ],
+    "env": {
+      "jest/globals": true
+    },
     "rules": {
       "prettier/prettier": [
         "error",
