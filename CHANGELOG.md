@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-04
+
 ### Tests / CI
 - **Fixed the CI pipeline, which was failing on every run** at the dependency
   install step: the `setup` composite action now runs `corepack enable` so
