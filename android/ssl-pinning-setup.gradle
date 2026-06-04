@@ -28,7 +28,7 @@ def destFile  = file("${projectDir}/src/main/assets/ssl_config.json")
  * Generate network_security_config.xml from ssl_config.json
  * Returns true if XML was generated, false otherwise
  */
-def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
+generateNetworkSecurityConfigXml = { File sslConfigFile, File xmlOutputFile ->
     if (!sslConfigFile || !sslConfigFile.exists()) {
         println "⚠️ SSL Config not found, skipping Network Security Config XML generation"
         return false
@@ -68,9 +68,9 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
     // Check for existing NSC and merge if present
     if (xmlOutputFile.exists()) {
         println "🔄 Existing network_security_config.xml found, merging pin entries"
-        mergeNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, expirationDate)
+        mergeNetworkSecurityConfigXml.call(xmlOutputFile, sha256Keys, expirationDate)
     } else {
-        writeNewNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, expirationDate)
+        writeNewNetworkSecurityConfigXml.call(xmlOutputFile, sha256Keys, expirationDate)
     }
 
     return true
@@ -79,7 +79,7 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
 /**
  * Write a fresh network_security_config.xml
  */
-def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
+writeNewNetworkSecurityConfigXml = { File xmlFile, Map sha256Keys, String expirationDate ->
     def writer = new StringWriter()
     def xml = new MarkupBuilder(writer)
     xml.setDoubleQuotes(true)
@@ -108,7 +108,7 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expira
  * Preserves existing config (debug-overrides, base-config, other domain-configs)
  * Replaces pin-set for domains that already exist, adds new domain-configs otherwise
  */
-def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
+mergeNetworkSecurityConfigXml = { File xmlFile, Map sha256Keys, String expirationDate ->
     def parser = new XmlParser()
     def root = parser.parse(xmlFile)
 
@@ -153,7 +153,7 @@ def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expiratio
 /**
  * Patch AndroidManifest.xml to reference network_security_config if not already set
  */
-def patchAndroidManifest(File manifestFile) {
+patchAndroidManifest = { File manifestFile ->
     if (!manifestFile || !manifestFile.exists()) {
         println "⚠️ AndroidManifest.xml not found, skipping manifest patching"
         return false
@@ -229,10 +229,10 @@ plugins.withId('com.android.application') {
                         def sourceFile = findSslConfigFile()
                         def xmlDir = file("${projectDir}/src/main/res/xml")
                         def xmlFile = file("${xmlDir}/network_security_config.xml")
-                        if (generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
+                        if (generateNetworkSecurityConfigXml.call(sourceFile, xmlFile)) {
                             // Patch manifest
                             def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-                            patchAndroidManifest(manifestFile)
+                            patchAndroidManifest.call(manifestFile)
                         }
                     }
                 }
@@ -298,9 +298,9 @@ plugins.withId('com.android.application') {
                         def sourceFile = findSslConfigFile()
                         def xmlDir = file("${projectDir}/src/main/res/xml")
                         def xmlFile = file("${xmlDir}/network_security_config.xml")
-                        if (generateNetworkSecurityConfigXml(sourceFile, xmlFile)) {
+                        if (generateNetworkSecurityConfigXml.call(sourceFile, xmlFile)) {
                             def manifestFile = file("${projectDir}/src/main/AndroidManifest.xml")
-                            patchAndroidManifest(manifestFile)
+                            patchAndroidManifest.call(manifestFile)
                         }
                     }
                 }
