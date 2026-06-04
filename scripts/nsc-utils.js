@@ -94,4 +94,31 @@ function mergeNscXml(existingXml, sha256Keys, expirationOverride) {
   return existingXml;
 }
 
-module.exports = { generateNscXml, mergeNscXml, resolveExpiration };
+/**
+ * Whether SSL pinning should be enforced for the given parsed ssl_config.json.
+ * `enforcePinning: false` opts into monitor mode — on Android the OS-level
+ * Network Security Config has no report-only equivalent, so we simply do not
+ * generate a (hard-fail) pin-set in that case.
+ */
+function isPinningEnforced(config) {
+  return !(config && config.enforcePinning === false);
+}
+
+/**
+ * Read the optional global `expiration` (YYYY-MM-DD) from a parsed
+ * ssl_config.json. Returns undefined when not present.
+ */
+function getConfigExpiration(config) {
+  if (config && typeof config.expiration === 'string' && config.expiration.trim()) {
+    return config.expiration.trim();
+  }
+  return undefined;
+}
+
+module.exports = {
+  generateNscXml,
+  mergeNscXml,
+  resolveExpiration,
+  isPinningEnforced,
+  getConfigExpiration,
+};

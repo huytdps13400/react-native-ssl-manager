@@ -136,27 +136,39 @@ class SharedLogic: NSObject {
     }
 
     /**
-     * Parse a configuration JSON string into its sha256Keys map.
+     * Parse a configuration JSON string into the full configuration object.
      * Tries a direct parse first and only falls back to string-cleaning when
      * the direct parse fails (handles escaped/embedded JSON edge cases).
+     * The object must contain a `sha256Keys` map.
      */
-    static func parseConfig(_ jsonString: String) throws -> [String: [String]] {
-        func extract(_ candidate: String) -> [String: [String]]? {
+    static func parseFullConfig(_ jsonString: String) throws -> [String: Any] {
+        func extract(_ candidate: String) -> [String: Any]? {
             guard let data = candidate.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                  let sha256Keys = json["sha256Keys"] as? [String: [String]] else {
+                  json["sha256Keys"] is [String: [String]] else {
                 return nil
             }
-            return sha256Keys
+            return json
         }
 
-        if let keys = extract(jsonString) {
-            return keys
+        if let json = extract(jsonString) {
+            return json
         }
-        if let keys = extract(cleanJsonString(jsonString)) {
-            return keys
+        if let json = extract(cleanJsonString(jsonString)) {
+            return json
         }
         throw SSLPinningError.invalidConfiguration
+    }
+
+    /**
+     * Parse a configuration JSON string into its sha256Keys map.
+     */
+    static func parseConfig(_ jsonString: String) throws -> [String: [String]] {
+        let json = try parseFullConfig(jsonString)
+        guard let sha256Keys = json["sha256Keys"] as? [String: [String]] else {
+            throw SSLPinningError.invalidConfiguration
+        }
+        return sha256Keys
     }
 
     /**
@@ -242,18 +254,34 @@ class SharedLogic: NSObject {
             ]
         }
 
-        let sha256Keys = try parseConfig(configJsonString)
+        let config = try parseFullConfig(configJsonString)
+        guard let sha256Keys = config["sha256Keys"] as? [String: [String]] else {
+            throw SSLPinningError.invalidConfiguration
+        }
+
+        // Optional graceful-degradation controls (global, applied to all domains):
+        // - `enforcePinning` (default true): when false, TrustKit runs in
+        //   report-only mode so a pin mismatch does NOT block the connection.
+        // - `expiration` (YYYY-MM-DD): after this date TrustKit stops enforcing
+        //   pinning (fail-open), preventing a permanent lockout on cert rotation.
+        let enforcePinning = (config["enforcePinning"] as? Bool) ?? true
+        let expiration = (config["expiration"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Build pinned domains configuration
         var pinnedDomains: [String: Any] = [:]
         for (domain, pins) in sha256Keys {
             let cleanedPins = try validateAndCleanPins(pins, for: domain)
-            pinnedDomains[domain] = [
+            var domainConfig: [String: Any] = [
                 kTSKIncludeSubdomains: true,
-                kTSKEnforcePinning: true,
+                kTSKEnforcePinning: enforcePinning,
                 kTSKDisableDefaultReportUri: true,
                 kTSKPublicKeyHashes: cleanedPins
             ]
+            if let expiration = expiration, !expiration.isEmpty {
+                // TrustKit expects the expiration as a `yyyy-MM-dd` string.
+                domainConfig[kTSKExpirationDate] = expiration
+            }
+            pinnedDomains[domain] = domainConfig
         }
 
         // TrustKit can only be initialized once per process. Re-initialization

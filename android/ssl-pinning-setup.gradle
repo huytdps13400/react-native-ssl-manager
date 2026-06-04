@@ -41,11 +41,20 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
         return false
     }
 
-    // Expiration: use the `sslPinExpiration` Gradle property (YYYY-MM-DD) when
-    // provided, otherwise default to 1 year from now.
+    // Monitor mode (`enforcePinning: false`): NSC has no report-only equivalent,
+    // so skip generating a hard-fail pin-set rather than block traffic.
+    if (json?.enforcePinning == false) {
+        println "ℹ️ enforcePinning is false — skipping network_security_config.xml (monitor mode)"
+        return false
+    }
+
+    // Expiration precedence: `sslPinExpiration` Gradle property (YYYY-MM-DD) >
+    // the config's `expiration` field > default (1 year from now).
     def expirationDate
     if (project.hasProperty('sslPinExpiration') && project.property('sslPinExpiration')?.toString()?.trim()) {
         expirationDate = project.property('sslPinExpiration').toString().trim()
+    } else if (json?.expiration?.toString()?.trim()) {
+        expirationDate = json.expiration.toString().trim()
     } else {
         def cal = Calendar.getInstance()
         cal.add(Calendar.YEAR, 1)

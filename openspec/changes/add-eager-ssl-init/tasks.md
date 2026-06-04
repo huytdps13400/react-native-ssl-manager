@@ -30,7 +30,14 @@
 - [x] 5.2 Configurable NSC pin-set expiration (`pinExpiration` + Gradle property)
 - [x] 5.3 Replace pbxproj regex with `withXcodeProject` in the Expo plugin
 
-## 6. Tests & docs
+## 6. Graceful degradation for cert rotation (issue #4)
+
+- [x] 6a.1 iOS: apply `kTSKExpirationDate` and configurable `kTSKEnforcePinning`
+- [x] 6a.2 Android: shared `SslPinningPolicy` (expiration + enforcePinning) gating the OkHttp path
+- [x] 6a.3 Build scripts: skip NSC in monitor mode; expiration from config field
+- [x] 6a.4 Docs: Cloudflare rotation recipe + new config fields
+
+## 7. Tests & docs
 
 - [x] 6.1 Tests for eager-init contract and runtime API surface
 - [x] 6.2 Tests for configurable expiration

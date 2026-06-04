@@ -61,3 +61,19 @@ silently.
 
 - **WHEN** the native module is unavailable and a JS method is called
 - **THEN** a warning is emitted so the no-op is not mistaken for active pinning
+
+### Requirement: Graceful degradation for certificate rotation
+
+The configuration SHALL support an optional global `expiration` date and an
+optional `enforcePinning` flag so pinning can degrade gracefully and avoid a
+permanent lockout when certificates rotate.
+
+#### Scenario: Pinning fails open after expiration
+
+- **WHEN** the configured `expiration` date has passed
+- **THEN** pinning is no longer enforced on iOS and Android and connections are allowed
+
+#### Scenario: Monitor mode does not block
+
+- **WHEN** `enforcePinning` is `false`
+- **THEN** a pin mismatch does not block the connection (iOS report-only; Android applies no CertificatePinner and generates no NSC pin-set)

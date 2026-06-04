@@ -41,6 +41,10 @@ and improves error reporting and config defaults.
   plugin with the `withXcodeProject` / `xcode` API.
 - Add tests covering the eager-init contract, the runtime API, and configurable
   expiration.
+- Add graceful degradation for certificate rotation (issue #4): optional global
+  `expiration` (fail-open after the date on both platforms) and
+  `enforcePinning: false` (monitor mode), plus a Cloudflare rotation recipe in
+  the docs.
 
 ## Impact
 

@@ -106,7 +106,12 @@ if (fs.existsSync(sslConfigPath)) {
 }
 
 // Generate Network Security Config XML for Android
-const { generateNscXml, mergeNscXml } = require('./nsc-utils');
+const {
+  generateNscXml,
+  mergeNscXml,
+  isPinningEnforced,
+  getConfigExpiration,
+} = require('./nsc-utils');
 const androidDir = path.join(projectRoot, 'android');
 if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
   console.log('🔄 Generating Android Network Security Config XML...');
@@ -114,10 +119,15 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
   try {
     const sslConfig = JSON.parse(fs.readFileSync(sslConfigPath, 'utf8'));
     const sha256Keys = sslConfig.sha256Keys;
-    // Optional expiration override (YYYY-MM-DD) via env var; defaults to 1 year.
-    const pinExpiration = process.env.SSL_PIN_EXPIRATION || undefined;
+    // Expiration precedence: env var > config field > default (1 year).
+    const pinExpiration =
+      process.env.SSL_PIN_EXPIRATION || getConfigExpiration(sslConfig);
 
-    if (sha256Keys && Object.keys(sha256Keys).length > 0) {
+    if (!isPinningEnforced(sslConfig)) {
+      console.log(
+        'ℹ️ enforcePinning is false — skipping network_security_config.xml (monitor mode)'
+      );
+    } else if (sha256Keys && Object.keys(sha256Keys).length > 0) {
       const xmlDir = path.join(
         androidDir,
         'app',

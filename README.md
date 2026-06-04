@@ -311,6 +311,8 @@ interface SslPinningConfig {
   sha256Keys: {
     [domain: string]: string[];
   };
+  expiration?: string; // YYYY-MM-DD — pinning fails open after this date
+  enforcePinning?: boolean; // default true; false = monitor mode (don't block)
 }
 
 interface SslPinningError extends Error {
@@ -332,11 +334,31 @@ Must be named exactly `ssl_config.json` and placed in the project root.
       "sha256/primary-cert-hash=",
       "sha256/backup-cert-hash="
     ]
-  }
+  },
+  "expiration": "2027-12-31",
+  "enforcePinning": true
 }
 ```
 
 Pin format: `sha256/` prefix + base64-encoded SHA-256 hash of the certificate's Subject Public Key Info (SPKI). The `sha256/` prefix is stripped automatically when generating NSC XML.
+
+Optional global fields:
+
+| Field | Default | Effect |
+|-------|---------|--------|
+| `expiration` | 1 year from build | `YYYY-MM-DD`. After this date pinning **fails open** on both platforms (iOS via TrustKit `kTSKExpirationDate`, Android via the NSC `pin-set expiration` and an equivalent runtime check), so cert rotation can't lock the app out permanently. |
+| `enforcePinning` | `true` | When `false`, **monitor mode**: iOS uses TrustKit report-only (`kTSKEnforcePinning: false`) and Android skips the `CertificatePinner` / NSC pin-set — a mismatch does not block the connection. |
+
+> Precedence for the build-time NSC expiration: Expo `pinExpiration` option / `sslPinExpiration` Gradle property / `SSL_PIN_EXPIRATION` env var **>** the config's `expiration` field **>** default.
+
+### Surviving certificate rotation (e.g. Cloudflare)
+
+Managed providers like Cloudflare rotate the **leaf** certificate every ~90 days, which breaks pins on the leaf. To avoid outages without dropping pinning:
+
+1. **Pin the intermediate (or root) CA SPKI**, not the leaf. The issuing CA's public key (Let's Encrypt, Google Trust Services, etc.) is stable for years, so routine leaf rotation no longer breaks your pins. Extract the SPKI hash of the intermediate from the served chain.
+2. **Always include a backup pin** (RFC 7469) — pre-generate a backup key and pin its SPKI so you can rotate instantly.
+3. **Set an `expiration`** as a safety net so an unexpected rotation degrades to fail-open instead of a hard outage.
+4. **Push new pins over the air** with `setSSLConfig()` ahead of a rotation when you need to change pins without an app release (applies immediately on Android; on next launch on iOS).
 
 ### How the config reaches each platform
 

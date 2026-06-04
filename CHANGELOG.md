@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `files` allowlist. Fixes #3.
 
 ### Added
+- **Graceful degradation for certificate rotation** (#4): optional global
+  `expiration` (`YYYY-MM-DD`) and `enforcePinning` fields in `ssl_config.json`.
+  After `expiration`, pinning fails open on both platforms (iOS via
+  `kTSKExpirationDate`, Android via the NSC `pin-set` expiration plus an
+  equivalent runtime check in the OkHttp path) so cert rotation can't lock the
+  app out. `enforcePinning: false` enables monitor mode (iOS TrustKit
+  report-only; Android skips the `CertificatePinner` and NSC pin-set). Docs add
+  a Cloudflare-style rotation recipe (pin the intermediate CA + backup pin).
 - **Eager initialization**: SSL pinning is now initialized at app launch,
   independent of the (lazy) React Native module lifecycle. iOS uses an
   Objective-C `+load` bootstrap; Android uses an `androidx.startup` initializer.
