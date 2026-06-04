@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Metro/EAS bundling failure** (`Cannot find module .../lib/index.js`): the
+  package's `main`/`module`/`types` pointed at `lib/`, which was never built
+  (the `prepare` script is a no-op) and the source was excluded by `.npmignore`,
+  so the published tarball contained no resolvable entry point. The package now
+  ships the TypeScript source and points the entry fields at `./src/index.tsx`
+  (consistent with `codegenConfig.jsSrcsDir`), which Metro/EAS transpiles
+  directly. Removed the conflicting `.npmignore` in favor of the explicit
+  `files` allowlist. Fixes #3.
+
 ### Added
 - **Eager initialization**: SSL pinning is now initialized at app launch,
   independent of the (lazy) React Native module lifecycle. iOS uses an
