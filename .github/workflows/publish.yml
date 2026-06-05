@@ -50,6 +50,12 @@ jobs:
       - name: Run tests
         run: yarn test
 
+      - name: Verify Nitro generated code is up to date
+        run: |
+          yarn specs
+          git diff --exit-code nitrogen/ \
+            || (echo "::error::nitrogen/ is out of date — run 'yarn specs' and commit before releasing." && exit 1)
+
       - name: Verify package.json version matches the release tag
         if: github.event_name == 'release'
         run: |

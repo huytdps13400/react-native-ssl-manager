@@ -13,10 +13,14 @@ Production-ready SSL certificate pinning for React Native and Expo. Protects aga
 
 ## Installation
 
+> **v2 is a [Nitro Module](https://nitro.margelo.com).** It requires
+> **React Native 0.75+** (New Architecture) and the `react-native-nitro-modules`
+> peer dependency. Upgrading from v1? See [`MIGRATION.md`](./MIGRATION.md).
+
 ```bash
-npm install react-native-ssl-manager
+npm install react-native-ssl-manager react-native-nitro-modules
 # or
-yarn add react-native-ssl-manager
+yarn add react-native-ssl-manager react-native-nitro-modules
 ```
 
 iOS:

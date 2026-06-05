@@ -9,8 +9,14 @@
   },
   "autolinking": {
     "SslManager": {
-      "ios": { "language": "swift", "implementationClassName": "HybridSslManager" },
-      "android": { "language": "kotlin", "implementationClassName": "HybridSslManager" }
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridSslManager"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridSslManager"
+      }
     }
   },
   "ignorePaths": ["node_modules", "example", "example-expo", "lib"]
