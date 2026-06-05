@@ -137,14 +137,13 @@ jobs:
         working-directory: example/ios
         # Regenerate from scratch: the cached Pods/Podfile.lock are from the
         # pre-0.75 example and conflict (e.g. boost) after the RN upgrade.
+        # RN 0.83 dropped JSC from core — Hermes is required, so do NOT set
+        # USE_HERMES=0 anymore.
         run: rm -rf Pods Podfile.lock && pod install
         env:
           NO_FLIPPER: 1
-          USE_HERMES: '0'
           RCT_NEW_ARCH_ENABLED: '1'
 
       - name: Build example for iOS
         working-directory: example
-        env:
-          USE_HERMES: '0'
         run: npm run build:ios
