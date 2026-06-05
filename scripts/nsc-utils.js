@@ -4,26 +4,13 @@
  */
 
 /**
- * Resolve a pin-set expiration date (YYYY-MM-DD).
- * Uses the provided value when given, otherwise defaults to 1 year from now.
+ * Generate network_security_config.xml content from sha256Keys
  */
-function resolveExpiration(expiration) {
-  if (expiration) {
-    return expiration;
-  }
+function generateNscXml(sha256Keys) {
+  // Default expiration: 1 year from now
   const expDate = new Date();
   expDate.setFullYear(expDate.getFullYear() + 1);
-  return expDate.toISOString().split('T')[0]; // YYYY-MM-DD
-}
-
-/**
- * Generate network_security_config.xml content from sha256Keys
- *
- * @param {Record<string, string[]>} sha256Keys
- * @param {string} [expirationOverride] - Optional YYYY-MM-DD expiration date
- */
-function generateNscXml(sha256Keys, expirationOverride) {
-  const expiration = resolveExpiration(expirationOverride);
+  const expiration = expDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
   let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
   xml += '<network-security-config>\n';
@@ -47,13 +34,11 @@ function generateNscXml(sha256Keys, expirationOverride) {
 /**
  * Merge pin-set entries into existing NSC XML string.
  * Preserves existing config, replaces pin-set for matching domains, adds new ones.
- *
- * @param {string} existingXml
- * @param {Record<string, string[]>} sha256Keys
- * @param {string} [expirationOverride] - Optional YYYY-MM-DD expiration date
  */
-function mergeNscXml(existingXml, sha256Keys, expirationOverride) {
-  const expiration = resolveExpiration(expirationOverride);
+function mergeNscXml(existingXml, sha256Keys) {
+  const expDate = new Date();
+  expDate.setFullYear(expDate.getFullYear() + 1);
+  const expiration = expDate.toISOString().split('T')[0];
 
   for (const [domain, pins] of Object.entries(sha256Keys)) {
     const pinSetXml = pins
@@ -73,7 +58,10 @@ function mergeNscXml(existingXml, sha256Keys, expirationOverride) {
 
     // Check if domain already exists in the XML
     const domainRegex = new RegExp(
-      `<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(/\./g, '\\.')}</domain>[\\s\\S]*?</domain-config>`,
+      `<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(
+        /\./g,
+        '\\.'
+      )}</domain>[\\s\\S]*?</domain-config>`,
       'g'
     );
 
@@ -94,35 +82,4 @@ function mergeNscXml(existingXml, sha256Keys, expirationOverride) {
   return existingXml;
 }
 
-/**
- * Whether SSL pinning should be enforced for the given parsed ssl_config.json.
- * `enforcePinning: false` opts into monitor mode — on Android the OS-level
- * Network Security Config has no report-only equivalent, so we simply do not
- * generate a (hard-fail) pin-set in that case.
- */
-function isPinningEnforced(config) {
-  return !(config && config.enforcePinning === false);
-}
-
-/**
- * Read the optional global `expiration` (YYYY-MM-DD) from a parsed
- * ssl_config.json. Returns undefined when not present.
- */
-function getConfigExpiration(config) {
-  if (
-    config &&
-    typeof config.expiration === 'string' &&
-    config.expiration.trim()
-  ) {
-    return config.expiration.trim();
-  }
-  return undefined;
-}
-
-module.exports = {
-  generateNscXml,
-  mergeNscXml,
-  resolveExpiration,
-  isPinningEnforced,
-  getConfigExpiration,
-};
+module.exports = { generateNscXml, mergeNscXml };

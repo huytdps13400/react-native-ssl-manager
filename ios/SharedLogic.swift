@@ -259,28 +259,16 @@ class SharedLogic: NSObject {
             throw SSLPinningError.invalidConfiguration
         }
 
-        // Optional graceful-degradation controls (global, applied to all domains):
-        // - `enforcePinning` (default true): when false, TrustKit runs in
-        //   report-only mode so a pin mismatch does NOT block the connection.
-        // - `expiration` (YYYY-MM-DD): after this date TrustKit stops enforcing
-        //   pinning (fail-open), preventing a permanent lockout on cert rotation.
-        let enforcePinning = (config["enforcePinning"] as? Bool) ?? true
-        let expiration = (config["expiration"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-
         // Build pinned domains configuration
         var pinnedDomains: [String: Any] = [:]
         for (domain, pins) in sha256Keys {
             let cleanedPins = try validateAndCleanPins(pins, for: domain)
-            var domainConfig: [String: Any] = [
+            let domainConfig: [String: Any] = [
                 kTSKIncludeSubdomains: true,
-                kTSKEnforcePinning: enforcePinning,
+                kTSKEnforcePinning: true,
                 kTSKDisableDefaultReportUri: true,
                 kTSKPublicKeyHashes: cleanedPins
             ]
-            if let expiration = expiration, !expiration.isEmpty {
-                // TrustKit expects the expiration as a `yyyy-MM-dd` string.
-                domainConfig[kTSKExpirationDate] = expiration
-            }
             pinnedDomains[domain] = domainConfig
         }
 

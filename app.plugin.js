@@ -15,7 +15,6 @@ function withSslManager(config, options = {}) {
     enableAndroid = true,
     enableIOS = true,
     sslConfigPath = 'ssl_config.json',
-    pinExpiration,
   } = options;
 
   // Add Android configuration
@@ -23,10 +22,7 @@ function withSslManager(config, options = {}) {
     config = withAndroidSslPinning(config);
     config = withAndroidMainApplication(config);
     config = withAndroidAssets(config, { sslConfigPath });
-    config = withAndroidNetworkSecurityConfig(config, {
-      sslConfigPath,
-      pinExpiration,
-    });
+    config = withAndroidNetworkSecurityConfig(config, { sslConfigPath });
     config = withAndroidNscManifest(config);
   }
 
@@ -221,12 +217,7 @@ function withIosAssets(config, options) {
   return config;
 }
 
-const {
-  generateNscXml,
-  mergeNscXml,
-  isPinningEnforced,
-  getConfigExpiration,
-} = require('./scripts/nsc-utils');
+const { generateNscXml, mergeNscXml } = require('./scripts/nsc-utils');
 
 /**
  * Read and parse the full ssl_config.json, or null if not found/invalid.
@@ -250,7 +241,7 @@ function withAndroidNetworkSecurityConfig(config, options) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
-      const { sslConfigPath = 'ssl_config.json', pinExpiration } = options;
+      const { sslConfigPath = 'ssl_config.json' } = options;
       const projectRoot = config.modRequest.projectRoot;
       const fullConfig = readFullSslConfig(projectRoot, sslConfigPath);
       const sha256Keys = (fullConfig && fullConfig.sha256Keys) || null;
@@ -261,19 +252,6 @@ function withAndroidNetworkSecurityConfig(config, options) {
         );
         return config;
       }
-
-      // Monitor mode (`enforcePinning: false`): the OS-level Network Security
-      // Config has no report-only equivalent, so we skip generating a hard-fail
-      // pin-set rather than block traffic.
-      if (!isPinningEnforced(fullConfig)) {
-        console.log(
-          'ℹ️  enforcePinning is false — skipping network_security_config.xml (monitor mode)'
-        );
-        return config;
-      }
-
-      // Expiration precedence: plugin option > config field > default (1 year).
-      const expiration = pinExpiration || getConfigExpiration(fullConfig);
 
       const xmlDir = path.join(
         config.modRequest.platformProjectRoot,
@@ -288,14 +266,14 @@ function withAndroidNetworkSecurityConfig(config, options) {
       if (fs.existsSync(xmlPath)) {
         // Merge with existing
         const existingXml = fs.readFileSync(xmlPath, 'utf8');
-        const mergedXml = mergeNscXml(existingXml, sha256Keys, expiration);
+        const mergedXml = mergeNscXml(existingXml, sha256Keys);
         fs.writeFileSync(xmlPath, mergedXml);
         console.log(
           '✅ Merged SSL pins into existing network_security_config.xml'
         );
       } else {
         // Generate new
-        const xml = generateNscXml(sha256Keys, expiration);
+        const xml = generateNscXml(sha256Keys);
         fs.writeFileSync(xmlPath, xml);
         console.log('✅ Generated network_security_config.xml');
       }

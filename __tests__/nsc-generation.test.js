@@ -48,7 +48,10 @@ function mergeNscXml(existingXml, sha256Keys, expiration) {
       `    </domain-config>`;
 
     const domainRegex = new RegExp(
-      `<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(/\./g, '\\.')}</domain>[\\s\\S]*?</domain-config>`,
+      `<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(
+        /\./g,
+        '\\.'
+      )}</domain>[\\s\\S]*?</domain-config>`,
       'g'
     );
 

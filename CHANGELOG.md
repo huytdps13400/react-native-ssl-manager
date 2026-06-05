@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-06-05
+
+### Removed (security)
+- **Reverted the "graceful degradation" cert-rotation feature shipped in 1.1.2**
+  (`expiration` fail-open and `enforcePinning: false` monitor mode). After
+  community security review (#4), a time-windowed fail-open was deemed an
+  unacceptable weakening of the pinning guarantee: during the window an
+  attacker presenting a fraudulently issued but CA-valid certificate would no
+  longer be blocked. Pinning is now **always enforced** again on both platforms.
+  - iOS: TrustKit is always configured with `kTSKEnforcePinning: true` and no
+    `kTSKExpirationDate`.
+  - Android: the runtime `CertificatePinner` is always applied; removed the
+    `SslPinningPolicy` enforce/expiry decision and the runtime OkHttp expiry
+    check.
+  - Removed the `expiration` / `enforcePinning` fields from `SslPinningConfig`
+    and the `pinExpiration` Expo plugin option, `sslPinExpiration` Gradle
+    property, and `SSL_PIN_EXPIRATION` env var.
+- The bundled Network Security Config still emits the standard `pin-set`
+  `expiration` (default 1 year from build) as before 1.1.2; it is no longer
+  configurable via the removed options.
+
+### Note
+- 1.1.2 remains on npm (it cannot be unpublished). Upgrade to 1.1.3 to drop the
+  fail-open behavior.
+
 ## [1.1.2] - 2026-06-04
 
 ### Tests / CI

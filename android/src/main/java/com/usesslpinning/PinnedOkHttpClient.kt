@@ -64,10 +64,7 @@ object PinnedOkHttpClient {
         if (useSSLPinning) {
             try {
                 val configJson = readSslConfig(context)
-                // Honor graceful-degradation controls (enforcePinning / expiration):
-                // skip pinning when disabled or expired so cert rotation cannot lock
-                // the app out of the network permanently.
-                if (configJson != null && SslPinningPolicy.shouldEnforce(configJson)) {
+                if (configJson != null) {
                     val pinnerBuilder = CertificatePinner.Builder()
                     val sha256Keys = configJson.getJSONObject("sha256Keys")
                     val hostnames = sha256Keys.keys()

@@ -30,15 +30,10 @@ class SslPinningFactory(private val context: Context) : OkHttpClientFactory {
             try {
                 val configJsonString = getConfigJsonString()
                 if (configJsonString != null) {
-                    val configJson = JSONObject(configJsonString)
-                    // Honor graceful-degradation controls: skip pinning when it is
-                    // disabled (monitor mode) or the configured expiration passed.
-                    if (SslPinningPolicy.shouldEnforce(configJson)) {
-                        val certificatePinnerBuilder = CertificatePinner.Builder()
-                        addCertificatesToPinner(certificatePinnerBuilder, configJson)
-                        val certificatePinner = certificatePinnerBuilder.build()
-                        clientBuilder.certificatePinner(certificatePinner)
-                    }
+                    val certificatePinnerBuilder = CertificatePinner.Builder()
+                    addCertificatesToPinner(certificatePinnerBuilder, JSONObject(configJsonString))
+                    val certificatePinner = certificatePinnerBuilder.build()
+                    clientBuilder.certificatePinner(certificatePinner)
                 } else {
 
                 }

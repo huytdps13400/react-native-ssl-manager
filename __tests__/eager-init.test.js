@@ -1,6 +1,6 @@
 /**
- * Contract tests for eager SSL pinning initialization, the runtime
- * configuration API, and configurable Network Security Config expiration.
+ * Contract tests for eager SSL pinning initialization and the runtime
+ * configuration API.
  *
  * These assert the wiring is present in source so the security guarantee
  * ("pinning is enforced at launch without a JS call") cannot silently
@@ -9,11 +9,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const {
-  generateNscXml,
-  mergeNscXml,
-  resolveExpiration,
-} = require('../scripts/nsc-utils');
 
 const root = path.join(__dirname, '..');
 const read = (...p) => fs.readFileSync(path.join(root, ...p), 'utf8');
@@ -112,38 +107,5 @@ describe('JS fallback honesty', () => {
     // mistaken for active pinning.
     expect(index).toMatch(/getUseSSLPinning:[\s\S]*?Promise\.resolve\(false\)/);
     expect(index).toContain('Native module is not available');
-  });
-});
-
-describe('Configurable NSC expiration', () => {
-  const sha256Keys = {
-    'api.example.com': ['sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='],
-  };
-
-  it('uses a custom expiration when provided', () => {
-    const xml = generateNscXml(sha256Keys, '2030-01-01');
-    expect(xml).toContain('<pin-set expiration="2030-01-01">');
-  });
-
-  it('defaults to one year from now', () => {
-    const expected = resolveExpiration();
-    const xml = generateNscXml(sha256Keys);
-    expect(xml).toContain(`<pin-set expiration="${expected}">`);
-  });
-
-  it('threads expiration through merge', () => {
-    const base = generateNscXml(
-      {
-        'a.example.com': [
-          'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
-        ],
-      },
-      '2031-06-01'
-    );
-    const merged = mergeNscXml(base, sha256Keys, '2031-06-01');
-    expect(merged).toContain(
-      '<domain includeSubdomains="true">api.example.com</domain>'
-    );
-    expect(merged).toContain('expiration="2031-06-01"');
   });
 });
