@@ -108,7 +108,7 @@ jobs:
         run: npm run build:android
 
   build-ios:
-    runs-on: macos-14
+    runs-on: macos-15
     # Non-blocking: the example app must be upgraded to React Native 0.75+ and
     # add react-native-nitro-modules (and needs Xcode 16.4+) before the Nitro
     # module can build here. Also tracks the pre-existing Hermes script-phase
