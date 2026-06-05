@@ -5,6 +5,6 @@
     "modules": []
   },
   "apple": {
-    "modules": ["UseSslPinningExpoModule"]
+    "modules": []
   }
 }

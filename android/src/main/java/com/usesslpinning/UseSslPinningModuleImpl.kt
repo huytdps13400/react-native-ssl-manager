@@ -1,10 +1,8 @@
 package com.usesslpinning
 
 import android.content.Context
-import com.facebook.react.bridge.Promise
-import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.modules.network.OkHttpClientProvider
-import org.json.JSONException
+import org.json.JSONArray
 import org.json.JSONObject
 
 object UseSslPinningModuleImpl {
@@ -16,80 +14,78 @@ object UseSslPinningModuleImpl {
 
     /**
      * Install the pinned OkHttpClientFactory. Safe to call from app startup
-     * (androidx.startup Initializer) as well as from the module constructor.
+     * (androidx.startup Initializer) as well as from the Nitro HybridObject.
      */
     fun initialize(context: Context) {
         try {
             OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(context.applicationContext))
         } catch (e: Exception) {
-            // SSL Factory setup failed - continue without custom factory
+            // SSL factory setup failed — continue without the custom factory.
         }
     }
 
-    fun initialize(reactContext: ReactApplicationContext) {
-        initialize(reactContext as Context)
-    }
+    /**
+     * Persist whether SSL pinning is enabled and rebuild the factory so the
+     * change takes effect on the next request. Throws on persistence failure.
+     */
+    fun setUseSSLPinning(context: Context, usePinning: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_USE_PINNING, usePinning).apply()
 
-    fun setUseSSLPinning(reactContext: ReactApplicationContext, usePinning: Boolean, promise: Promise) {
-        val sharedPreferences = reactContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        sharedPreferences.edit().putBoolean(KEY_USE_PINNING, usePinning).apply()
-
-        // Force new factory creation to bypass RN client cache
-        OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(reactContext))
+        // Force new factory creation to bypass RN client cache.
+        OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(context.applicationContext))
         PinnedOkHttpClient.invalidate()
-
-        promise.resolve(null)
     }
 
-    fun getUseSSLPinning(reactContext: ReactApplicationContext, promise: Promise) {
-        val sharedPreferences = reactContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        promise.resolve(sharedPreferences.getBoolean(KEY_USE_PINNING, true))
-    }
-
-    /**
-     * Persist a runtime SSL configuration (JSON string) and refresh the client.
-     * Rejects when the configuration is malformed.
-     */
-    fun setSSLConfig(reactContext: ReactApplicationContext, config: String, promise: Promise) {
-        try {
-            // Validate before persisting so callers get immediate feedback.
-            val parsed = JSONObject(config)
-            if (!parsed.has("sha256Keys")) {
-                promise.reject("INVALID_CONFIGURATION", "Config must contain a sha256Keys object")
-                return
-            }
-
-            val sharedPreferences = reactContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            sharedPreferences.edit().putString(KEY_CONFIG, config).apply()
-
-            // Rebuild the factory and invalidate cached clients so new pins apply.
-            OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(reactContext))
-            PinnedOkHttpClient.invalidate()
-
-            promise.resolve(null)
-        } catch (e: JSONException) {
-            promise.reject("INVALID_CONFIGURATION", "Invalid SSL configuration JSON: ${e.message}", e)
-        }
+    fun getUseSSLPinning(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_USE_PINNING, true)
     }
 
     /**
-     * Resolve with the list of domains in the active configuration (runtime
-     * config if set, otherwise the bundled ssl_config.json asset).
+     * Persist a runtime SSL configuration and refresh the client. The keys map
+     * hostnames to their pinned SHA-256 keys. Throws on invalid configuration.
      */
-    fun getPinnedDomains(reactContext: ReactApplicationContext, promise: Promise) {
-        try {
-            val configJson = readActiveConfig(reactContext)
-            val domains = com.facebook.react.bridge.Arguments.createArray()
-            if (configJson != null && configJson.has("sha256Keys")) {
-                val keys = configJson.getJSONObject("sha256Keys").keys()
-                while (keys.hasNext()) {
-                    domains.pushString(keys.next())
-                }
-            }
-            promise.resolve(domains)
-        } catch (e: Exception) {
-            promise.reject("CONFIG_READ_ERROR", "Failed to read SSL configuration: ${e.message}", e)
+    fun setSSLConfig(context: Context, sha256Keys: Map<String, Array<String>>) {
+        require(sha256Keys.isNotEmpty()) { "Config must contain at least one host in sha256Keys" }
+        sha256Keys.forEach { (host, keys) ->
+            require(host.isNotBlank()) { "Config contains a blank hostname" }
+            require(keys.isNotEmpty()) { "Host \"$host\" must have at least one SHA-256 key" }
         }
+
+        val config = buildConfigJson(sha256Keys)
+
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_CONFIG, config).apply()
+
+        // Rebuild the factory and invalidate cached clients so new pins apply.
+        OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(context.applicationContext))
+        PinnedOkHttpClient.invalidate()
+    }
+
+    /**
+     * Return the domains in the active configuration (runtime config if set,
+     * otherwise the bundled ssl_config.json asset). Throws on read failure.
+     */
+    fun getPinnedDomains(context: Context): Array<String> {
+        val configJson = readActiveConfig(context)
+        if (configJson == null || !configJson.has("sha256Keys")) {
+            return emptyArray()
+        }
+        val domains = mutableListOf<String>()
+        val keys = configJson.getJSONObject("sha256Keys").keys()
+        while (keys.hasNext()) {
+            domains.add(keys.next())
+        }
+        return domains.toTypedArray()
+    }
+
+    private fun buildConfigJson(sha256Keys: Map<String, Array<String>>): String {
+        val sha256Object = JSONObject()
+        sha256Keys.forEach { (host, keys) ->
+            sha256Object.put(host, JSONArray(keys.toList()))
+        }
+        return JSONObject().put("sha256Keys", sha256Object).toString()
     }
 
     private fun readActiveConfig(context: Context): JSONObject? {

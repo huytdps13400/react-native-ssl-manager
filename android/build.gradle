@@ -8,28 +8,17 @@ buildscript {
   }
 
   dependencies {
-    classpath "com.android.tools.build:gradle:7.2.1"
+    classpath "com.android.tools.build:gradle:8.1.1"
     // noinspection DifferentKotlinGradleVersion
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
   }
 }
 
-def isNewArchitectureEnabled() {
-  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
-}
-
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
-if (isNewArchitectureEnabled()) {
-  apply plugin: "com.facebook.react"
-  
-  react {
-    jsRootDir = file("../src/")
-    libraryName = "UseSslPinning"
-    codegenJavaPackageName = "com.usesslpinning"
-  }
-}
+// Wire in all Nitrogen-generated Kotlin sources for NitroSslManager.
+apply from: "../nitrogen/generated/android/NitroSslManager+autolinking.gradle"
 
 def getExtOrDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["UseSslPinning_" + name]
@@ -63,23 +52,23 @@ android {
   }
 
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+  ndkVersion getExtOrDefault("ndkVersion")
 
   defaultConfig {
-    buildConfigField("boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString())
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
-  }
-  
-  sourceSets {
-    main {
-      java {
-        if (isNewArchitectureEnabled()) {
-          srcDirs += ["src/newarch"]
-        } else {
-          srcDirs += ["src/oldarch"]
-        }
-        exclude '**/expo/**'
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-O2", "-frtti", "-fexceptions", "-Wall", "-fstack-protector-all", "-std=c++20"
+        arguments "-DANDROID_STL=c++_shared"
       }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
     }
   }
 
@@ -94,10 +83,13 @@ android {
   }
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
   }
-  
+
+  kotlinOptions {
+    jvmTarget = "17"
+  }
 }
 
 repositories {
@@ -113,10 +105,11 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-   // Add OkHttp dependency for SSL pinning
+  // Nitro Modules core — provides NitroModules, Promise, HybridObject, and JNI glue.
+  implementation project(":react-native-nitro-modules")
+  // Add OkHttp dependency for SSL pinning
   implementation "com.squareup.okhttp3:okhttp:4.9.1"
   // androidx.startup: install the pinned OkHttpClientFactory at app launch,
   // independent of the (lazy) React Native module lifecycle.
   implementation "androidx.startup:startup-runtime:1.1.1"
 }
-

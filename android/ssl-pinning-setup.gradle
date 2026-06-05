@@ -41,11 +41,6 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
         return false
     }
 
-    // Calculate default expiration: 1 year from now
-    def cal = Calendar.getInstance()
-    cal.add(Calendar.YEAR, 1)
-    def expirationDate = String.format("%tF", cal) // YYYY-MM-DD format
-
     // Ensure output directory exists
     def xmlDir = xmlOutputFile.parentFile
     if (!xmlDir.exists()) xmlDir.mkdirs()
@@ -53,9 +48,9 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
     // Check for existing NSC and merge if present
     if (xmlOutputFile.exists()) {
         println "🔄 Existing network_security_config.xml found, merging pin entries"
-        mergeNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, expirationDate)
+        mergeNetworkSecurityConfigXml(xmlOutputFile, sha256Keys)
     } else {
-        writeNewNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, expirationDate)
+        writeNewNetworkSecurityConfigXml(xmlOutputFile, sha256Keys)
     }
 
     return true
@@ -64,7 +59,7 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
 /**
  * Write a fresh network_security_config.xml
  */
-def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
+def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
     // Build the XML as a string. (MarkupBuilder's quoted pseudo-method syntax
     // `'domain'(attrs, text)` is misparsed as String.call(...) in this context,
     // so we generate the markup directly — matching scripts/nsc-utils.js.)
@@ -74,7 +69,7 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expira
     sha256Keys.each { domain, pins ->
         sb.append('    <domain-config cleartextTrafficPermitted="false">\n')
         sb.append("        <domain includeSubdomains=\"true\">${domain}</domain>\n")
-        sb.append("        <pin-set expiration=\"${expirationDate}\">\n")
+        sb.append('        <pin-set>\n')
         pins.each { pinValue ->
             def cleanPin = pinValue.replaceFirst('^sha256/', '')
             sb.append("            <pin digest=\"SHA-256\">${cleanPin}</pin>\n")
@@ -93,7 +88,7 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expira
  * Preserves existing config (debug-overrides, base-config, other domain-configs)
  * Replaces pin-set for domains that already exist, adds new domain-configs otherwise
  */
-def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expirationDate) {
+def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
     def parser = new XmlParser()
     def root = parser.parse(xmlFile)
 
@@ -108,7 +103,7 @@ def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expiratio
             // Remove old pin-set(s)
             existingDomainConfig.'pin-set'.each { existingDomainConfig.remove(it) }
             // Add new pin-set
-            def pinSetNode = new Node(existingDomainConfig, 'pin-set', [expiration: expirationDate])
+            def pinSetNode = new Node(existingDomainConfig, 'pin-set')
             pins.each { pinValue ->
                 def cleanPin = pinValue.replaceFirst('^sha256/', '')
                 new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)
@@ -117,7 +112,7 @@ def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, String expiratio
             // Add new domain-config
             def domainConfigNode = new Node(root, 'domain-config', [cleartextTrafficPermitted: 'false'])
             new Node(domainConfigNode, 'domain', [includeSubdomains: 'true'], domain)
-            def pinSetNode = new Node(domainConfigNode, 'pin-set', [expiration: expirationDate])
+            def pinSetNode = new Node(domainConfigNode, 'pin-set')
             pins.each { pinValue ->
                 def cleanPin = pinValue.replaceFirst('^sha256/', '')
                 new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)

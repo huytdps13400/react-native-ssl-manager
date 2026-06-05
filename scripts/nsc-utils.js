@@ -7,18 +7,15 @@
  * Generate network_security_config.xml content from sha256Keys
  */
 function generateNscXml(sha256Keys) {
-  // Default expiration: 1 year from now
-  const expDate = new Date();
-  expDate.setFullYear(expDate.getFullYear() + 1);
-  const expiration = expDate.toISOString().split('T')[0]; // YYYY-MM-DD
-
+  // Pins do not expire: a `pin-set` expiration would make Android silently stop
+  // enforcing pins after the date (a build-time fail-open), so it is omitted.
   let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
   xml += '<network-security-config>\n';
 
   for (const [domain, pins] of Object.entries(sha256Keys)) {
     xml += '    <domain-config cleartextTrafficPermitted="false">\n';
     xml += `        <domain includeSubdomains="true">${domain}</domain>\n`;
-    xml += `        <pin-set expiration="${expiration}">\n`;
+    xml += `        <pin-set>\n`;
     for (const pin of pins) {
       const cleanPin = pin.replace(/^sha256\//, '');
       xml += `            <pin digest="SHA-256">${cleanPin}</pin>\n`;
@@ -36,10 +33,6 @@ function generateNscXml(sha256Keys) {
  * Preserves existing config, replaces pin-set for matching domains, adds new ones.
  */
 function mergeNscXml(existingXml, sha256Keys) {
-  const expDate = new Date();
-  expDate.setFullYear(expDate.getFullYear() + 1);
-  const expiration = expDate.toISOString().split('T')[0];
-
   for (const [domain, pins] of Object.entries(sha256Keys)) {
     const pinSetXml = pins
       .map((pin) => {
@@ -51,7 +44,7 @@ function mergeNscXml(existingXml, sha256Keys) {
     const domainConfigBlock =
       `    <domain-config cleartextTrafficPermitted="false">\n` +
       `        <domain includeSubdomains="true">${domain}</domain>\n` +
-      `        <pin-set expiration="${expiration}">\n` +
+      `        <pin-set>\n` +
       `${pinSetXml}\n` +
       `        </pin-set>\n` +
       `    </domain-config>`;
