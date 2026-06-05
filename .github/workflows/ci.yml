@@ -143,6 +143,7 @@ jobs:
         env:
           NO_FLIPPER: 1
           USE_HERMES: '0'
+          RCT_NEW_ARCH_ENABLED: '1'
 
       - name: Build example for iOS
         working-directory: example
