@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swift"
+  short_description: "Design and implement reliable Swift APIs"
+  default_prompt: "Use $swift to design or review a Swift API or implementation."

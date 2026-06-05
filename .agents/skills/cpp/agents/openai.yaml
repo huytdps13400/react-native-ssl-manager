@@ -1,0 +1,4 @@
+interface:
+  display_name: "C++"
+  short_description: "Design and implement reliable C++ APIs"
+  default_prompt: "Use $cpp to design or review a C++ API or implementation."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kotlin"
+  short_description: "Design and implement reliable Kotlin APIs"
+  default_prompt: "Use $kotlin to design or review a Kotlin API or implementation."

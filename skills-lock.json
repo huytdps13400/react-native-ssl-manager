@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "api-design": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/api-design/SKILL.md",
+      "computedHash": "ee49af1da08164a039ac94fccfeb8a995d2ad79d4491058d69af83a795694cb9"
+    },
+    "build-nitro-modules": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/build-nitro-modules/SKILL.md",
+      "computedHash": "5b092f1fbe9ddb0e9c0d3735dc1adca1c2f770e163175f948b608efafda80cb4"
+    },
+    "cpp": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cpp/SKILL.md",
+      "computedHash": "3a50a3ad2f940b1efa6429aad3fe69786479de4f4d137831cf3f55f3a16c174b"
+    },
+    "kotlin": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/kotlin/SKILL.md",
+      "computedHash": "13214bdae9eee96ec4add645f0e625cee8213de70629eec980c80fcb250458d1"
+    },
+    "nitro-fetch": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-nitro-fetch/SKILL.md",
+      "computedHash": "8bba6ef22ee96510b10f0ea576f67a1cf1fafb22f457f30988adc388648b85e1"
+    },
+    "react-native-mmkv": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-mmkv/SKILL.md",
+      "computedHash": "96b4224d99089192160f9a2d1f3c29f4ca9155dfa69d2583719c2dad95826959"
+    },
+    "react-native-vision-camera": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-native-vision-camera/SKILL.md",
+      "computedHash": "7748cae42bbebbbe877451beb9b82191390ca20076018d3d4454397e8fe12237"
+    },
+    "swift": {
+      "source": "margelo/react-native-skills",
+      "sourceType": "github",
+      "skillPath": "skills/swift/SKILL.md",
+      "computedHash": "1d26f5cbc0b4f14f24e6a96ac49a95b58817ee046c4ad12bb4a9b3b7c9b70c09"
+    }
+  }
+}
