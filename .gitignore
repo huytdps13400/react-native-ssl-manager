@@ -93,3 +93,8 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent skills tooling (margelo/react-native-skills)
+.agents/
+.claude/skills/
+skills-lock.json

@@ -1,0 +1,17 @@
+{
+  "cxxNamespace": ["sslmanager"],
+  "ios": {
+    "iosModuleName": "NitroSslManager"
+  },
+  "android": {
+    "androidNamespace": ["sslmanager"],
+    "androidCxxLibName": "NitroSslManager"
+  },
+  "autolinking": {
+    "SslManager": {
+      "ios": { "language": "swift", "implementationClassName": "HybridSslManager" },
+      "android": { "language": "kotlin", "implementationClassName": "HybridSslManager" }
+    }
+  },
+  "ignorePaths": ["node_modules", "example", "example-expo", "lib"]
+}
