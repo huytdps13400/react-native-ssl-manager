@@ -76,6 +76,16 @@ jobs:
 
       - name: Publish to npm
         if: "!(github.event_name == 'workflow_dispatch' && inputs.dry_run)"
-        run: npm publish --provenance --access public
+        run: |
+          PKG_NAME="$(node -p "require('./package.json').name")"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          # Idempotent: a version can only be published to npm once. If it is
+          # already there (e.g. a Release was created for a version published
+          # manually via workflow_dispatch), skip rather than fail the run.
+          if npm view "$PKG_NAME@$PKG_VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$PKG_NAME@$PKG_VERSION is already published — skipping publish."
+            exit 0
+          fi
+          npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
