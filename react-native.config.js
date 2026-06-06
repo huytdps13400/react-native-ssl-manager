@@ -1,34 +1,11 @@
-// React Native SSL Manager Auto-linking Configuration
-
-module.exports = {
-  dependencies: {
-    'react-native-ssl-manager': {
-      platforms: {
-        android: {
-          sourceDir: '../android',
-          packageImportPath: 'import com.usesslpinning.UseSslPinningPackage;',
-          packageInstance: 'new UseSslPinningPackage()',
-          // Auto-setup SSL config copy script
-          buildTypes: [],
-          componentDescriptors: [],
-          cmakeListsPath: null,
-        },
-        ios: {
-          podspecPath: '../react-native-ssl-manager.podspec',
-        },
-      },
-      hooks: {
-        postlink: () => {
-          console.log('🔗 React Native SSL Manager linked successfully');
-          console.log('📋 SSL config auto-copy script is now available');
-          console.log(
-            '💡 Android: Run "cd android && ./gradlew checkSslConfig" to verify setup'
-          );
-          console.log(
-            '💡 iOS: ssl_config.json will be auto-copied during build'
-          );
-        },
-      },
-    },
-  },
-};
+// React Native SSL Manager
+//
+// Native linking is handled automatically:
+//  - The Nitro Module autolinks via nitro.json + the generated autolinking
+//    files (iOS podspec / Android Gradle + CMake), so no manual package
+//    registration is required.
+//  - The bundled `ssl_config.json` is wired by the Gradle script (Android) and
+//    the podspec script phase (iOS), or by the Expo config plugin (app.plugin.js).
+//
+// An empty config lets React Native CLI use its default platform autolinking.
+module.exports = {};

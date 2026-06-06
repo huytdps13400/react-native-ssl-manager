@@ -55,7 +55,7 @@ describe('Network Security Config XML Generation', () => {
       expect(xml).toContain('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=');
     });
 
-    it('includes expiration date in YYYY-MM-DD format', () => {
+    it('emits a pin-set with no expiration (pins never silently stop enforcing)', () => {
       const sha256Keys = {
         'api.example.com': [
           'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
@@ -64,17 +64,10 @@ describe('Network Security Config XML Generation', () => {
 
       const xml = generateNscXml(sha256Keys);
 
-      // Should have expiration attribute matching YYYY-MM-DD
-      const expirationMatch = xml.match(/expiration="(\d{4}-\d{2}-\d{2})"/);
-      expect(expirationMatch).not.toBeNull();
-
-      // Expiration should be ~1 year from now
-      const expDate = new Date(expirationMatch[1]);
-      const now = new Date();
-      const diffMs = expDate.getTime() - now.getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      expect(diffDays).toBeGreaterThan(360);
-      expect(diffDays).toBeLessThan(370);
+      // A `pin-set expiration` would make Android silently stop enforcing pins
+      // after the date (a build-time fail-open), so it must NOT be present.
+      expect(xml).toContain('<pin-set>');
+      expect(xml).not.toMatch(/expiration=/);
     });
 
     it('strips sha256/ prefix from pins', () => {
