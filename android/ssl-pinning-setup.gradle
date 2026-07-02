@@ -25,6 +25,33 @@ def assetsDir = file("${projectDir}/src/main/assets")
 def destFile  = file("${projectDir}/src/main/assets/ssl_config.json")
 
 /**
+ * Local development hosts that must stay reachable over cleartext HTTP so the
+ * Metro bundler / dev server keeps working. Once this config is referenced from
+ * the manifest it overrides React Native's default debug network security
+ * config, which otherwise permits cleartext to these hosts. Without this block
+ * the app can no longer connect to the JS bundle in debug builds (issue #9).
+ *
+ * Defined as a method (not a script-local `def`) so it stays reachable from the
+ * other `def` methods below — top-level script locals are not.
+ */
+def devCleartextHosts() {
+    return ['localhost', '10.0.2.2', '10.0.3.2']
+}
+
+/**
+ * Build a <domain-config> that permits cleartext traffic to the local dev hosts.
+ */
+def buildDevCleartextConfig() {
+    def block = new StringBuilder()
+    block.append('    <domain-config cleartextTrafficPermitted="true">\n')
+    devCleartextHosts().each { host ->
+        block.append("        <domain includeSubdomains=\"false\">${host}</domain>\n")
+    }
+    block.append('    </domain-config>\n')
+    return block.toString()
+}
+
+/**
  * Generate network_security_config.xml from ssl_config.json
  * Returns true if XML was generated, false otherwise
  */
@@ -66,6 +93,8 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
     def sb = new StringBuilder()
     sb.append('<?xml version="1.0" encoding="utf-8"?>\n')
     sb.append('<network-security-config>\n')
+    // Keep the Metro / dev server reachable over cleartext (issue #9).
+    sb.append(buildDevCleartextConfig())
     sha256Keys.each { domain, pins ->
         sb.append('    <domain-config cleartextTrafficPermitted="false">\n')
         sb.append("        <domain includeSubdomains=\"true\">${domain}</domain>\n")
@@ -91,6 +120,18 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
 def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
     def parser = new XmlParser()
     def root = parser.parse(xmlFile)
+
+    // Ensure the local dev hosts stay reachable over cleartext (issue #9) without
+    // duplicating a block that RN's debug config (or a previous merge) provides.
+    def hasDevCleartext = root.'domain-config'.any { dc ->
+        dc.'domain'.any { d -> d.text()?.trim() == 'localhost' }
+    }
+    if (!hasDevCleartext) {
+        def devConfigNode = new Node(root, 'domain-config', [cleartextTrafficPermitted: 'true'])
+        devCleartextHosts().each { host ->
+            new Node(devConfigNode, 'domain', [includeSubdomains: 'false'], host)
+        }
+    }
 
     sha256Keys.each { domain, pins ->
         // Find existing domain-config for this domain
