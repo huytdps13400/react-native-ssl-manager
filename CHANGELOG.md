@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-07-03
+
+### Added
+- **iOS: launch-time diagnostics for SSL pinning.** The native layer now logs to
+  the device console (prefix `[RNSSLManager]`) so it is visible whether pinning
+  was **skipped** — and via which flag — or **initialized for domains X**, and
+  which host a **blocked** connection failed on. Makes debugging e2e/mock issues
+  (#9) straightforward via Console.app or `xcrun simctl spawn booted log stream`.
+
+### Fixed
+- **iOS: the `RNSSLManagerDisabled` off-switch now also accepts string values**
+  (`YES` / `true` / `1`), not only a real boolean. A flag set via a build setting
+  or `xcconfig` (which reaches `Info.plist` as a string) was previously ignored.
+  Affects the Info.plist, `NSUserDefaults`, env var and launch-arg channels.
+
 ## [2.0.2] - 2026-07-03
 
 ### Added

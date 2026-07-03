@@ -326,6 +326,16 @@ await device.launchApp({
 - Launch argument `--disable-ssl-pinning` (e.g. `xcodebuild` test args)
 - Environment variable `RN_SSL_MANAGER_DISABLED=1` (Xcode scheme / CI)
 
+The Info.plist / `NSUserDefaults` flag accepts a real boolean (`<true/>`) or a
+truthy string (`YES` / `true` / `1`).
+
+**Verify it took effect (iOS):** the native layer logs to the device console at
+launch (filter for `RNSSLManager`, e.g. in Console.app or
+`xcrun simctl spawn booted log stream --predicate 'eventMessage CONTAINS "RNSSLManager"'`):
+- `SSL pinning DISABLED for this launch via <channel>` — pinning was skipped
+- `SSL pinning ACTIVE — TrustKit installed … for domains: …` — pinning is on
+- `BLOCKED connection to <host> …` — a request failed pin validation
+
 > Android does not have this problem: pinning applies per-request, so
 > `setUseSSLPinning(false)` takes effect immediately without relaunching. For
 > connecting to a local mock/dev server over cleartext, the generated Network
