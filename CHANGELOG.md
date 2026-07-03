@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-03
+
 ### Fixed
 - **Android: the generated `network_security_config.xml` now permits cleartext
   traffic to local dev hosts** (`localhost`, `10.0.2.2`, `10.0.3.2`). Once the
