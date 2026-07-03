@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-03
+
+### Fixed
+- **Android: the generated `network_security_config.xml` now permits cleartext
+  traffic to local dev hosts** (`localhost`, `10.0.2.2`, `10.0.3.2`). Once the
+  generated config is referenced from the manifest it overrides React Native's
+  default debug network security config, which previously left the app unable to
+  reach the Metro bundle in debug builds. The dev-host cleartext block is added
+  by every generation path (Gradle plugin, Expo config plugin, and postinstall)
+  and is not duplicated when merging into a config that already declares it.
+  ([#9](https://github.com/huytdps13400/react-native-ssl-manager/issues/9))
+
 ## [2.0.0] - 2026-06-05
 
 ### Changed (BREAKING)

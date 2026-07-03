@@ -40,9 +40,9 @@ describe('Network Security Config XML Generation', () => {
 
       const xml = generateNscXml(sha256Keys);
 
-      // Two domain-config blocks
+      // Two pinned domain-config blocks plus the dev cleartext block
       const domainConfigCount = (xml.match(/<domain-config/g) || []).length;
-      expect(domainConfigCount).toBe(2);
+      expect(domainConfigCount).toBe(3);
 
       // api.example.com has 2 pins
       expect(xml).toContain('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
@@ -176,9 +176,80 @@ describe('Network Security Config XML Generation', () => {
       expect(merged).toContain('new.example.com');
       expect(merged).toContain('NEWPIN=');
 
-      // Two domain-config blocks
+      // Two pinned domain-config blocks plus the injected dev cleartext block
       const domainConfigCount = (merged.match(/<domain-config/g) || []).length;
-      expect(domainConfigCount).toBe(2);
+      expect(domainConfigCount).toBe(3);
+    });
+  });
+
+  describe('dev cleartext config (issue #9)', () => {
+    it('generateNscXml includes a cleartext localhost domain-config', () => {
+      const xml = generateNscXml({
+        'api.example.com': ['sha256/AAA='],
+      });
+
+      expect(xml).toContain(
+        '<domain-config cleartextTrafficPermitted="true">'
+      );
+      expect(xml).toContain(
+        '<domain includeSubdomains="false">localhost</domain>'
+      );
+      expect(xml).toContain(
+        '<domain includeSubdomains="false">10.0.2.2</domain>'
+      );
+      expect(xml).toContain(
+        '<domain includeSubdomains="false">10.0.3.2</domain>'
+      );
+      // The pinned domain still enforces its pins.
+      expect(xml).toContain(
+        '<domain includeSubdomains="true">api.example.com</domain>'
+      );
+    });
+
+    it('generateNscXml emits exactly one dev cleartext block', () => {
+      const xml = generateNscXml({
+        'api.example.com': ['sha256/AAA='],
+        'api.other.com': ['sha256/BBB='],
+      });
+
+      const cleartextBlocks = (
+        xml.match(/cleartextTrafficPermitted="true"/g) || []
+      ).length;
+      expect(cleartextBlocks).toBe(1);
+    });
+
+    it('mergeNscXml injects the dev cleartext block when absent', () => {
+      const existing = `<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>`;
+
+      const merged = mergeNscXml(existing, {
+        'api.example.com': ['sha256/AAA='],
+      });
+
+      expect(merged).toContain('cleartextTrafficPermitted="true"');
+      expect(merged).toContain(
+        '<domain includeSubdomains="false">localhost</domain>'
+      );
+    });
+
+    it('mergeNscXml does not duplicate an existing localhost cleartext block', () => {
+      const existing = `<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>`;
+
+      const merged = mergeNscXml(existing, {
+        'api.example.com': ['sha256/AAA='],
+      });
+
+      const cleartextBlocks = (
+        merged.match(/cleartextTrafficPermitted="true"/g) || []
+      ).length;
+      expect(cleartextBlocks).toBe(1);
     });
   });
 });

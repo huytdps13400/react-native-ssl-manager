@@ -143,16 +143,28 @@ Two layers of enforcement:
 Generated XML format:
 ```xml
 <network-security-config>
+  <domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="false">localhost</domain>
+    <domain includeSubdomains="false">10.0.2.2</domain>
+    <domain includeSubdomains="false">10.0.3.2</domain>
+  </domain-config>
   <domain-config cleartextTrafficPermitted="false">
     <domain includeSubdomains="true">api.example.com</domain>
-    <pin-set expiration="2027-04-01">
+    <pin-set>
       <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
     </pin-set>
   </domain-config>
 </network-security-config>
 ```
 
-Pin expiration defaults to **1 year from build date**. If your app already has a `network_security_config.xml`, the library **merges** pin-set entries — existing configs (debug-overrides, base-config) are preserved.
+The first `domain-config` keeps local dev hosts (`localhost`, and the emulator
+loopbacks `10.0.2.2` / `10.0.3.2`) reachable over cleartext so the Metro bundler
+still connects in debug builds — without it, referencing this config from the
+manifest would override React Native's default debug config and break the JS
+bundle connection. Pins carry no expiration (an expired `pin-set` would silently
+stop enforcing). If your app already has a `network_security_config.xml`, the
+library **merges** pin-set entries — existing configs (debug-overrides,
+base-config, an existing localhost cleartext block) are preserved.
 
 ## Supported Networking Stacks
 
