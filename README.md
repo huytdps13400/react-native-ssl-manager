@@ -1,5 +1,9 @@
 # react-native-ssl-manager
 
+[![npm version](https://img.shields.io/npm/v/react-native-ssl-manager.svg)](https://www.npmjs.com/package/react-native-ssl-manager)
+[![npm downloads](https://img.shields.io/npm/dm/react-native-ssl-manager.svg)](https://www.npmjs.com/package/react-native-ssl-manager)
+[![license](https://img.shields.io/npm/l/react-native-ssl-manager.svg)](./LICENSE)
+
 Production-ready SSL certificate pinning for React Native and Expo. Protects against MITM attacks with platform-native enforcement on both iOS and Android.
 
 ## Features
