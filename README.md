@@ -296,6 +296,41 @@ Default state is **enabled** (`true`). State is persisted in:
 - iOS: `UserDefaults`
 - Android: `SharedPreferences` (context: `AppSettings`, key: `useSSLPinning`)
 
+## Disabling for e2e tests (Detox, mocked backends)
+
+On iOS, TrustKit is installed at app launch via an Objective-C `+load` hook —
+**before any JavaScript runs** — and swizzles `NSURLSession` process-wide.
+Because it cannot be deinitialized within a running process, calling
+`setUseSSLPinning(false)` from JS is **too late** for an e2e run: the swizzle is
+already in place, so a mocked backend whose certificate doesn't match your pins
+gets its connection blocked (requests appear to hang / never respond).
+
+Use one of these **before-launch** off-switches to skip TrustKit entirely for a
+test build or a single test launch. Each also prevents the swizzling, so mocked
+traffic flows normally. They have **no effect on your production build** unless
+you set them there.
+
+**Detox — per-launch (no separate build):**
+
+```js
+await device.launchApp({
+  newInstance: true,
+  launchArgs: { RNSSLManagerDisabled: true },
+});
+```
+
+**Build-time exclude (a dedicated test/e2e configuration):** set a boolean
+`RNSSLManagerDisabled = YES` in that configuration's `Info.plist`.
+
+**Other channels** (all equivalent):
+- Launch argument `--disable-ssl-pinning` (e.g. `xcodebuild` test args)
+- Environment variable `RN_SSL_MANAGER_DISABLED=1` (Xcode scheme / CI)
+
+> Android does not have this problem: pinning applies per-request, so
+> `setUseSSLPinning(false)` takes effect immediately without relaunching. For
+> connecting to a local mock/dev server over cleartext, the generated Network
+> Security Config already permits `localhost`, `10.0.2.2` and `10.0.3.2`.
+
 ## API Reference
 
 ### `setUseSSLPinning(usePinning: boolean): Promise<void>`

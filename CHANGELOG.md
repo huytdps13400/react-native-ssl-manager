@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-07-03
+
+### Added
+- **iOS: build/launch-time off-switch for TrustKit**, so e2e tests (Detox) that
+  hit a mocked backend are not blocked by pin validation. TrustKit is installed
+  at launch via an Objective-C `+load` hook and swizzles `NSURLSession`
+  process-wide before any JS runs, so `setUseSSLPinning(false)` is too late for a
+  test run. Pinning is now skipped entirely (no swizzling) when any of these is
+  set — with no effect on production builds:
+  - `Info.plist` boolean `RNSSLManagerDisabled = YES` (build-time exclude)
+  - launch argument `--disable-ssl-pinning` (e.g. Detox launchArgs)
+  - `NSUserDefaults` key `RNSSLManagerDisabled` (e.g. Detox `launchArgs: { RNSSLManagerDisabled: true }`)
+  - environment variable `RN_SSL_MANAGER_DISABLED=1` (Xcode scheme / CI)
+
+  ([#9](https://github.com/huytdps13400/react-native-ssl-manager/issues/9))
+
 ## [2.0.1] - 2026-07-03
 
 ### Fixed
