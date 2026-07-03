@@ -64,35 +64,68 @@ class SharedLogic: NSObject {
     private static let disabledEnvVar = "RN_SSL_MANAGER_DISABLED"
 
     /**
-     * Whether pinning is force-disabled for this build/launch, independent of the
-     * runtime `useSSLPinning` flag. Checked before any TrustKit initialization so
-     * the network-delegate swizzling is never installed when disabled.
+     * Interpret a flag value as a boolean. Accepts a real `Bool`/`NSNumber`
+     * (Info.plist `<true/>`, plist number) and truthy strings (`"YES"`, `"true"`,
+     * `"1"`) so the flag works whether it is set as a boolean, a build-setting
+     * string, an environment variable, or a Detox launch argument.
      */
-    @objc static func isPinningDisabledByEnvironment() -> Bool {
+    private static func isTruthy(_ value: Any?) -> Bool {
+        guard let value = value else { return false }
+        if let s = value as? String {
+            let v = s.trimmingCharacters(in: .whitespaces).lowercased()
+            return v == "1" || v == "true" || v == "yes"
+        }
+        if let n = value as? NSNumber {
+            return n.boolValue
+        }
+        if let b = value as? Bool {
+            return b
+        }
+        return false
+    }
+
+    /**
+     * Reason pinning is force-disabled for this build/launch, or `nil` if it is
+     * not. Independent of the runtime `useSSLPinning` flag and checked before any
+     * TrustKit initialization, so the network-delegate swizzling is never
+     * installed when disabled.
+     */
+    static func pinningDisableReason() -> String? {
         let processInfo = ProcessInfo.processInfo
 
-        // Launch argument (Detox launchArgs, `xcodebuild` test args, etc.).
+        // Launch argument flag (e.g. `xcodebuild` test args, `--disable-ssl-pinning`).
         if processInfo.arguments.contains(disabledLaunchArg) {
-            return true
+            return "launch arg \(disabledLaunchArg)"
         }
 
         // Environment variable (Xcode scheme, CI).
-        if let raw = processInfo.environment[disabledEnvVar]?.lowercased(),
-           raw == "1" || raw == "true" || raw == "yes" {
-            return true
+        if let raw = processInfo.environment[disabledEnvVar], isTruthy(raw) {
+            return "env \(disabledEnvVar)=\(raw)"
         }
 
         // Info.plist flag — a build-time exclude for a specific configuration.
-        if let flag = Bundle.main.object(forInfoDictionaryKey: disabledInfoPlistKey) as? Bool, flag {
-            return true
+        if isTruthy(Bundle.main.object(forInfoDictionaryKey: disabledInfoPlistKey)) {
+            return "Info.plist \(disabledInfoPlistKey)"
         }
 
         // NSUserDefaults (argument domain) — Detox `launchArgs: { RNSSLManagerDisabled: true }`.
-        if userDefaults.object(forKey: disabledInfoPlistKey) != nil,
-           userDefaults.bool(forKey: disabledInfoPlistKey) {
-            return true
+        if isTruthy(userDefaults.object(forKey: disabledInfoPlistKey)) {
+            return "NSUserDefaults \(disabledInfoPlistKey)"
         }
 
+        return nil
+    }
+
+    /**
+     * Whether pinning is force-disabled for this build/launch. Logs the channel
+     * that disabled it so the decision is visible in the device console (search
+     * `RNSSLManager` in Console.app or `xcrun simctl spawn booted log stream`).
+     */
+    @objc static func isPinningDisabledByEnvironment() -> Bool {
+        if let reason = pinningDisableReason() {
+            NSLog("[RNSSLManager] SSL pinning DISABLED for this launch via %@", reason)
+            return true
+        }
         return false
     }
 
@@ -352,15 +385,20 @@ class SharedLogic: NSObject {
         SharedLogic.sharedTrustKit = TrustKit.sharedInstance()
         trustKitInitialized = true
 
+        NSLog("[RNSSLManager] SSL pinning ACTIVE — TrustKit installed (NSURLSession swizzled) for domains: %@",
+              Array(pinnedDomains.keys).joined(separator: ", "))
+
         guard let trustKit = SharedLogic.sharedTrustKit else {
             throw SSLPinningError.invalidConfiguration
         }
 
-        // Set up validation callback (currently a no-op observer hook)
-        trustKit.pinningValidatorCallback = { result, _, _ in
+        // Observe validation decisions. Logging a blocked connection makes the
+        // "mocked backend doesn't respond" case obvious: it names the host whose
+        // certificate failed pin validation.
+        trustKit.pinningValidatorCallback = { result, hostname, _ in
             switch result.finalTrustDecision {
             case .shouldBlockConnection:
-                break
+                NSLog("[RNSSLManager] BLOCKED connection to %@ — certificate did not match the configured pins", hostname)
             case .shouldAllowConnection:
                 break
             default:
