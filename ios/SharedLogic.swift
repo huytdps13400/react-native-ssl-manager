@@ -46,11 +46,62 @@ class SharedLogic: NSObject {
     // initialization (bootstrap + JS call) which would otherwise crash.
     private static var trustKitInitialized = false
 
+    // Explicit off-switch for TrustKit that takes effect BEFORE the +load
+    // bootstrap installs its NSURLSession swizzling. Because TrustKit cannot be
+    // deinitialized within a running process, `setUseSSLPinning(false)` from JS
+    // is too late for e2e runners (Detox, mocked backends): the swizzle is
+    // already in place and the mock server's certificate fails pin validation.
+    // These channels let a build or a test launch opt out entirely:
+    //
+    //   • Info.plist  `RNSSLManagerDisabled = YES`  — build-time exclude, baked
+    //     into a dedicated test/e2e build configuration.
+    //   • Launch arg  `--disable-ssl-pinning`       — e.g. Detox launchArgs.
+    //   • NSUserDefaults key `RNSSLManagerDisabled`  — e.g. Detox
+    //     `launchArgs: { RNSSLManagerDisabled: true }` (argument domain).
+    //   • Env var     `RN_SSL_MANAGER_DISABLED=1`    — Xcode scheme / CI.
+    private static let disabledInfoPlistKey = "RNSSLManagerDisabled"
+    private static let disabledLaunchArg = "--disable-ssl-pinning"
+    private static let disabledEnvVar = "RN_SSL_MANAGER_DISABLED"
+
+    /**
+     * Whether pinning is force-disabled for this build/launch, independent of the
+     * runtime `useSSLPinning` flag. Checked before any TrustKit initialization so
+     * the network-delegate swizzling is never installed when disabled.
+     */
+    @objc static func isPinningDisabledByEnvironment() -> Bool {
+        let processInfo = ProcessInfo.processInfo
+
+        // Launch argument (Detox launchArgs, `xcodebuild` test args, etc.).
+        if processInfo.arguments.contains(disabledLaunchArg) {
+            return true
+        }
+
+        // Environment variable (Xcode scheme, CI).
+        if let raw = processInfo.environment[disabledEnvVar]?.lowercased(),
+           raw == "1" || raw == "true" || raw == "yes" {
+            return true
+        }
+
+        // Info.plist flag — a build-time exclude for a specific configuration.
+        if let flag = Bundle.main.object(forInfoDictionaryKey: disabledInfoPlistKey) as? Bool, flag {
+            return true
+        }
+
+        // NSUserDefaults (argument domain) — Detox `launchArgs: { RNSSLManagerDisabled: true }`.
+        if userDefaults.object(forKey: disabledInfoPlistKey) != nil,
+           userDefaults.bool(forKey: disabledInfoPlistKey) {
+            return true
+        }
+
+        return false
+    }
+
     /**
      * Bootstrap entry point invoked at app launch (via Objective-C +load).
      * Non-throwing: any failure is swallowed so launch is never blocked.
      */
     @objc static func bootstrapIfEnabled() {
+        guard !isPinningDisabledByEnvironment() else { return }
         guard getUseSSLPinning() else { return }
         do {
             let _ = try initializeSslPinning()
@@ -243,6 +294,16 @@ class SharedLogic: NSObject {
      * Initialize SSL pinning with TrustKit
      */
     static func initializeSslPinning(_ configJsonString: String) throws -> [String: Any] {
+        // Force-disabled for this build/launch (e2e, mocked backends): never
+        // install TrustKit, even if something calls setUseSSLPinning(true).
+        guard !isPinningDisabledByEnvironment() else {
+            return [
+                "message": "SSL Pinning disabled for this build/launch",
+                "domains": [],
+                "isSSLPinningEnabled": false
+            ]
+        }
+
         // Check if SSL pinning is enabled
         let isSSLPinningEnabled = getUseSSLPinning()
 
