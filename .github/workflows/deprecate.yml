@@ -10,15 +10,11 @@ name: Deprecate npm versions
 #   range   - semver range to deprecate (default "<2.0.0" = all v1.x)
 #   message - warning shown on install (empty string un-deprecates the range)
 #
-# NOTE: workflow_dispatch only works once this file is on the default branch.
+# NOTE: workflow_dispatch is only available once this file is on the default
+# branch. The initial v1.x deprecation was run from a temporary push trigger on
+# the feature branch (since removed).
 
 on:
-  # TEMPORARY: one-shot trigger to run the v1.x deprecation now, before this
-  # workflow lands on the default branch (workflow_dispatch requires that).
-  # Removed in a follow-up commit right after the run.
-  push:
-    branches: [claude/disable-old-version-2beng1]
-    paths: ['.github/workflows/deprecate.yml']
   workflow_dispatch:
     inputs:
       range:
