@@ -41,11 +41,19 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Deprecate range
-        run: |
-          PKG="react-native-ssl-manager"
-          echo "Deprecating ${PKG}@\"${{ inputs.range }}\""
-          npm deprecate "${PKG}@${{ inputs.range }}" "${{ inputs.message }}"
-          echo "Done. Current deprecation state:"
-          npm view "${PKG}" versions --json
+        # inputs.* are only populated for workflow_dispatch; on the temporary
+        # push trigger they are empty, so apply defaults in-shell. Passing the
+        # values via env (not inline ${{ }}) also avoids script injection.
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          INPUT_RANGE: ${{ inputs.range }}
+          INPUT_MESSAGE: ${{ inputs.message }}
+        run: |
+          PKG="react-native-ssl-manager"
+          RANGE="${INPUT_RANGE:-<2.0.0}"
+          MESSAGE="${INPUT_MESSAGE:-v1.x is no longer supported and has a fail-open weakness (pins could silently stop being enforced). Please upgrade to v2+. See https://github.com/huytdps13400/react-native-ssl-manager/blob/main/MIGRATION.md}"
+          echo "Deprecating ${PKG}@\"${RANGE}\" with message:"
+          echo "  ${MESSAGE}"
+          npm deprecate "${PKG}@${RANGE}" "${MESSAGE}"
+          echo "Done. Current deprecation state:"
+          npm view "${PKG}" --json | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(JSON.stringify(j.deprecated||{},null,2))})' 2>/dev/null || npm view "${PKG}" versions --json
