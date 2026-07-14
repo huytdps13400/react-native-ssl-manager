@@ -1,0 +1,51 @@
+name: Deprecate npm versions
+
+# Marks a range of published versions as deprecated on npm (a "soft block":
+# installs still work but show a warning). Runs on demand only.
+#
+# Uses the existing `NPM_TOKEN` repository secret (same one publish.yml uses).
+# The token stays in GitHub secrets and is only exposed to the runner.
+#
+# To run: Actions -> "Deprecate npm versions" -> Run workflow, then set:
+#   range   - semver range to deprecate (default "<2.0.0" = all v1.x)
+#   message - warning shown on install (empty string un-deprecates the range)
+#
+# NOTE: workflow_dispatch only works once this file is on the default branch.
+
+on:
+  # TEMPORARY: one-shot trigger to run the v1.x deprecation now, before this
+  # workflow lands on the default branch (workflow_dispatch requires that).
+  # Removed in a follow-up commit right after the run.
+  push:
+    branches: [claude/disable-old-version-2beng1]
+    paths: ['.github/workflows/deprecate.yml']
+  workflow_dispatch:
+    inputs:
+      range:
+        description: 'Version range to deprecate (e.g. "<2.0.0")'
+        type: string
+        default: '<2.0.0'
+      message:
+        description: 'Deprecation message (empty string un-deprecates the range)'
+        type: string
+        default: 'v1.x is no longer supported and has a fail-open weakness (pins could silently stop being enforced). Please upgrade to v2+. See https://github.com/huytdps13400/react-native-ssl-manager/blob/main/MIGRATION.md'
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Deprecate range
+        run: |
+          PKG="react-native-ssl-manager"
+          echo "Deprecating ${PKG}@\"${{ inputs.range }}\""
+          npm deprecate "${PKG}@${{ inputs.range }}" "${{ inputs.message }}"
+          echo "Done. Current deprecation state:"
+          npm view "${PKG}" versions --json
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
