@@ -1,10 +1,7 @@
 package com.usesslpinning
 
 import android.content.Context
-import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
-import org.json.JSONObject
-import java.io.IOException
 
 /**
  * Public singleton providing a pinned OkHttpClient for native module authors.
@@ -12,8 +9,11 @@ import java.io.IOException
  * Usage:
  *   val client = PinnedOkHttpClient.getInstance(context)
  *
- * The client is configured with CertificatePinner from ssl_config.json when
- * SSL pinning is enabled. When disabled, a plain OkHttpClient is returned.
+ * The client honors the full active configuration from ssl_config.json (or the
+ * runtime config) via [PinningClientConfigurator]: enforced domains get a
+ * CertificatePinner, audit-mode domains get report-only validation, expired
+ * pin-sets fail open. When pinning is disabled, a plain OkHttpClient is
+ * returned.
  *
  * The singleton is invalidated when the pinning state changes via setUseSSLPinning.
  */
@@ -63,44 +63,12 @@ object PinnedOkHttpClient {
 
         if (useSSLPinning) {
             try {
-                val configJson = readSslConfig(context)
-                if (configJson != null) {
-                    val pinnerBuilder = CertificatePinner.Builder()
-                    val sha256Keys = configJson.getJSONObject("sha256Keys")
-                    val hostnames = sha256Keys.keys()
-                    while (hostnames.hasNext()) {
-                        val hostname = hostnames.next()
-                        val keysArray = sha256Keys.getJSONArray(hostname)
-                        for (i in 0 until keysArray.length()) {
-                            pinnerBuilder.add(hostname, keysArray.getString(i))
-                        }
-                    }
-                    builder.certificatePinner(pinnerBuilder.build())
-                }
+                PinningClientConfigurator.apply(builder, context)
             } catch (_: Exception) {
                 // SSL pinning setup failed — return plain client
             }
         }
 
         return builder.build()
-    }
-
-    private fun readSslConfig(context: Context): JSONObject? {
-        // Check runtime config first (set via JS API)
-        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-        val runtimeConfig = prefs.getString("sslConfig", null)
-        if (!runtimeConfig.isNullOrEmpty()) {
-            return JSONObject(runtimeConfig)
-        }
-
-        // Fall back to bundled asset
-        return try {
-            val inputStream = context.assets.open("ssl_config.json")
-            val bytes = inputStream.readBytes()
-            inputStream.close()
-            JSONObject(String(bytes, Charsets.UTF_8))
-        } catch (_: IOException) {
-            null
-        }
     }
 }

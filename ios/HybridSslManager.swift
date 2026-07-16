@@ -58,4 +58,30 @@ final class HybridSslManager: HybridSslManagerSpec {
             return SharedLogic.getPinnedDomains()
         }
     }
+
+    func setSSLConfigJson(configJson: String) throws -> Promise<Void> {
+        return Promise.parallel(Self.queue) {
+            do {
+                try SharedLogic.setSSLConfig(configJson)
+            } catch let error as SSLPinningError {
+                throw RuntimeError.error(withMessage: "\(error.code): \(error.message)")
+            }
+        }
+    }
+
+    func setPinningFailureCallback(callback: @escaping (_ event: PinningFailureEvent) -> Void) throws {
+        SharedLogic.pinningFailureHandler = { host, enforced, servedPins, message, timestamp in
+            callback(PinningFailureEvent(
+                host: host,
+                enforced: enforced,
+                servedPins: servedPins,
+                message: message,
+                timestamp: timestamp
+            ))
+        }
+    }
+
+    func clearPinningFailureCallback() throws {
+        SharedLogic.pinningFailureHandler = nil
+    }
 }

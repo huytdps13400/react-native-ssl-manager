@@ -10,15 +10,19 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridSslManagerSpec` to properly resolve imports.
 namespace margelo::nitro::sslmanager { class HybridSslManagerSpec; }
+// Forward declaration of `PinningFailureEvent` to properly resolve imports.
+namespace margelo::nitro::sslmanager { struct PinningFailureEvent; }
 // Forward declaration of `SslPinningConfig` to properly resolve imports.
 namespace margelo::nitro::sslmanager { struct SslPinningConfig; }
 
 // Include C++ defined types
 #include "HybridSslManagerSpec.hpp"
+#include "PinningFailureEvent.hpp"
 #include "SslPinningConfig.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Result.hpp>
 #include <exception>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>

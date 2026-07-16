@@ -14,12 +14,16 @@ namespace NitroSslManager { class HybridSslManagerSpec_cxx; }
 
 // Forward declaration of `SslPinningConfig` to properly resolve imports.
 namespace margelo::nitro::sslmanager { struct SslPinningConfig; }
+// Forward declaration of `PinningFailureEvent` to properly resolve imports.
+namespace margelo::nitro::sslmanager { struct PinningFailureEvent; }
 
 #include <NitroModules/Promise.hpp>
 #include "SslPinningConfig.hpp"
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "PinningFailureEvent.hpp"
+#include <functional>
 
 #include "NitroSslManager-Swift-Cxx-Umbrella.hpp"
 
@@ -95,6 +99,14 @@ namespace margelo::nitro::sslmanager {
       auto __value = std::move(__result.value());
       return __value;
     }
+    inline std::shared_ptr<Promise<void>> setSSLConfigJson(const std::string& configJson) override {
+      auto __result = _swiftPart.setSSLConfigJson(configJson);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
     inline std::shared_ptr<Promise<std::vector<std::string>>> getPinnedDomains() override {
       auto __result = _swiftPart.getPinnedDomains();
       if (__result.hasError()) [[unlikely]] {
@@ -102,6 +114,18 @@ namespace margelo::nitro::sslmanager {
       }
       auto __value = std::move(__result.value());
       return __value;
+    }
+    inline void setPinningFailureCallback(const std::function<void(const PinningFailureEvent& /* event */)>& callback) override {
+      auto __result = _swiftPart.setPinningFailureCallback(callback);
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    }
+    inline void clearPinningFailureCallback() override {
+      auto __result = _swiftPart.clearPinningFailureCallback();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
     }
 
   private:

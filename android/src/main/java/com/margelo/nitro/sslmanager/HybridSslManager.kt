@@ -5,6 +5,7 @@ import androidx.annotation.Keep
 import com.facebook.proguard.annotations.DoNotStrip
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
+import com.usesslpinning.PinningFailureReporter
 import com.usesslpinning.UseSslPinningModuleImpl
 
 @Keep
@@ -41,6 +42,31 @@ class HybridSslManager : HybridSslManagerSpec() {
         return Promise.async {
             UseSslPinningModuleImpl.getPinnedDomains(appContext)
         }
+    }
+
+    override fun setSSLConfigJson(configJson: String): Promise<Unit> {
+        val appContext = context
+        return Promise.async {
+            UseSslPinningModuleImpl.setSSLConfigJson(appContext, configJson)
+        }
+    }
+
+    override fun setPinningFailureCallback(callback: (event: PinningFailureEvent) -> Unit) {
+        PinningFailureReporter.handler = { host, enforced, servedPins, message, timestampMs ->
+            callback(
+                PinningFailureEvent(
+                    host,
+                    enforced,
+                    servedPins.toTypedArray(),
+                    message,
+                    timestampMs.toDouble()
+                )
+            )
+        }
+    }
+
+    override fun clearPinningFailureCallback() {
+        PinningFailureReporter.handler = null
     }
 
     companion object {

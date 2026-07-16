@@ -34,11 +34,53 @@ function hasDevCleartextConfig(xml) {
 }
 
 /**
- * Generate network_security_config.xml content from sha256Keys
+ * Per-domain options for a domain, with legacy-compatible defaults.
+ * `domains` is the optional extended-config map from ssl_config.json.
  */
-function generateNscXml(sha256Keys) {
-  // Pins do not expire: a `pin-set` expiration would make Android silently stop
-  // enforcing pins after the date (a build-time fail-open), so it is omitted.
+function domainOptions(domains, domain) {
+  const options = (domains && domains[domain]) || {};
+  return {
+    enforcePinning: options.enforcePinning !== false,
+    expirationDate: options.expirationDate || null,
+    includeSubdomains: options.includeSubdomains !== false,
+  };
+}
+
+/**
+ * Build the `<domain-config>` block for one pinned domain, or null when the
+ * domain must not be enforced by NSC (audit mode — NSC has no report-only
+ * mode; audit validation happens in the OkHttp layer instead).
+ */
+function buildDomainConfigBlock(domain, pins, domains) {
+  const options = domainOptions(domains, domain);
+  if (!options.enforcePinning) {
+    return null;
+  }
+
+  // A configured expirationDate becomes the pin-set `expiration` attribute
+  // (Android fails open after that date). Without one, the pin-set carries no
+  // expiration: pins never silently stop being enforced.
+  const expirationAttr = options.expirationDate
+    ? ` expiration="${options.expirationDate}"`
+    : '';
+
+  let block = '    <domain-config cleartextTrafficPermitted="false">\n';
+  block += `        <domain includeSubdomains="${options.includeSubdomains}">${domain}</domain>\n`;
+  block += `        <pin-set${expirationAttr}>\n`;
+  for (const pin of pins) {
+    const cleanPin = pin.replace(/^sha256\//, '');
+    block += `            <pin digest="SHA-256">${cleanPin}</pin>\n`;
+  }
+  block += '        </pin-set>\n';
+  block += '    </domain-config>';
+  return block;
+}
+
+/**
+ * Generate network_security_config.xml content from sha256Keys and the
+ * optional per-domain `domains` metadata.
+ */
+function generateNscXml(sha256Keys, domains) {
   let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
   xml += '<network-security-config>\n';
 
@@ -46,15 +88,10 @@ function generateNscXml(sha256Keys) {
   xml += generateDevCleartextConfig();
 
   for (const [domain, pins] of Object.entries(sha256Keys)) {
-    xml += '    <domain-config cleartextTrafficPermitted="false">\n';
-    xml += `        <domain includeSubdomains="true">${domain}</domain>\n`;
-    xml += `        <pin-set>\n`;
-    for (const pin of pins) {
-      const cleanPin = pin.replace(/^sha256\//, '');
-      xml += `            <pin digest="SHA-256">${cleanPin}</pin>\n`;
+    const block = buildDomainConfigBlock(domain, pins, domains);
+    if (block) {
+      xml += `${block}\n`;
     }
-    xml += '        </pin-set>\n';
-    xml += '    </domain-config>\n';
   }
 
   xml += '</network-security-config>\n';
@@ -65,7 +102,7 @@ function generateNscXml(sha256Keys) {
  * Merge pin-set entries into existing NSC XML string.
  * Preserves existing config, replaces pin-set for matching domains, adds new ones.
  */
-function mergeNscXml(existingXml, sha256Keys) {
+function mergeNscXml(existingXml, sha256Keys, domains) {
   // Ensure the local dev hosts stay reachable over cleartext (issue #9) without
   // duplicating a block that RN's debug config (or a previous merge) may already
   // provide.
@@ -77,20 +114,7 @@ function mergeNscXml(existingXml, sha256Keys) {
   }
 
   for (const [domain, pins] of Object.entries(sha256Keys)) {
-    const pinSetXml = pins
-      .map((pin) => {
-        const cleanPin = pin.replace(/^sha256\//, '');
-        return `            <pin digest="SHA-256">${cleanPin}</pin>`;
-      })
-      .join('\n');
-
-    const domainConfigBlock =
-      `    <domain-config cleartextTrafficPermitted="false">\n` +
-      `        <domain includeSubdomains="true">${domain}</domain>\n` +
-      `        <pin-set>\n` +
-      `${pinSetXml}\n` +
-      `        </pin-set>\n` +
-      `    </domain-config>`;
+    const domainConfigBlock = buildDomainConfigBlock(domain, pins, domains);
 
     // Check if domain already exists in the XML
     const domainRegex = new RegExp(
@@ -100,6 +124,19 @@ function mergeNscXml(existingXml, sha256Keys) {
       )}</domain>[\\s\\S]*?</domain-config>`,
       'g'
     );
+
+    if (!domainConfigBlock) {
+      // Audit-mode domain: NSC must not enforce it. Remove a pre-existing
+      // pinned block for this domain so a mode change takes effect on rebuild.
+      if (domainRegex.test(existingXml)) {
+        console.warn(
+          `⚠️  Removing NSC pin-set for audit-mode domain: ${domain}`
+        );
+        domainRegex.lastIndex = 0;
+        existingXml = existingXml.replace(domainRegex, '');
+      }
+      continue;
+    }
 
     if (domainRegex.test(existingXml)) {
       console.warn(`⚠️  Replacing existing pin-set for domain: ${domain}`);

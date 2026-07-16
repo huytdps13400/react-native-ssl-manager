@@ -57,7 +57,10 @@ namespace margelo::nitro::sslmanager {
     std::shared_ptr<Promise<void>> setUseSSLPinning(bool usePinning) override;
     std::shared_ptr<Promise<bool>> getUseSSLPinning() override;
     std::shared_ptr<Promise<void>> setSSLConfig(const SslPinningConfig& config) override;
+    std::shared_ptr<Promise<void>> setSSLConfigJson(const std::string& configJson) override;
     std::shared_ptr<Promise<std::vector<std::string>>> getPinnedDomains() override;
+    void setPinningFailureCallback(const std::function<void(const PinningFailureEvent& /* event */)>& callback) override;
+    void clearPinningFailureCallback() override;
 
   private:
     jni::global_ref<JHybridSslManagerSpec::JavaPart> _javaPart;

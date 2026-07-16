@@ -38,6 +38,11 @@ enum SSLPinningError: Error {
 @objc(SharedLogic)
 class SharedLogic: NSObject {
     static var sharedTrustKit: TrustKit?
+
+    /// Single pin-failure handler slot (host, enforced, servedPins, message,
+    /// timestampMs). Registered by the Nitro HybridObject; the JS layer fans
+    /// out to multiple listeners.
+    static var pinningFailureHandler: ((String, Bool, [String], String, Double) -> Void)?
     private static let useSSLPinningKey = "useSSLPinning"
     private static let sslConfigKey = "sslConfig"
     private static let userDefaults = UserDefaults.standard
@@ -353,16 +358,36 @@ class SharedLogic: NSObject {
             throw SSLPinningError.invalidConfiguration
         }
 
+        // Optional extended metadata: per-domain options + report URIs.
+        let domainsMeta = config["domains"] as? [String: [String: Any]] ?? [:]
+        let reportUris = config["reportUris"] as? [String] ?? []
+
         // Build pinned domains configuration
         var pinnedDomains: [String: Any] = [:]
         for (domain, pins) in sha256Keys {
             let cleanedPins = try validateAndCleanPins(pins, for: domain)
-            let domainConfig: [String: Any] = [
-                kTSKIncludeSubdomains: true,
-                kTSKEnforcePinning: true,
+            let meta = domainsMeta[domain] ?? [:]
+            let enforce = (meta["enforcePinning"] as? Bool) ?? true
+            let includeSubdomains = (meta["includeSubdomains"] as? Bool) ?? true
+
+            var domainConfig: [String: Any] = [
+                kTSKIncludeSubdomains: includeSubdomains,
+                // Audit mode (`enforcePinning: false`): TrustKit validates and
+                // reports but never blocks the connection.
+                kTSKEnforcePinning: enforce,
+                // Never report to the TrustKit vendor's default endpoint —
+                // only to the app's own configured reportUris.
                 kTSKDisableDefaultReportUri: true,
                 kTSKPublicKeyHashes: cleanedPins
             ]
+            // Fail-open circuit breaker: TrustKit stops pinning this domain
+            // after the date (mirrors Android NSC pin-set expiration).
+            if let expiration = meta["expirationDate"] as? String, !expiration.isEmpty {
+                domainConfig[kTSKExpirationDate] = expiration
+            }
+            if !reportUris.isEmpty {
+                domainConfig[kTSKReportUris] = reportUris
+            }
             pinnedDomains[domain] = domainConfig
         }
 
@@ -394,16 +419,25 @@ class SharedLogic: NSObject {
 
         // Observe validation decisions. Logging a blocked connection makes the
         // "mocked backend doesn't respond" case obvious: it names the host whose
-        // certificate failed pin validation.
+        // certificate failed pin validation. Failures (enforced blocks AND
+        // audit-mode mismatches) are also forwarded to the registered
+        // pin-failure handler so JS listeners and report URIs see them.
         trustKit.pinningValidatorCallback = { result, hostname, _ in
-            switch result.finalTrustDecision {
-            case .shouldBlockConnection:
+            guard result.evaluationResult != .success else { return }
+
+            let enforced = result.finalTrustDecision == .shouldBlockConnection
+            let message: String
+            if enforced {
+                message = "Blocked connection to \(hostname) — certificate did not match the configured pins"
                 NSLog("[RNSSLManager] BLOCKED connection to %@ — certificate did not match the configured pins", hostname)
-            case .shouldAllowConnection:
-                break
-            default:
-                break
+            } else {
+                message = "Audit: certificate for \(hostname) did not match the configured pins (connection allowed)"
+                NSLog("[RNSSLManager] AUDIT pin mismatch for %@ — connection allowed (enforcePinning: false)", hostname)
             }
+
+            // Served-chain SPKI pins are not exposed by the TrustKit callback;
+            // Android fills this field, iOS reports an empty list.
+            pinningFailureHandler?(hostname, enforced, [], message, Date().timeIntervalSince1970 * 1000)
         }
 
         return [

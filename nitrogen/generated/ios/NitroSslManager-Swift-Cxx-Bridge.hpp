@@ -10,6 +10,8 @@
 // Forward declarations of C++ defined types
 // Forward declaration of `HybridSslManagerSpec` to properly resolve imports.
 namespace margelo::nitro::sslmanager { class HybridSslManagerSpec; }
+// Forward declaration of `PinningFailureEvent` to properly resolve imports.
+namespace margelo::nitro::sslmanager { struct PinningFailureEvent; }
 
 // Forward declarations of Swift defined types
 // Forward declaration of `HybridSslManagerSpec_cxx` to properly resolve imports.
@@ -17,6 +19,7 @@ namespace NitroSslManager { class HybridSslManagerSpec_cxx; }
 
 // Include C++ defined types
 #include "HybridSslManagerSpec.hpp"
+#include "PinningFailureEvent.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
 #include <NitroModules/Result.hpp>
@@ -193,6 +196,28 @@ namespace margelo::nitro::sslmanager::bridge::swift {
     return Func_void_std__vector_std__string__Wrapper(std::move(value));
   }
   
+  // pragma MARK: std::function<void(const PinningFailureEvent& /* event */)>
+  /**
+   * Specialized version of `std::function<void(const PinningFailureEvent&)>`.
+   */
+  using Func_void_PinningFailureEvent = std::function<void(const PinningFailureEvent& /* event */)>;
+  /**
+   * Wrapper class for a `std::function<void(const PinningFailureEvent& / * event * /)>`, this can be used from Swift.
+   */
+  class Func_void_PinningFailureEvent_Wrapper final {
+  public:
+    explicit Func_void_PinningFailureEvent_Wrapper(std::function<void(const PinningFailureEvent& /* event */)>&& func): _function(std::make_unique<std::function<void(const PinningFailureEvent& /* event */)>>(std::move(func))) {}
+    inline void call(PinningFailureEvent event) const noexcept {
+      _function->operator()(event);
+    }
+  private:
+    std::unique_ptr<std::function<void(const PinningFailureEvent& /* event */)>> _function;
+  } SWIFT_NONCOPYABLE;
+  Func_void_PinningFailureEvent create_Func_void_PinningFailureEvent(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_PinningFailureEvent_Wrapper wrap_Func_void_PinningFailureEvent(Func_void_PinningFailureEvent value) noexcept {
+    return Func_void_PinningFailureEvent_Wrapper(std::move(value));
+  }
+  
   // pragma MARK: std::shared_ptr<HybridSslManagerSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridSslManagerSpec>`.
@@ -230,6 +255,15 @@ namespace margelo::nitro::sslmanager::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_std__vector_std__string____ create_Result_std__shared_ptr_Promise_std__vector_std__string____(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<std::vector<std::string>>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<void>
+  using Result_void_ = Result<void>;
+  inline Result_void_ create_Result_void_() noexcept {
+    return Result<void>::withValue();
+  }
+  inline Result_void_ create_Result_void_(const std::exception_ptr& error) noexcept {
+    return Result<void>::withError(error);
   }
 
 } // namespace margelo::nitro::sslmanager::bridge::swift

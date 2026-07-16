@@ -35,6 +35,7 @@ object UseSslPinningModuleImpl {
         // Force new factory creation to bypass RN client cache.
         OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(context.applicationContext))
         PinnedOkHttpClient.invalidate()
+        SslConfigStore.invalidate()
     }
 
     fun getUseSSLPinning(context: Context): Boolean {
@@ -54,11 +55,40 @@ object UseSslPinningModuleImpl {
         }
 
         val config = buildConfigJson(sha256Keys)
+        persistAndRefresh(context, config)
+    }
 
+    /**
+     * Persist a runtime SSL configuration from its full JSON string form,
+     * including extended per-domain options (`domains`) and `reportUris`.
+     * Validates the structure before persisting; throws on invalid input.
+     */
+    fun setSSLConfigJson(context: Context, configJson: String) {
+        val parsed = try {
+            JSONObject(configJson)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Config is not valid JSON", e)
+        }
+        val sha256Keys = parsed.optJSONObject("sha256Keys")
+            ?: throw IllegalArgumentException("Config must contain a sha256Keys map")
+        require(sha256Keys.length() > 0) { "Config must contain at least one host in sha256Keys" }
+        val hosts = sha256Keys.keys()
+        while (hosts.hasNext()) {
+            val host = hosts.next()
+            require(host.isNotBlank()) { "Config contains a blank hostname" }
+            val pins = sha256Keys.getJSONArray(host)
+            require(pins.length() > 0) { "Host \"$host\" must have at least one SHA-256 key" }
+        }
+
+        persistAndRefresh(context, configJson)
+    }
+
+    private fun persistAndRefresh(context: Context, configJson: String) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_CONFIG, config).apply()
+        prefs.edit().putString(KEY_CONFIG, configJson).apply()
 
         // Rebuild the factory and invalidate cached clients so new pins apply.
+        SslConfigStore.invalidate()
         OkHttpClientProvider.setOkHttpClientFactory(SslPinningFactory(context.applicationContext))
         PinnedOkHttpClient.invalidate()
     }

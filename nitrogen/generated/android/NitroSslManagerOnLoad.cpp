@@ -16,6 +16,7 @@
 #include <NitroModules/HybridObjectRegistry.hpp>
 
 #include "JHybridSslManagerSpec.hpp"
+#include "JFunc_void_PinningFailureEvent.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 
 namespace margelo::nitro::sslmanager {
@@ -41,6 +42,7 @@ void registerAllNatives() {
 
   // Register native JNI methods
   margelo::nitro::sslmanager::JHybridSslManagerSpec::CxxPart::registerNatives();
+  margelo::nitro::sslmanager::JFunc_void_PinningFailureEvent_cxx::registerNatives();
 
   // Register Nitro Hybrid Objects
   HybridObjectRegistry::registerHybridObjectConstructor(

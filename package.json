@@ -9,6 +9,10 @@
   "expo": {
     "plugin": "./app.plugin.js"
   },
+  "bin": {
+    "react-native-ssl-manager": "./scripts/cli.js",
+    "ssl-manager": "./scripts/cli.js"
+  },
   "files": [
     "lib",
     "src",
@@ -203,6 +207,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.23.0",
-    "postinstall": "^0.10.3"
+    "postinstall": "^0.10.3",
+    "tweetnacl": "^1.0.3"
   }
 }

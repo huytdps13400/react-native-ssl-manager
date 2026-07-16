@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Audit (report-only) mode** — per-domain `enforcePinning: false` in the new
+  optional `domains` config map: pins are validated and mismatches reported,
+  but connections are never blocked. iOS maps to TrustKit
+  `kTSKEnforcePinning: false`; Android excludes the domain from
+  `CertificatePinner`/NSC and validates via a report-only network interceptor.
+  The safe way to roll pinning out to production.
+- **Pin-failure reporting** — `addPinningFailureListener(listener)` delivers
+  `{host, enforced, servedPins, message, timestamp}` events to JS for both
+  enforced blocks and audit observations; optional top-level `reportUris`
+  receive HPKP-style JSON POSTs (TrustKit-native on iOS; deduplicated
+  best-effort reporter on Android).
+- **Per-domain pin expiration** — `domains.<host>.expirationDate`
+  (`YYYY-MM-DD`) fails open after the date on both platforms (TrustKit
+  `kTSKExpirationDate`, NSC `pin-set expiration`, and a runtime skip in both
+  OkHttp clients) so abandoned installs never brick.
+- **`includeSubdomains` control** — per-domain subdomain coverage (default
+  `true`); OkHttp `CertificatePinner` now covers subdomains (`**.host`) to
+  match the NSC/TrustKit behavior documented all along.
+- **Signed over-the-air pin updates** — `updatePinsFromUrl(url, {publicKey})`
+  fetches an Ed25519-signed bundle, verifies signature + freshness
+  (`expiresAt`, `maxAgeMs`) + session rollback, then applies it. Invalid
+  bundles reject with coded `OtaError`s and never touch the active config.
+- **CLI** — `npx react-native-ssl-manager` (alias `ssl-manager`), Node
+  built-ins only: `pins <host>` (SPKI extraction + config snippet, `--pem`
+  offline mode), `verify` (live pin-drift check with CI exit codes and
+  30-day expiration warnings), `keygen` + `sign` (Ed25519 OTA bundle
+  authoring).
+- **Nitro API** — `setSSLConfigJson(json)` (full extended config across the
+  bridge) and `setPinningFailureCallback`/`clearPinningFailureCallback`.
+- `normalizeSslConfig` validation exported from JS: pin format, date format,
+  https-only report URIs, and a warning when an enforced domain ships a
+  single pin.
+
+### Changed
+- `setSSLConfig` accepts the extended configuration (`domains`, `reportUris`)
+  and validates before crossing the bridge. Legacy `sha256Keys`-only configs
+  behave exactly as before.
+- Android pinning internals refactored into `SslConfigStore`,
+  `PinningClientConfigurator`, `AuditPinningInterceptor`,
+  `PinningFailureEventListener`, and `PinningFailureReporter`, shared by the
+  RN networking factory and `PinnedOkHttpClient`.
+
 ## [2.0.3] - 2026-07-03
 
 ### Added

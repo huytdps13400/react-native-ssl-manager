@@ -245,6 +245,7 @@ function withAndroidNetworkSecurityConfig(config, options) {
       const projectRoot = config.modRequest.projectRoot;
       const fullConfig = readFullSslConfig(projectRoot, sslConfigPath);
       const sha256Keys = (fullConfig && fullConfig.sha256Keys) || null;
+      const domains = (fullConfig && fullConfig.domains) || undefined;
 
       if (!sha256Keys || Object.keys(sha256Keys).length === 0) {
         console.warn(
@@ -266,14 +267,14 @@ function withAndroidNetworkSecurityConfig(config, options) {
       if (fs.existsSync(xmlPath)) {
         // Merge with existing
         const existingXml = fs.readFileSync(xmlPath, 'utf8');
-        const mergedXml = mergeNscXml(existingXml, sha256Keys);
+        const mergedXml = mergeNscXml(existingXml, sha256Keys, domains);
         fs.writeFileSync(xmlPath, mergedXml);
         console.log(
           '✅ Merged SSL pins into existing network_security_config.xml'
         );
       } else {
         // Generate new
-        const xml = generateNscXml(sha256Keys);
+        const xml = generateNscXml(sha256Keys, domains);
         fs.writeFileSync(xmlPath, xml);
         console.log('✅ Generated network_security_config.xml');
       }
