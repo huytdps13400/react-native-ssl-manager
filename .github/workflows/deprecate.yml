@@ -1,0 +1,55 @@
+name: Deprecate npm versions
+
+# Marks a range of published versions as deprecated on npm (a "soft block":
+# installs still work but show a warning). Runs on demand only.
+#
+# Uses the existing `NPM_TOKEN` repository secret (same one publish.yml uses).
+# The token stays in GitHub secrets and is only exposed to the runner.
+#
+# To run: Actions -> "Deprecate npm versions" -> Run workflow, then set:
+#   range   - semver range to deprecate (default "<2.0.0" = all v1.x)
+#   message - warning shown on install (empty string un-deprecates the range)
+#
+# NOTE: workflow_dispatch is only available once this file is on the default
+# branch. The initial v1.x deprecation was run from a temporary push trigger on
+# the feature branch (since removed).
+
+on:
+  workflow_dispatch:
+    inputs:
+      range:
+        description: 'Version range to deprecate (e.g. "<2.0.0")'
+        type: string
+        default: '<2.0.0'
+      message:
+        description: 'Deprecation message (empty string un-deprecates the range)'
+        type: string
+        default: 'v1.x is no longer supported and has a fail-open weakness (pins could silently stop being enforced). Please upgrade to v2+. See https://github.com/huytdps13400/react-native-ssl-manager/blob/main/MIGRATION.md'
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Deprecate range
+        # inputs.* are only populated for workflow_dispatch; on the temporary
+        # push trigger they are empty, so apply defaults in-shell. Passing the
+        # values via env (not inline ${{ }}) also avoids script injection.
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          INPUT_RANGE: ${{ inputs.range }}
+          INPUT_MESSAGE: ${{ inputs.message }}
+        run: |
+          PKG="react-native-ssl-manager"
+          RANGE="${INPUT_RANGE:-<2.0.0}"
+          MESSAGE="${INPUT_MESSAGE:-v1.x is no longer supported and has a fail-open weakness (pins could silently stop being enforced). Please upgrade to v2+. See https://github.com/huytdps13400/react-native-ssl-manager/blob/main/MIGRATION.md}"
+          echo "Deprecating ${PKG}@\"${RANGE}\" with message:"
+          echo "  ${MESSAGE}"
+          npm deprecate "${PKG}@${RANGE}" "${MESSAGE}"
+          echo "Done. Current deprecation state:"
+          npm view "${PKG}" --json | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log(JSON.stringify(j.deprecated||{},null,2))})' 2>/dev/null || npm view "${PKG}" versions --json
