@@ -16,7 +16,10 @@ public protocol HybridSslManagerSpec_protocol: HybridObject {
   func setUseSSLPinning(usePinning: Bool) throws -> Promise<Void>
   func getUseSSLPinning() throws -> Promise<Bool>
   func setSSLConfig(config: SslPinningConfig) throws -> Promise<Void>
+  func setSSLConfigJson(configJson: String) throws -> Promise<Void>
   func getPinnedDomains() throws -> Promise<[String]>
+  func setPinningFailureCallback(callback: @escaping (_ event: PinningFailureEvent) -> Void) throws -> Void
+  func clearPinningFailureCallback() throws -> Void
 }
 
 public extension HybridSslManagerSpec_protocol {

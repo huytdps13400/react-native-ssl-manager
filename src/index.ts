@@ -1,6 +1,9 @@
 import { NitroModules } from 'react-native-nitro-modules';
-import type { SslManager } from './specs/SslManager.nitro';
+import type { PinningFailureEvent, SslManager } from './specs/SslManager.nitro';
 import type { SslPinningConfig } from './types/SslPinningConfig';
+import { normalizeSslConfig } from './config';
+import { OtaError, verifyOtaBundle } from './ota';
+import type { OtaResult, OtaVerifyOptions, SignedPinBundle } from './ota';
 
 /**
  * The SSL pinning HybridObject. Pinning itself is initialized eagerly at app
@@ -53,9 +56,11 @@ export const getUseSSLPinning = (): Promise<boolean> =>
  * Updates the SSL pinning configuration at runtime.
  *
  * Accepts a {@link SslPinningConfig} object (a pre-serialized JSON string is
- * also accepted for backwards compatibility and parsed before crossing the
- * native boundary). On Android the change applies to subsequent requests; on
- * iOS it is persisted and applied on the next app launch.
+ * also accepted for backwards compatibility). Supports the extended options:
+ * per-domain `domains` metadata (`enforcePinning`, `expirationDate`,
+ * `includeSubdomains`) and `reportUris`. On Android the change applies to
+ * subsequent requests; on iOS it is persisted and applied on the next app
+ * launch.
  */
 export const setSSLConfig = (
   config: SslPinningConfig | string
@@ -64,7 +69,8 @@ export const setSSLConfig = (
     typeof config === 'string'
       ? (JSON.parse(config) as SslPinningConfig)
       : config;
-  return requireNative().setSSLConfig(parsed);
+  const normalized = normalizeSslConfig(parsed);
+  return requireNative().setSSLConfigJson(JSON.stringify(normalized));
 };
 
 /**
@@ -74,9 +80,115 @@ export const setSSLConfig = (
 export const getPinnedDomains = (): Promise<string[]> =>
   requireNative().getPinnedDomains();
 
+// --- Pin-failure events ----------------------------------------------------
+
+export type PinningFailureListener = (event: PinningFailureEvent) => void;
+
+const failureListeners = new Set<PinningFailureListener>();
+let nativeCallbackRegistered = false;
+
+/**
+ * Registers a listener for pin-validation failures (both enforced blocks and
+ * audit-mode observations). Returns an unsubscribe function.
+ *
+ * The native layer holds a single callback; this fan-out supports any number
+ * of JS listeners. A listener throwing never affects other listeners.
+ */
+export const addPinningFailureListener = (
+  listener: PinningFailureListener
+): (() => void) => {
+  const native = requireNative();
+  failureListeners.add(listener);
+  if (!nativeCallbackRegistered) {
+    native.setPinningFailureCallback((event) => {
+      for (const registered of failureListeners) {
+        try {
+          registered(event);
+        } catch (error) {
+          console.error(
+            '[react-native-ssl-manager] pinning failure listener threw:',
+            error
+          );
+        }
+      }
+    });
+    nativeCallbackRegistered = true;
+  }
+  return () => {
+    failureListeners.delete(listener);
+  };
+};
+
+// --- Over-the-air pin updates ----------------------------------------------
+
+export interface OtaUpdateOptions extends OtaVerifyOptions {
+  /** Override the fetch implementation (testing / custom networking). */
+  fetchFn?: typeof fetch;
+}
+
+/** `issuedAt` (epoch ms) of the last bundle applied in this session. */
+let lastAppliedIssuedAt: number | null = null;
+
+/**
+ * Fetches an Ed25519-signed pin bundle (authored with
+ * `npx react-native-ssl-manager sign`) and applies its configuration.
+ *
+ * The signature is verified against `options.publicKey` before anything is
+ * applied; expired (`expiresAt` / `maxAgeMs`) and older-than-last-applied
+ * bundles are rejected. On ANY failure the active configuration is untouched
+ * and the promise rejects with an {@link OtaError} carrying a `code`
+ * (`OTA_FETCH_FAILED`, `OTA_INVALID_SIGNATURE`, `OTA_EXPIRED`,
+ * `OTA_ROLLBACK`, ...).
+ */
+export const updatePinsFromUrl = async (
+  url: string,
+  options: OtaUpdateOptions
+): Promise<OtaResult> => {
+  const native = requireNative();
+
+  const fetchFn = options.fetchFn ?? fetch;
+  let bundle: SignedPinBundle;
+  try {
+    const response = await fetchFn(url);
+    if (!response.ok) {
+      throw new OtaError(
+        'OTA_FETCH_FAILED',
+        `Pin bundle fetch failed with HTTP ${response.status}`
+      );
+    }
+    bundle = (await response.json()) as SignedPinBundle;
+  } catch (error) {
+    if (error instanceof OtaError) throw error;
+    throw new OtaError(
+      'OTA_FETCH_FAILED',
+      `Pin bundle fetch failed: ${String(error)}`
+    );
+  }
+
+  const result = verifyOtaBundle(bundle, {
+    ...options,
+    minIssuedAt: options.minIssuedAt ?? lastAppliedIssuedAt ?? undefined,
+  });
+
+  await native.setSSLConfigJson(JSON.stringify(result.config));
+  lastAppliedIssuedAt = Date.parse(result.issuedAt);
+  return result;
+};
+
 /** Direct access to the underlying HybridObject (or `null` if not linked). */
 export const SslPinning = nativeSslManager;
 
-export type { SslManager } from './specs/SslManager.nitro';
-export type { SslPinningConfig } from './types/SslPinningConfig';
+export { normalizeSslConfig, SslConfigError, isExpired } from './config';
+export { OtaError, verifyOtaBundle } from './ota';
+export type {
+  OtaResult,
+  OtaVerifyOptions,
+  OtaPayload,
+  SignedPinBundle,
+} from './ota';
+export type { SslManager, PinningFailureEvent } from './specs/SslManager.nitro';
+export type {
+  SslPinningConfig,
+  SslDomainOptions,
+} from './types/SslPinningConfig';
 export type { SslPinningError } from './UseSslPinning.types';

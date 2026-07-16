@@ -14,10 +14,37 @@ describe('PinnedOkHttpClient', () => {
     'PinnedOkHttpClient.kt'
   );
 
+  const configuratorPath = path.join(
+    __dirname,
+    '..',
+    'android',
+    'src',
+    'main',
+    'java',
+    'com',
+    'usesslpinning',
+    'PinningClientConfigurator.kt'
+  );
+  const storePath = path.join(
+    __dirname,
+    '..',
+    'android',
+    'src',
+    'main',
+    'java',
+    'com',
+    'usesslpinning',
+    'SslConfigStore.kt'
+  );
+
   let ktContent;
+  let configuratorContent;
+  let storeContent;
 
   beforeAll(() => {
     ktContent = fs.readFileSync(ktFilePath, 'utf8');
+    configuratorContent = fs.readFileSync(configuratorPath, 'utf8');
+    storeContent = fs.readFileSync(storePath, 'utf8');
   });
 
   it('file exists', () => {
@@ -38,12 +65,14 @@ describe('PinnedOkHttpClient', () => {
     expect(ktContent).toContain('@JvmStatic');
   });
 
-  it('implements CertificatePinner configuration', () => {
-    expect(ktContent).toContain('CertificatePinner.Builder()');
+  it('implements CertificatePinner configuration (via the shared configurator)', () => {
+    expect(ktContent).toContain('PinningClientConfigurator.apply');
+    expect(configuratorContent).toContain('CertificatePinner.Builder()');
   });
 
-  it('reads ssl_config.json from assets', () => {
-    expect(ktContent).toContain('ssl_config.json');
+  it('reads ssl_config.json from assets (via the config store)', () => {
+    expect(configuratorContent).toContain('SslConfigStore.get');
+    expect(storeContent).toContain('ssl_config.json');
   });
 
   it('checks SharedPreferences for pinning state', () => {

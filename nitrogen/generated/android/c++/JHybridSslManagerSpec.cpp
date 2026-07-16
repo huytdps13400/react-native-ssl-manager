@@ -9,6 +9,8 @@
 
 // Forward declaration of `SslPinningConfig` to properly resolve imports.
 namespace margelo::nitro::sslmanager { struct SslPinningConfig; }
+// Forward declaration of `PinningFailureEvent` to properly resolve imports.
+namespace margelo::nitro::sslmanager { struct PinningFailureEvent; }
 
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/JPromise.hpp>
@@ -18,6 +20,11 @@ namespace margelo::nitro::sslmanager { struct SslPinningConfig; }
 #include "SslPinningConfig.hpp"
 #include "JSslPinningConfig.hpp"
 #include <unordered_map>
+#include "PinningFailureEvent.hpp"
+#include <functional>
+#include "JFunc_void_PinningFailureEvent.hpp"
+#include <NitroModules/JNICallable.hpp>
+#include "JPinningFailureEvent.hpp"
 
 namespace margelo::nitro::sslmanager {
 
@@ -98,6 +105,21 @@ namespace margelo::nitro::sslmanager {
       return __promise;
     }();
   }
+  std::shared_ptr<Promise<void>> JHybridSslManagerSpec::setSSLConfigJson(const std::string& configJson) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* configJson */)>("setSSLConfigJson");
+    auto __result = method(_javaPart, jni::make_jstring(configJson));
+    return [&]() {
+      auto __promise = Promise<void>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& /* unit */) {
+        __promise->resolve();
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
   std::shared_ptr<Promise<std::vector<std::string>>> JHybridSslManagerSpec::getPinnedDomains() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>()>("getPinnedDomains");
     auto __result = method(_javaPart);
@@ -122,6 +144,14 @@ namespace margelo::nitro::sslmanager {
       });
       return __promise;
     }();
+  }
+  void JHybridSslManagerSpec::setPinningFailureCallback(const std::function<void(const PinningFailureEvent& /* event */)>& callback) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_PinningFailureEvent::javaobject> /* callback */)>("setPinningFailureCallback_cxx");
+    method(_javaPart, JFunc_void_PinningFailureEvent_cxx::fromCpp(callback));
+  }
+  void JHybridSslManagerSpec::clearPinningFailureCallback() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void()>("clearPinningFailureCallback");
+    method(_javaPart);
   }
 
 } // namespace margelo::nitro::sslmanager

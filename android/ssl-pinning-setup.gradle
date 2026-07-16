@@ -67,6 +67,7 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
         println "⚠️ No sha256Keys found in ssl_config.json, skipping XML generation"
         return false
     }
+    def domains = json?.domains ?: [:]
 
     // Ensure output directory exists
     def xmlDir = xmlOutputFile.parentFile
@@ -75,18 +76,31 @@ def generateNetworkSecurityConfigXml(File sslConfigFile, File xmlOutputFile) {
     // Check for existing NSC and merge if present
     if (xmlOutputFile.exists()) {
         println "🔄 Existing network_security_config.xml found, merging pin entries"
-        mergeNetworkSecurityConfigXml(xmlOutputFile, sha256Keys)
+        mergeNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, domains)
     } else {
-        writeNewNetworkSecurityConfigXml(xmlOutputFile, sha256Keys)
+        writeNewNetworkSecurityConfigXml(xmlOutputFile, sha256Keys, domains)
     }
 
     return true
 }
 
 /**
+ * Per-domain options with legacy-compatible defaults, from the optional
+ * extended `domains` map in ssl_config.json.
+ */
+def nscDomainOptions(Map domains, String domain) {
+    def options = (domains != null ? domains[domain] : null) ?: [:]
+    return [
+        enforcePinning   : options.enforcePinning != false,
+        expirationDate   : options.expirationDate ?: null,
+        includeSubdomains: options.includeSubdomains != false,
+    ]
+}
+
+/**
  * Write a fresh network_security_config.xml
  */
-def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
+def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, Map domains) {
     // Build the XML as a string. (MarkupBuilder's quoted pseudo-method syntax
     // `'domain'(attrs, text)` is misparsed as String.call(...) in this context,
     // so we generate the markup directly — matching scripts/nsc-utils.js.)
@@ -96,9 +110,17 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
     // Keep the Metro / dev server reachable over cleartext (issue #9).
     sb.append(buildDevCleartextConfig())
     sha256Keys.each { domain, pins ->
+        def options = nscDomainOptions(domains, domain)
+        // Audit-mode domains are excluded: NSC has no report-only mode, so
+        // audit validation happens in the OkHttp layer instead.
+        if (!options.enforcePinning) {
+            println "ℹ️ Skipping NSC pin-set for audit-mode domain: ${domain}"
+            return
+        }
+        def expirationAttr = options.expirationDate ? " expiration=\"${options.expirationDate}\"" : ''
         sb.append('    <domain-config cleartextTrafficPermitted="false">\n')
-        sb.append("        <domain includeSubdomains=\"true\">${domain}</domain>\n")
-        sb.append('        <pin-set>\n')
+        sb.append("        <domain includeSubdomains=\"${options.includeSubdomains}\">${domain}</domain>\n")
+        sb.append("        <pin-set${expirationAttr}>\n")
         pins.each { pinValue ->
             def cleanPin = pinValue.replaceFirst('^sha256/', '')
             sb.append("            <pin digest=\"SHA-256\">${cleanPin}</pin>\n")
@@ -117,7 +139,7 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
  * Preserves existing config (debug-overrides, base-config, other domain-configs)
  * Replaces pin-set for domains that already exist, adds new domain-configs otherwise
  */
-def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
+def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, Map domains) {
     def parser = new XmlParser()
     def root = parser.parse(xmlFile)
 
@@ -134,17 +156,31 @@ def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
     }
 
     sha256Keys.each { domain, pins ->
+        def options = nscDomainOptions(domains, domain)
+
         // Find existing domain-config for this domain
         def existingDomainConfig = root.'domain-config'.find { dc ->
             dc.'domain'.any { d -> d.text() == domain }
         }
+
+        // Audit-mode domains are excluded: NSC has no report-only mode. Drop a
+        // pre-existing pinned block so a mode change takes effect on rebuild.
+        if (!options.enforcePinning) {
+            if (existingDomainConfig) {
+                println "ℹ️ Removing NSC pin-set for audit-mode domain: ${domain}"
+                root.remove(existingDomainConfig)
+            }
+            return
+        }
+
+        def pinSetAttrs = options.expirationDate ? [expiration: options.expirationDate] : [:]
 
         if (existingDomainConfig) {
             println "⚠️ Replacing existing pin-set for domain: ${domain}"
             // Remove old pin-set(s)
             existingDomainConfig.'pin-set'.each { existingDomainConfig.remove(it) }
             // Add new pin-set
-            def pinSetNode = new Node(existingDomainConfig, 'pin-set')
+            def pinSetNode = new Node(existingDomainConfig, 'pin-set', pinSetAttrs)
             pins.each { pinValue ->
                 def cleanPin = pinValue.replaceFirst('^sha256/', '')
                 new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)
@@ -152,8 +188,8 @@ def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys) {
         } else {
             // Add new domain-config
             def domainConfigNode = new Node(root, 'domain-config', [cleartextTrafficPermitted: 'false'])
-            new Node(domainConfigNode, 'domain', [includeSubdomains: 'true'], domain)
-            def pinSetNode = new Node(domainConfigNode, 'pin-set')
+            new Node(domainConfigNode, 'domain', [includeSubdomains: "${options.includeSubdomains}"], domain)
+            def pinSetNode = new Node(domainConfigNode, 'pin-set', pinSetAttrs)
             pins.each { pinValue ->
                 def cleanPin = pinValue.replaceFirst('^sha256/', '')
                 new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)

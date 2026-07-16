@@ -15,11 +15,15 @@
 
 // Forward declaration of `SslPinningConfig` to properly resolve imports.
 namespace margelo::nitro::sslmanager { struct SslPinningConfig; }
+// Forward declaration of `PinningFailureEvent` to properly resolve imports.
+namespace margelo::nitro::sslmanager { struct PinningFailureEvent; }
 
 #include <NitroModules/Promise.hpp>
 #include "SslPinningConfig.hpp"
 #include <string>
 #include <vector>
+#include "PinningFailureEvent.hpp"
+#include <functional>
 
 namespace margelo::nitro::sslmanager {
 
@@ -55,7 +59,10 @@ namespace margelo::nitro::sslmanager {
       virtual std::shared_ptr<Promise<void>> setUseSSLPinning(bool usePinning) = 0;
       virtual std::shared_ptr<Promise<bool>> getUseSSLPinning() = 0;
       virtual std::shared_ptr<Promise<void>> setSSLConfig(const SslPinningConfig& config) = 0;
+      virtual std::shared_ptr<Promise<void>> setSSLConfigJson(const std::string& configJson) = 0;
       virtual std::shared_ptr<Promise<std::vector<std::string>>> getPinnedDomains() = 0;
+      virtual void setPinningFailureCallback(const std::function<void(const PinningFailureEvent& /* event */)>& callback) = 0;
+      virtual void clearPinningFailureCallback() = 0;
 
     protected:
       // Hybrid Setup

@@ -114,6 +114,7 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
   try {
     const sslConfig = JSON.parse(fs.readFileSync(sslConfigPath, 'utf8'));
     const sha256Keys = sslConfig.sha256Keys;
+    const domains = sslConfig.domains;
 
     if (sha256Keys && Object.keys(sha256Keys).length > 0) {
       const xmlDir = path.join(androidDir, 'app', 'src', 'main', 'res', 'xml');
@@ -122,7 +123,7 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
       if (fs.existsSync(xmlPath)) {
         // Merge with existing NSC
         const existingXml = fs.readFileSync(xmlPath, 'utf8');
-        const mergedXml = mergeNscXml(existingXml, sha256Keys);
+        const mergedXml = mergeNscXml(existingXml, sha256Keys, domains);
         fs.writeFileSync(xmlPath, mergedXml);
         console.log(
           '✅ Merged SSL pins into existing network_security_config.xml'
@@ -132,7 +133,7 @@ if (fs.existsSync(androidDir) && fs.existsSync(sslConfigPath)) {
         if (!fs.existsSync(xmlDir)) {
           fs.mkdirSync(xmlDir, { recursive: true });
         }
-        const xml = generateNscXml(sha256Keys);
+        const xml = generateNscXml(sha256Keys, domains);
         fs.writeFileSync(xmlPath, xml);
         console.log('✅ Generated network_security_config.xml');
       }

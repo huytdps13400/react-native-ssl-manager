@@ -46,6 +46,14 @@ namespace margelo::nitro::sslmanager::bridge::swift {
     };
   }
   
+  // pragma MARK: std::function<void(const PinningFailureEvent& /* event */)>
+  Func_void_PinningFailureEvent create_Func_void_PinningFailureEvent(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = NitroSslManager::Func_void_PinningFailureEvent::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const PinningFailureEvent& event) mutable -> void {
+      swiftClosure.call(event);
+    };
+  }
+  
   // pragma MARK: std::shared_ptr<HybridSslManagerSpec>
   std::shared_ptr<HybridSslManagerSpec> create_std__shared_ptr_HybridSslManagerSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
     NitroSslManager::HybridSslManagerSpec_cxx swiftPart = NitroSslManager::HybridSslManagerSpec_cxx::fromUnsafe(swiftUnsafePointer);

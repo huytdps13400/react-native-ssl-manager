@@ -111,7 +111,8 @@ describe('Integration: Coil image load with valid pin succeeds', () => {
       'fun getInstance(context: Context): OkHttpClient'
     );
     expect(pinnedClientContent).toContain('OkHttpClient.Builder()');
-    expect(pinnedClientContent).toContain('CertificatePinner.Builder()');
+    // Pinning itself is applied by the shared configurator.
+    expect(pinnedClientContent).toContain('PinningClientConfigurator.apply');
   });
 
   it('README documents Coil integration pattern', () => {

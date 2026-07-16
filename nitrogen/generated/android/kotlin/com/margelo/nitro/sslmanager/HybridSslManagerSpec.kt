@@ -43,7 +43,24 @@ abstract class HybridSslManagerSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
+  abstract fun setSSLConfigJson(configJson: String): Promise<Unit>
+  
+  @DoNotStrip
+  @Keep
   abstract fun getPinnedDomains(): Promise<Array<String>>
+  
+  abstract fun setPinningFailureCallback(callback: (event: PinningFailureEvent) -> Unit): Unit
+  
+  @DoNotStrip
+  @Keep
+  private fun setPinningFailureCallback_cxx(callback: Func_void_PinningFailureEvent): Unit {
+    val __result = setPinningFailureCallback(callback)
+    return __result
+  }
+  
+  @DoNotStrip
+  @Keep
+  abstract fun clearPinningFailureCallback(): Unit
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

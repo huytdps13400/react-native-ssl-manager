@@ -17,7 +17,10 @@ namespace margelo::nitro::sslmanager {
       prototype.registerHybridMethod("setUseSSLPinning", &HybridSslManagerSpec::setUseSSLPinning);
       prototype.registerHybridMethod("getUseSSLPinning", &HybridSslManagerSpec::getUseSSLPinning);
       prototype.registerHybridMethod("setSSLConfig", &HybridSslManagerSpec::setSSLConfig);
+      prototype.registerHybridMethod("setSSLConfigJson", &HybridSslManagerSpec::setSSLConfigJson);
       prototype.registerHybridMethod("getPinnedDomains", &HybridSslManagerSpec::getPinnedDomains);
+      prototype.registerHybridMethod("setPinningFailureCallback", &HybridSslManagerSpec::setPinningFailureCallback);
+      prototype.registerHybridMethod("clearPinningFailureCallback", &HybridSslManagerSpec::clearPinningFailureCallback);
     });
   }
 
