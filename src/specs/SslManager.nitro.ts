@@ -37,10 +37,11 @@ export interface PinningFailureEvent {
  * Security Config via an `androidx.startup` initializer), independent of this
  * object. These methods read state and update the configuration at runtime.
  */
-export interface SslManager extends HybridObject<{
-  ios: 'swift';
-  android: 'kotlin';
-}> {
+export interface SslManager
+  extends HybridObject<{
+    ios: 'swift';
+    android: 'kotlin';
+  }> {
   /**
    * Enables or disables SSL pinning.
    *
