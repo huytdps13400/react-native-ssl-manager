@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-19
+
 ### Fixed
 - **Expo plugin iOS prebuild crash** — `withXcodeProject` no longer calls the
   `xcode` package's `addResourceFile`, which throws
