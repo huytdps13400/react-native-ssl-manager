@@ -4,66 +4,64 @@
 [![npm downloads](https://img.shields.io/npm/dm/react-native-ssl-manager.svg)](https://www.npmjs.com/package/react-native-ssl-manager)
 [![license](https://img.shields.io/npm/l/react-native-ssl-manager.svg)](./LICENSE)
 
-SSL **certificate pinning** for React Native and Expo, enforced by the platform's
-own networking layer — TrustKit on iOS and Network Security Config on Android.
+### SSL certificate pinning for React Native & Expo.
 
-## What is certificate pinning (and do I need it)?
+Pin your API certificates so the app refuses connections that don’t match — including traffic through Charles, Proxyman, or other MITM proxies.
 
-When your app talks to your API over HTTPS, the OS trusts *any* certificate
-signed by a trusted authority. Someone who can install their own trusted
-certificate — a corporate proxy, a compromised device, or a tool like Charles or
-Proxyman — can then read and modify your traffic. That's a
-**man-in-the-middle (MITM)** attack.
+```ts
+// After install + ssl_config.json + native rebuild:
+// fetch / axios to pinned hosts are protected automatically.
+import { isSSLManagerAvailable } from 'react-native-ssl-manager'
 
-**Pinning** tells your app to trust only *specific* certificates (yours). If the
-certificate doesn't match, the connection is refused. This library sets that up
-on both platforms from a single config file.
+console.log(isSSLManagerAvailable()) // true after a native rebuild
+```
 
-> Handling logins, payments, or other sensitive data? Pinning is a strong extra
-> layer. Building a hobby app that only hits public APIs? You probably don't
-> need it.
+## Features
+
+* 🔒 **Certificate / public-key pinning** for your API hosts  
+* ⚡ **Zero JS required for normal traffic** — pins apply at **app launch**  
+* 📱 **iOS** (TrustKit) + **Android** (Network Security Config + OkHttp)  
+* 🧩 **Expo config plugin** — prebuild copies config into native projects  
+* 🛠️ **CLI** — extract pins, verify drift in CI, monorepo helpers  
+* 🛰️ **Optional OTA pin updates** (signed Ed25519 bundles)  
+* 🧪 **Audit mode** — report mismatches without blocking (safe rollout)  
+* ⚙️ Built as a **[Nitro Module](https://nitro.margelo.com)** (New Architecture)
+
+> [!IMPORTANT]
+> **v2 requires the New Architecture** and peer dependency  
+> [`react-native-nitro-modules`](https://www.npmjs.com/package/react-native-nitro-modules) (≥ 0.35).  
+> Changing `ssl_config.json` always needs a **native rebuild** — Metro reload is not enough.  
+> Coming from v1? JS API is unchanged → [`MIGRATION.md`](./MIGRATION.md).
 
 ## Requirements
 
-This is **v2**, built as a [Nitro Module](https://nitro.margelo.com). It runs on
-the **New Architecture** only.
-
 | | Minimum |
 |---|---|
-| React Native | **0.75+** with the New Architecture enabled |
-| `react-native-nitro-modules` | 0.35.0 (peer dependency) |
+| React Native | **0.75+** (New Architecture) |
+| `react-native-nitro-modules` | **≥ 0.35** |
 | Expo | **SDK 52+** (New Architecture) |
-| iOS | 13.0 |
-| Android | API 21 (Android 5.0) |
+| iOS | 13+ |
+| Android | API 21+ |
 | Node | 18+ |
-
-> Upgrading from v1? The JavaScript API is unchanged — see
-> [`MIGRATION.md`](./MIGRATION.md).
 
 ---
 
-## Get started
+## Installation
 
-You only need three things: install the package, add a config file, rebuild.
-Pinning then turns on **automatically at app launch** — no JavaScript required.
+### React Native (CLI)
 
-### 1. Install
-
-```bash
+```sh
 npm install react-native-ssl-manager react-native-nitro-modules
-# or
-yarn add react-native-ssl-manager react-native-nitro-modules
-# or
-pnpm add react-native-ssl-manager react-native-nitro-modules
-# or
-bun add react-native-ssl-manager react-native-nitro-modules
+cd ios && pod install
 ```
 
-Then follow **either** the Expo path or the bare React Native path.
+### Expo
 
-#### Expo
+```sh
+npx expo install react-native-ssl-manager react-native-nitro-modules
+```
 
-Add the plugin to `app.json` (or `app.config.js`):
+Add the config plugin to `app.json` / `app.config.js`:
 
 ```json
 {
@@ -75,47 +73,30 @@ Add the plugin to `app.json` (or `app.config.js`):
 }
 ```
 
-Then regenerate the native projects with `npx expo prebuild --clean` (EAS Build
-does this for you). The plugin copies `ssl_config.json` into the iOS app group,
-adds it to **Copy Bundle Resources**, copies it into Android `assets/`, and
-generates Network Security Config — no `postinstall` mutation required.
+Then generate native projects and run a **development build** (not Expo Go):
 
-Plugin options:
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `sslConfigPath` | `"ssl_config.json"` | Path to your config, relative to the project root |
-| `enableAndroid` | `true` | Generate the Android Network Security Config + patch the manifest |
-| `enableIOS` | `true` | Bundle the config into the iOS app |
-
-#### Bare React Native (CLI)
-
-Install the iOS pods, then rebuild:
-
-```bash
-cd ios && pod install
+```sh
+npx expo prebuild
+npx expo run:ios
+# or
+npx expo run:android
 ```
 
-On a classic hoisted layout (npm / yarn classic / bun default), the optional
-`postinstall` script can wire Android's `ssl-pinning-setup.gradle` for you.
-On **pnpm** or **monorepos**, that script **does not mutate** your
-`build.gradle` (isolated `node_modules` make hardcoded paths wrong). Either:
+> **pnpm / monorepos:** install in the **app package** (the one that builds the binary), not only the workspace root. See [Monorepo & pnpm](#monorepo--pnpm).
 
-1. **Expo prebuild path** (recommended if you use Expo), or
-2. Manually apply the Gradle script once (see [Monorepo & pnpm](#monorepo--pnpm)
-   below), or
-3. Set `SSL_MANAGER_SKIP_POSTINSTALL=1` if you manage native wiring yourself.
+---
 
-### 2. Create `ssl_config.json`
+## Setup
 
-Create a file named exactly **`ssl_config.json`** in your project root. The
-bundled CLI prints the pins for a live domain (no openssl needed):
+### 1. Create `ssl_config.json`
 
-```bash
+In your app root (next to `package.json` / `app.json`):
+
+```sh
 npx react-native-ssl-manager pins api.example.com
 ```
 
-Paste the result into your config:
+Paste the output into **`ssl_config.json`**:
 
 ```json
 {
@@ -128,502 +109,297 @@ Paste the result into your config:
 }
 ```
 
-- The key is the domain (subdomains are included by default).
-- The value is a list of **public-key pins** (base64 SHA-256 of the certificate's
-  public key), each prefixed with `sha256/`.
+**Rules**
 
-> **Always list at least two pins per domain** — your current certificate plus a
-> **backup**. If you pin only one and that certificate is rotated or revoked,
-> every installed app locks itself out of your API until users update. The backup
-> pin is your safety net.
+* Host only: `api.example.com` — not `https://…`  
+* **At least two pins per domain** (current + backup) so a cert rotation doesn’t lock users out  
+* Use real pins from the CLI for production — placeholders won’t protect anything  
 
-<details>
-<summary>Prefer openssl to get a pin manually?</summary>
+### 2. Rebuild
 
-```bash
-openssl s_client -connect api.example.com:443 -servername api.example.com < /dev/null 2>/dev/null \
-  | openssl x509 -pubkey -noout \
-  | openssl pkey -pubin -outform der \
-  | openssl dgst -sha256 -binary \
-  | openssl enc -base64
+```sh
+# Expo
+npx expo prebuild
+npx expo run:ios   # or run:android
+
+# Bare RN
+cd ios && pod install && cd ..
+npx react-native run-ios
 ```
 
-</details>
+After that, pinning is **on at launch** for `fetch` / `axios` and other covered stacks. You don’t wrap each request.
 
-### 3. That's it — pinning is active at launch
+### 3. Verify
 
-Once `ssl_config.json` is bundled, **SSL pinning is enforced automatically at app
-launch — no JavaScript call is required.** On iOS this is wired up through an
-Objective-C `+load` bootstrap; on Android through an `androidx.startup`
-initializer that installs the pinned OkHttp client before React Native's
-networking stack starts.
-
-### 4. Verify it's working
-
-**Android** (bare RN), after a build:
-
-```bash
-cd android && ./gradlew checkSslConfig
-```
-
-**Any project** — check for drift against the live certificates:
-
-```bash
+```sh
+# Pins still match the live server? (great for CI)
 npx react-native-ssl-manager verify
 ```
 
-**The real test:** open a proxy tool (Charles / Proxyman) with its root
-certificate installed and try to intercept your app's traffic. With pinning
-active, requests to your pinned domains should **fail** the TLS handshake;
-non-pinned domains are unaffected. On iOS you can also watch the launch log
-(`xcrun simctl spawn booted log stream --predicate 'eventMessage CONTAINS "RNSSLManager"'`)
-for `SSL pinning ACTIVE …` or `BLOCKED connection to <host> …`.
+```ts
+import { isSSLManagerAvailable, getPinnedDomains } from 'react-native-ssl-manager'
+
+isSSLManagerAvailable()     // must be true after native rebuild
+await getPinnedDomains()    // e.g. ['api.example.com']
+```
+
+**Sanity check with Proxyman / Charles**
+
+| Pinning | MITM proxy | Your API |
+|---------|------------|----------|
+| ON (default) | On | Should **fail** TLS |
+| OFF | On | May **succeed** (proxy can inspect) |
+| ON | Off | Should **succeed** if pins match |
+
+On **iOS**, after `setUseSSLPinning(…)`, **force-quit and reopen** the app so TrustKit fully applies.
 
 ---
 
-## Monorepo & pnpm
+## Usage (optional JS API)
 
-This library is a **Nitro Module**. It must be present in the app package that
-builds native code, and the app must use the **New Architecture**.
-
-### Why pnpm “isolated” installs look different from bun “hoisted”
-
-| Manager | Default layout | What breaks a naive `postinstall` |
-|---------|----------------|-----------------------------------|
-| **bun** / yarn classic | Hoisted flat `node_modules` | Rarely — `../../node_modules/pkg` often works |
-| **pnpm** | Content-addressable store + symlinks under `node_modules/.pnpm` | Hardcoded `../../node_modules/react-native-ssl-manager/...` often points at nothing |
-| **npm workspaces / pnpm monorepo** | Package may live under `apps/mobile`, deps at root | Walking up to the first `node_modules` can pick the wrong root |
-
-Because of that, **`postinstall` is intentionally non-mutating on monorepo and
-pnpm-isolated installs**. Prefer the Expo config plugin, or apply the Gradle
-script yourself with a path resolved via Node (not a guessed relative path).
-
-### Disable postinstall entirely
-
-```bash
-# one-shot
-SSL_MANAGER_SKIP_POSTINSTALL=1 pnpm install
-
-# or in the app package.json
-"scripts": {
-  "preinstall": "echo skip",
-  "postinstall": "echo 'managed manually'"
-}
-```
-
-You can also set `SSL_MANAGER_SKIP_POSTINSTALL=1` in CI / `.npmrc` env so the
-library never touches `android/app/build.gradle` or the manifest.
-
-### Expo in a monorepo
-
-1. Install in the **app** package (not only the workspace root):
-
-   ```bash
-   pnpm add react-native-ssl-manager react-native-nitro-modules --filter your-app
-   ```
-
-2. Put `ssl_config.json` next to that app’s `app.json` (or set `sslConfigPath`
-   relative to the app root).
-
-3. Register the plugin and prebuild from the app directory:
-
-   ```bash
-   cd apps/your-app
-   npx expo prebuild --clean
-   ```
-
-4. Confirm after prebuild:
-
-   - iOS: `ios/<AppName>/ssl_config.json` exists and is listed under the app
-     target’s **Copy Bundle Resources** in Xcode
-   - Android: `android/app/src/main/assets/ssl_config.json` and
-     `res/xml/network_security_config.xml`
-
-5. Validate the layout (CI-friendly):
-
-   ```bash
-   # from the app package
-   npx react-native-ssl-manager monorepo-setup
-   # from this repo
-   npm run test:monorepo
-   ```
-
-A checked-in fixture lives at [`fixtures/pnpm-monorepo`](./fixtures/pnpm-monorepo)
-(pnpm workspace + `apps/mobile` with plugin, `ssl_config.json`, Metro singleton
-config, and a stub `android/app/build.gradle`).
-
-### Bare RN + pnpm (no Expo)
-
-In `android/app/build.gradle`, apply the setup script with a path that works
-under pnpm (relative from the resolved package, or a path you control):
-
-```gradle
-// Example: if the package is linked into this app's node_modules
-apply from: new File([
-  "node", "--print",
-  "require('path').join(require('path').dirname(require.resolve('react-native-ssl-manager/package.json')), 'android/ssl-pinning-setup.gradle')"
-].execute(null, rootDir).text.trim())
-```
-
-iOS does not need that script: the podspec copies `ssl_config.json` at build
-time by searching common monorepo locations under `SRCROOT`.
-
-### Testing this library (maintainers & integrators)
-
-From the repo root:
-
-```bash
-# Unit + contract tests (plugin Xcode wiring, NSC, OTA, Nitro surface, monorepo helpers)
-yarn test
-# or
-./node_modules/.bin/jest
-
-# Typecheck the public TS / Nitro spec
-yarn typecheck
-
-# Regenerate Nitro bindings after editing src/specs/*.nitro.ts
-yarn specs
-```
-
-**Expo prebuild smoke (example app):**
-
-```bash
-cd example-expo
-# ensure peer is present
-yarn add react-native-nitro-modules
-npx expo prebuild --clean --platform ios
-# expect: no "Failed to add ssl_config.json to Xcode project"
-# expect: ios/<Project>/ssl_config.json present
-```
-
-**Rebuild + pin / MITM testing (example-expo):**
-
-```bash
-# From library root — live pin verify, sync config, rebuild iOS, assert .app bundle
-npm run test:rebuild
-
-# Verify only (no Xcode rebuild)
-npm run test:rebuild:verify
-```
-
-Then in the app: **MITM checklist** → happy path (no proxy) / Proxyman ON-OFF guide.
-iOS: after toggling SSL Pinning, **force-quit and reopen** before Proxyman tests.
-
-**Nitro runtime (device/simulator):** rebuild a host app that depends on both
-`react-native-ssl-manager` and `react-native-nitro-modules`, then:
+Most apps never call the JS API for day-to-day traffic. Use it for debug toggles, listeners, or runtime config.
 
 ```ts
-import { isSSLManagerAvailable, getPinnedDomains } from 'react-native-ssl-manager';
-
-console.log(isSSLManagerAvailable()); // must be true after a native rebuild
-console.log(await getPinnedDomains());
-```
-
-If `isSSLManagerAvailable()` is `false`, the Nitro module is not linked — fix
-autolinking / pods / New Architecture before debugging pins.
-
----
-
-## Going further (all optional)
-
-The basics above are all most apps need. Everything below is optional.
-
-### Control pinning from JavaScript
-
-```typescript
 import {
   isSSLManagerAvailable,
   setUseSSLPinning,
   getUseSSLPinning,
   setSSLConfig,
   getPinnedDomains,
-} from 'react-native-ssl-manager';
+  addPinningFailureListener,
+} from 'react-native-ssl-manager'
 
-// Is the native module linked? If false, the calls below throw and pinning is
-// NOT active — you probably need to rebuild the app.
-isSSLManagerAvailable();
+if (!isSSLManagerAvailable()) {
+  // Native module not linked → rebuild the app
+}
 
-await setUseSSLPinning(false);          // turn pinning off/on
-const enabled = await getUseSSLPinning();
-await setSSLConfig({ sha256Keys: { 'api.example.com': ['sha256/AAAA...=', 'sha256/BBBB...='] } });
-const domains = await getPinnedDomains();
+await setUseSSLPinning(true)          // default is already true
+const on = await getUseSSLPinning()
+const domains = await getPinnedDomains()
+
+const stop = addPinningFailureListener((event) => {
+  // { host, enforced, servedPins, message, timestamp }
+  console.warn('pin failure', event)
+})
+// later: stop()
 ```
 
-> **iOS caveat:** TrustKit can only be initialized once per process, so
-> **disabling or changing pins at runtime only takes full effect on the next app
-> launch**. On **Android** the change applies to the next request immediately.
+### Audit mode (safe rollout)
 
-```typescript
-import { setUseSSLPinning } from 'react-native-ssl-manager';
-import RNRestart from 'react-native-restart'; // optional helper
-
-await setUseSSLPinning(false);
-RNRestart.Restart(); // needed on iOS to apply the change now
-```
-
-Pinning is **enabled by default**. The on/off state is persisted in
-`UserDefaults` (iOS) and `SharedPreferences` (Android, `AppSettings` /
-`useSSLPinning`).
-
-### Per-domain options and audit mode
-
-Beyond the flat `sha256Keys` map, you can set per-domain options and a reporting
-endpoint:
+Report mismatches without blocking:
 
 ```json
 {
   "sha256Keys": {
-    "api.example.com": ["sha256/AAAA...=", "sha256/BBBB...="],
-    "staging.example.com": ["sha256/CCCC...=", "sha256/DDDD...="]
+    "api.example.com": ["sha256/CURRENT...=", "sha256/BACKUP...="]
   },
   "domains": {
-    "api.example.com": { "expirationDate": "2027-06-30" },
-    "staging.example.com": { "enforcePinning": false, "includeSubdomains": false }
-  },
-  "reportUris": ["https://reports.example.com/pin-failures"]
+    "api.example.com": { "enforcePinning": false }
+  }
 }
 ```
 
-| Option | Default | Effect |
-|--------|---------|--------|
-| `enforcePinning` | `true` | `false` = **audit mode**: mismatches are reported but never block the connection — the safe way to roll pinning out |
-| `expirationDate` | none | `YYYY-MM-DD`; after this date pinning for the domain **fails open** on both platforms (a circuit breaker for abandoned installs) |
-| `includeSubdomains` | `true` | Whether pins apply to subdomains |
-| `reportUris` (top-level) | none | HTTPS endpoints that receive an HPKP-style JSON POST on every pin failure (deduplicated, best-effort) |
+Switch `"enforcePinning": true` when ready.
 
-### Observe pin failures
+### Config reference
 
-```typescript
-import { addPinningFailureListener } from 'react-native-ssl-manager';
-
-const unsubscribe = addPinningFailureListener((event) => {
-  // { host, enforced, servedPins, message, timestamp }
-  analytics.track('ssl_pin_failure', event);
-});
+```json
+{
+  "sha256Keys": {
+    "api.example.com": ["sha256/AAAA...=", "sha256/BBBB...="]
+  },
+  "domains": {
+    "api.example.com": {
+      "enforcePinning": true,
+      "expirationDate": "2027-12-31",
+      "includeSubdomains": true
+    }
+  },
+  "reportUris": ["https://example.com/pin-failures"]
+}
 ```
 
-Fires for enforced blocks **and** audit-mode (`enforcePinning: false`)
-mismatches. Set `reportUris` to also receive server-side JSON reports with the
-served-chain pins (Android) for fleet-wide monitoring.
+| Field | Default | Description |
+|-------|---------|-------------|
+| `enforcePinning` | `true` | `false` = audit only |
+| `expirationDate` | — | `YYYY-MM-DD`; after this date, pin fails open |
+| `includeSubdomains` | `true` | Apply pins to subdomains |
+| `reportUris` | — | Optional HTTPS failure report endpoints |
 
-### Rotate pins over the air (OTA)
+### Plugin options (Expo)
 
-Rotate pins without shipping an app update. Author a signed bundle on CI or a
-maintainer machine (keep the private key offline):
-
-```bash
-npx react-native-ssl-manager keygen                     # once; prints the public key
-npx react-native-ssl-manager sign --config ssl_config.json \
-  --key ssl-manager-ota.key.pem --expires-in 30d --out ssl-pins-bundle.json
-# host ssl-pins-bundle.json anywhere (CDN, S3, your API)
-```
-
-Apply it from the app — the Ed25519 signature is verified before anything
-changes:
-
-```typescript
-import { updatePinsFromUrl } from 'react-native-ssl-manager';
-
-await updatePinsFromUrl('https://cdn.example.com/ssl-pins-bundle.json', {
-  publicKey: 'Z8S8T6o...=', // from keygen — safe to embed in the app
-  maxAgeMs: 7 * 24 * 3600 * 1000,
-});
-```
-
-Tampered, expired, or rolled-back bundles are rejected (`OTA_INVALID_SIGNATURE`,
-`OTA_EXPIRED`, `OTA_ROLLBACK`) and the active config stays untouched.
-
-### Catch pin drift in CI
-
-```bash
-npx react-native-ssl-manager verify   # exit 1 when an enforced domain's live
-                                       # chain matches none of its pins
-```
-
-Run it on a schedule (cron / CI). It warns 30 days before a configured
-`expirationDate` and prints the served pins whenever a domain drifts — so a
-certificate rotation never silently strands your installed base.
+| Option | Default | Description |
+|--------|---------|-------------|
+| `sslConfigPath` | `ssl_config.json` | Path relative to app root |
+| `enableAndroid` | `true` | NSC + assets |
+| `enableIOS` | `true` | Bundle config into the iOS app |
 
 ---
 
 ## CLI
 
-The package ships a CLI (`npx react-native-ssl-manager <command>`, alias
-`ssl-manager`) built on Node built-ins — no openssl required:
+```sh
+npx react-native-ssl-manager <command>
+# alias: ssl-manager
+```
 
 | Command | Purpose |
 |---------|---------|
-| `pins <host> [--port 443] [--json]` | Print SPKI pins for the live chain + a ready-to-paste config snippet |
-| `pins --pem cert.pem` | Pin from a local PEM certificate (offline) |
-| `verify [--config ssl_config.json]` | Diff live chains against configured pins; exit 1 on enforced drift (CI-friendly); warns 30 days before expiration |
-| `keygen [--out dir]` | Generate an Ed25519 keypair for OTA bundles |
-| `sign --config <path> --key <pem> [--expires-in 30d]` | Author a signed OTA pin bundle for `updatePinsFromUrl` |
+| `pins <host>` | Print live SPKI pins + config snippet |
+| `pins --pem cert.pem` | Pin from a local PEM |
+| `verify [--config …]` | Fail CI when live chain matches none of the pins |
+| `monorepo-setup` | Validate monorepo / pnpm layout + Gradle snippet |
+| `keygen` / `sign` | Author signed OTA pin bundles |
 
-## API reference
+---
 
-### `isSSLManagerAvailable(): boolean`
+## What’s covered?
 
-Whether the native module is linked. When `false`, every other function below
-**throws** (pinning is not active) — rebuild the app so the native module links.
+| Stack | Platform | Covered |
+|-------|----------|---------|
+| `fetch` / `axios` | iOS | ✅ TrustKit |
+| `URLSession` libs | iOS | ✅ |
+| `fetch` / `axios` | Android | ✅ OkHttp + NSC |
+| Coil / Glide / Ktor (OkHttp) | Android | ✅ |
+| Android WebView | Android | ✅ NSC |
+| Cronet | Android | ⚠️ Best-effort |
+| Custom `TrustManager` / Ktor CIO | Android | ❌ |
 
-### `setUseSSLPinning(usePinning: boolean): Promise<void>`
+---
 
-Enable or disable pinning. On iOS the change applies on the next app launch; on
-Android it applies to subsequent requests immediately.
+## Common mistakes
 
-### `getUseSSLPinning(): Promise<boolean>`
+| Mistake | Fix |
+|---------|-----|
+| Only Metro reload after editing pins | **Rebuild** native app |
+| Missing `react-native-nitro-modules` | Install peer + rebuild |
+| New Architecture disabled | Enable New Arch (v2 requirement) |
+| Single pin per host | Always ship **≥ 2** pins |
+| `https://` in domain key | Use host only: `api.example.com` |
+| Expo without config plugin | Add plugin → `prebuild` → run |
+| pnpm: installed only at monorepo root | Install in the **app** package |
+| iOS toggle seems ignored | Force-quit and reopen |
 
-The current pinning state. Defaults to `true` if never changed.
+---
 
-### `setSSLConfig(config: SslPinningConfig | string): Promise<void>`
+## Monorepo & pnpm
 
-Replace the configuration at runtime. Accepts a config object (preferred) or a
-pre-serialized JSON string. Rejects with a coded error on malformed input. iOS
-applies it on the next launch; Android applies it to subsequent requests.
+Install into the package that **builds the native app**:
 
-### `getPinnedDomains(): Promise<string[]>`
+```sh
+pnpm add react-native-ssl-manager react-native-nitro-modules --filter your-app
+cd apps/your-app
+# ssl_config.json + Expo plugin live here
+npx expo prebuild --clean
+```
 
-The domains in the active configuration (runtime config if set, otherwise the
-bundled `ssl_config.json`).
+```sh
+# Recommended in monorepos / pnpm isolated installs
+export SSL_MANAGER_SKIP_POSTINSTALL=1
+```
 
-### `addPinningFailureListener(listener): () => void`
+```sh
+npx react-native-ssl-manager monorepo-setup
+```
 
-Register a listener for pin-validation failures (enforced blocks and audit-mode
-mismatches). Returns an unsubscribe function. Any number of listeners can be
-registered; a listener throwing never affects the others.
+Bare Android (no Expo): use the Gradle snippet from `monorepo-setup` (Node `require.resolve` works with pnpm).
 
-### `updatePinsFromUrl(url, options): Promise<OtaResult>`
+Fixture: [`fixtures/pnpm-monorepo`](./fixtures/pnpm-monorepo).
 
-Fetch an Ed25519-signed pin bundle (authored with the `sign` CLI command),
-verify it against `options.publicKey`, and apply the contained configuration.
-Rejects with a coded `OtaError` on any failure — the active configuration is
-never touched by an invalid bundle. Options: `publicKey` (base64, required),
-`maxAgeMs`, `minIssuedAt`, `fetchFn`.
+---
 
-### Types
+## Troubleshooting
 
-```typescript
+| Symptom | Likely fix |
+|---------|------------|
+| `isSSLManagerAvailable()` is `false` | Link Nitro, enable New Arch, **rebuild** |
+| All pinned calls fail after cert rotate | `pins` + update config + **rebuild** (or OTA) |
+| iOS pin toggle does nothing | Kill app and relaunch |
+| Expo Xcode error adding `ssl_config.json` | Upgrade library; `npx expo prebuild --clean` |
+| Metro fails on Android debug | Keep localhost / `10.0.2.2` cleartext in NSC |
+| pnpm Android path issues | Expo plugin or `monorepo-setup`; skip postinstall |
+
+---
+
+## API
+
+| API | Description |
+|-----|-------------|
+| `isSSLManagerAvailable(): boolean` | Native module linked? |
+| `setUseSSLPinning(boolean): Promise<void>` | On/off (iOS: next launch) |
+| `getUseSSLPinning(): Promise<boolean>` | Current flag (default `true`) |
+| `setSSLConfig(config \| string): Promise<void>` | Runtime config (iOS: next launch) |
+| `getPinnedDomains(): Promise<string[]>` | Active domains |
+| `addPinningFailureListener(fn): () => void` | Subscribe; returns unsubscribe |
+| `updatePinsFromUrl(url, { publicKey }): Promise<OtaResult>` | Apply signed OTA bundle |
+
+<details>
+<summary><strong>TypeScript types</strong></summary>
+
+```ts
 interface SslPinningConfig {
-  sha256Keys: { [domain: string]: string[] }; // each pin prefixed with "sha256/"
+  sha256Keys: { [domain: string]: string[] }
   domains?: {
     [domain: string]: {
-      enforcePinning?: boolean;    // default true; false = audit/report-only
-      expirationDate?: string;     // YYYY-MM-DD, fail-open after this date
-      includeSubdomains?: boolean; // default true
-    };
-  };
-  reportUris?: string[];           // https:// endpoints for failure reports
+      enforcePinning?: boolean
+      expirationDate?: string // YYYY-MM-DD
+      includeSubdomains?: boolean
+    }
+  }
+  reportUris?: string[]
 }
 
 interface PinningFailureEvent {
-  host: string;
-  enforced: boolean;    // false = audit-mode observation
-  servedPins: string[]; // SPKI pins the server presented (Android; empty on iOS)
-  message: string;
-  timestamp: number;    // epoch ms
-}
-
-interface SslPinningError extends Error {
-  code?: string;
-  message: string;
+  host: string
+  enforced: boolean
+  servedPins: string[]
+  message: string
+  timestamp: number
 }
 ```
 
-## Which networking libraries are covered?
-
-| Stack | Platform | Covered | Via |
-|-------|----------|---------|-----|
-| `fetch` / `axios` | iOS | ✅ | TrustKit swizzling |
-| `URLSession` | iOS | ✅ | TrustKit swizzling |
-| `SDWebImage`, `Alamofire`, other `URLSession` libs | iOS | ✅ | TrustKit swizzling |
-| `fetch` / `axios` | Android | ✅ | OkHttp factory + NSC |
-| OkHttp (direct) | Android | ✅ | NSC + `CertificatePinner` |
-| Android WebView | Android | ✅ | NSC |
-| Coil, Glide, Ktor (OkHttp engine) | Android | ✅ | NSC |
-| `HttpURLConnection` | Android | ✅ | NSC |
-| Cronet | Android | ⚠️ best-effort | NSC (only if it uses the platform TrustManager) |
-
-### Known limitations
-
-- **iOS custom `URLSessionDelegate`:** apps with complex custom delegates or
-  other swizzling libraries may conflict with TrustKit (its swizzling is designed
-  for simple delegate setups).
-- **Android Cronet:** no authoritative docs confirm Cronet always respects NSC
-  `<pin-set>`; it may use its own TLS stack. For guaranteed enforcement use
-  `CronetEngine.Builder.addPublicKeyPins()`.
-- **Custom `TrustManager`:** any client that builds its own TrustManager bypasses
-  NSC.
-- **Non-`URLSession` iOS stacks** (e.g. OpenSSL bindings) and **Ktor CIO** are
-  not covered — see [Ktor CIO](#ktor-cio-engine) below.
+</details>
 
 ---
 
 ## Advanced
 
 <details>
-<summary><strong>How it works under the hood</strong></summary>
+<summary><strong>OTA pin rotation</strong></summary>
 
-### iOS — TrustKit swizzling
-
-TrustKit is initialized with `kTSKSwizzleNetworkDelegates: true`, which swizzles
-`URLSession` delegates at the OS level. Most libraries built on `URLSession` are
-covered automatically. Each domain is configured with `IncludeSubdomains`,
-`EnforcePinning`, and its SHA-256 public-key hashes.
-
-### Android — Network Security Config + OkHttp CertificatePinner
-
-Two layers:
-
-1. **OkHttp factory** — intercepts React Native's HTTP client creation and
-   applies a `CertificatePinner` from `ssl_config.json`. Covers `fetch`/`axios`.
-2. **Network Security Config** — a `network_security_config.xml` generated at
-   build time and enforced by the OS for every stack that uses the default
-   `TrustManager`.
-
-```xml
-<network-security-config>
-  <domain-config cleartextTrafficPermitted="true">
-    <domain includeSubdomains="false">localhost</domain>
-    <domain includeSubdomains="false">10.0.2.2</domain>
-    <domain includeSubdomains="false">10.0.3.2</domain>
-  </domain-config>
-  <domain-config cleartextTrafficPermitted="false">
-    <domain includeSubdomains="true">api.example.com</domain>
-    <pin-set>
-      <pin digest="SHA-256">AAAA…=</pin>
-    </pin-set>
-  </domain-config>
-</network-security-config>
+```sh
+npx react-native-ssl-manager keygen
+npx react-native-ssl-manager sign \
+  --config ssl_config.json \
+  --key ssl-manager-ota.key.pem \
+  --expires-in 30d \
+  --out ssl-pins-bundle.json
 ```
 
-The first block keeps local dev hosts (`localhost`, emulator loopbacks
-`10.0.2.2` / `10.0.3.2`) reachable over cleartext so the Metro bundler still
-connects in debug builds. Pins carry no `pin-set` expiration (an expired one
-would silently stop enforcing — expiration is handled by this library's own
-`expirationDate` instead). If your app already has a
-`network_security_config.xml`, the library **merges** its pin-set entries and
-preserves your existing configuration.
+```ts
+import { updatePinsFromUrl } from 'react-native-ssl-manager'
 
-### How the config reaches each platform
+await updatePinsFromUrl('https://cdn.example.com/ssl-pins-bundle.json', {
+  publicKey: '…', // from keygen — safe to ship in the app
+  maxAgeMs: 7 * 24 * 3600 * 1000,
+})
+```
 
-| Platform | Bare RN (CLI) | Expo |
-|----------|---------------|------|
-| iOS | Podspec script phase copies it into the app bundle | Plugin copies it to `ios/` and adds it to the Xcode project |
-| Android (OkHttp) | Postinstall copies it to `assets/` | Plugin copies it to `app/src/main/assets/` |
-| Android (NSC) | Gradle task generates the XML in `res/xml/` | Plugin generates the XML in `res/xml/` |
-| Android (manifest) | Gradle task patches the manifest | Plugin patches the manifest |
-
-Pin format: `sha256/` prefix + base64-encoded SHA-256 of the certificate's
-Subject Public Key Info (SPKI). The `sha256/` prefix is stripped automatically
-when generating the NSC XML.
+Tampered / expired / rolled-back bundles are rejected; the active config is unchanged.
 
 </details>
 
 <details>
-<summary><strong>Pinning native image loaders on Android (Glide, Coil, Ktor)</strong></summary>
+<summary><strong>How it works</strong></summary>
 
-A pinned `OkHttpClient` is available for native code that lives outside React
-Native's networking layer:
+* **iOS:** TrustKit initializes at launch (`+load`) and swizzles `URLSession`.
+* **Android:** Network Security Config (build-time XML) + OkHttp `CertificatePinner` via early startup.
+* Config is **bundled at build time** (Expo plugin / Gradle / pod scripts) → always rebuild after pin changes.
+
+</details>
+
+<details>
+<summary><strong>Android: Glide / Coil / Ktor</strong></summary>
 
 ```kotlin
 import com.usesslpinning.PinnedOkHttpClient
@@ -631,19 +407,15 @@ import com.usesslpinning.PinnedOkHttpClient
 val client = PinnedOkHttpClient.getInstance(context)
 ```
 
-It's a singleton (double-checked locking) that reads `ssl_config.json`, applies a
-`CertificatePinner` when pinning is enabled (and returns a plain client when
-disabled), and invalidates itself when `setUseSSLPinning` changes the state.
-
 **Glide:**
 
 ```kotlin
 @GlideModule
 class MyAppGlideModule : AppGlideModule() {
-    override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
-        val client = PinnedOkHttpClient.getInstance(context)
-        registry.replace(GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(client))
-    }
+  override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
+    val client = PinnedOkHttpClient.getInstance(context)
+    registry.replace(GlideUrl::class.java, InputStream::class.java, OkHttpUrlLoader.Factory(client))
+  }
 }
 ```
 
@@ -651,104 +423,63 @@ class MyAppGlideModule : AppGlideModule() {
 
 ```kotlin
 val imageLoader = ImageLoader.Builder(context)
-    .okHttpClient { PinnedOkHttpClient.getInstance(context) }
-    .build()
+  .okHttpClient { PinnedOkHttpClient.getInstance(context) }
+  .build()
 ```
 
 **Ktor (OkHttp engine):**
 
 ```kotlin
 val httpClient = HttpClient(OkHttp) {
-    engine { preconfigured = PinnedOkHttpClient.getInstance(context) }
+  engine { preconfigured = PinnedOkHttpClient.getInstance(context) }
 }
 ```
 
-#### Ktor CIO engine
-
-CIO uses its own TLS stack — **not covered** by NSC or `PinnedOkHttpClient`. You
-must supply a manual `TrustManager`:
-
-```kotlin
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import java.security.MessageDigest
-import java.security.cert.X509Certificate
-import javax.net.ssl.X509TrustManager
-
-val httpClient = HttpClient(CIO) {
-    engine {
-        https {
-            trustManager = object : X509TrustManager {
-                override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-                override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
-                    val hash = MessageDigest.getInstance("SHA-256").digest(chain[0].publicKey.encoded)
-                    val pin = android.util.Base64.encodeToString(hash, android.util.Base64.NO_WRAP)
-                    val expectedPins = listOf("YOUR_PIN_HERE") // from ssl_config.json
-                    if (pin !in expectedPins) throw javax.net.ssl.SSLPeerUnverifiedException("Certificate pin mismatch")
-                }
-                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-            }
-        }
-    }
-}
-```
+Ktor **CIO** is not covered (own TLS stack).
 
 </details>
 
 <details>
-<summary><strong>Disabling pinning for e2e tests (Detox, mocked backends)</strong></summary>
+<summary><strong>E2E / Detox (disable TrustKit before launch on iOS)</strong></summary>
 
-On iOS, TrustKit installs at launch (before any JS) and swizzles `NSURLSession`
-process-wide, and it can't be undone within a running process. So calling
-`setUseSSLPinning(false)` from JS is **too late** for an e2e run — a mocked
-backend whose certificate doesn't match your pins gets blocked (requests hang).
-
-Use one of these **before-launch** off-switches. They also prevent the swizzling
-so mocked traffic flows normally, and have **no effect on production** unless you
-set them there.
-
-**Detox, per launch (no separate build):**
+JS `setUseSSLPinning(false)` is too late if TrustKit already started.
 
 ```js
 await device.launchApp({
   newInstance: true,
   launchArgs: { RNSSLManagerDisabled: true },
-});
+})
 ```
 
-**Other channels (all equivalent):**
-- `Info.plist` boolean `RNSSLManagerDisabled = YES` (a dedicated test build)
-- Launch argument `--disable-ssl-pinning` (e.g. `xcodebuild` test args)
-- Environment variable `RN_SSL_MANAGER_DISABLED=1` (Xcode scheme / CI)
+Also: `Info.plist` `RNSSLManagerDisabled`, env `RN_SSL_MANAGER_DISABLED=1`.
 
-The flag accepts a real boolean (`<true/>`) or a truthy string (`YES` / `true` /
-`1`). Confirm via the launch log line `SSL pinning DISABLED for this launch via
-<channel>`.
+</details>
 
-> Android doesn't have this problem: pinning applies per request, so
-> `setUseSSLPinning(false)` takes effect immediately, and the generated Network
-> Security Config already permits `localhost`, `10.0.2.2` and `10.0.3.2` for
-> local mock servers.
+<details>
+<summary><strong>Manual pin with openssl</strong></summary>
+
+```sh
+openssl s_client -connect api.example.com:443 -servername api.example.com < /dev/null 2>/dev/null \
+  | openssl x509 -pubkey -noout \
+  | openssl pkey -pubin -outform der \
+  | openssl dgst -sha256 -binary \
+  | openssl enc -base64
+```
+
+Prefix with `sha256/`.
+
+</details>
+
+<details>
+<summary><strong>Known limitations</strong></summary>
+
+* **Cronet** may use its own TLS stack; prefer `CronetEngine.Builder.addPublicKeyPins()` for hard guarantees.
+* **Custom TrustManager** bypasses Android Network Security Config.
+* Complex **custom URLSessionDelegate** / other swizzlers on iOS may conflict with TrustKit.
 
 </details>
 
 ---
-
-## Troubleshooting
-
-| Symptom | Likely cause |
-|---------|--------------|
-| Every request to a pinned domain fails after a cert change | You rotated to a certificate whose pin isn't in `ssl_config.json`. Ship an update that adds the new pin (this is why you keep a backup pin), or use OTA rotation. |
-| `isSSLManagerAvailable()` returns `false` / JS calls throw | The native module isn't linked — rebuild (`pod install` / Gradle sync, or `expo prebuild --clean`). |
-| Pins not applied on Android | Confirm the build ran the setup: `./gradlew checkSslConfig`. |
-| Metro won't connect in a debug build | You likely removed the localhost/emulator cleartext block from a custom `network_security_config.xml`. |
-
-## Roadmap
-
-- `react-native-ssl-manager-glide` — optional artifact with a pre-configured `AppGlideModule`
-- React Native Web support
-- WebView pinning on iOS (`react-native-webview` challenge handling)
-- Certificate Transparency option (Android 16+ `<certificateTransparency>`)
 
 ## Demo
 
@@ -758,20 +489,14 @@ The flag accepts a real boolean (`<true/>`) or a truthy string (`YES` / `true` /
 
 ## Contributing
 
-```bash
+```sh
 git clone https://github.com/huytdps13400/react-native-ssl-manager.git
 cd react-native-ssl-manager
 yarn install
-npm run build
-
-# Example apps
-npm run example:ios
-npm run example:android
-npm run example-expo:ios
-npm run example-expo:android
+yarn test
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
