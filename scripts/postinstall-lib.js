@@ -53,33 +53,37 @@ function detectPackageManager(projectRoot) {
 }
 
 function isMonorepo(projectRoot) {
-  if (fs.existsSync(path.join(projectRoot, 'pnpm-workspace.yaml'))) return true;
-  try {
-    const pkg = JSON.parse(
-      fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8')
-    );
-    if (pkg.workspaces) return true;
-  } catch {
-    // ignore
-  }
-  const parent = path.dirname(projectRoot);
-  if (fs.existsSync(path.join(parent, 'pnpm-workspace.yaml'))) return true;
-  try {
-    const parentPkg = JSON.parse(
-      fs.readFileSync(path.join(parent, 'package.json'), 'utf8')
-    );
-    if (parentPkg.workspaces) return true;
-  } catch {
-    // ignore
+  // Walk up so apps/mobile → apps → workspace root still counts.
+  let dir = path.resolve(projectRoot);
+  while (dir !== path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
+      return true;
+    }
+    try {
+      const pkg = JSON.parse(
+        fs.readFileSync(path.join(dir, 'package.json'), 'utf8')
+      );
+      if (pkg.workspaces) {
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    dir = path.dirname(dir);
   }
   return false;
 }
 
 function isPnpmIsolated(projectRoot) {
-  return (
-    fs.existsSync(path.join(projectRoot, 'node_modules', '.pnpm')) ||
-    fs.existsSync(path.join(path.dirname(projectRoot), 'node_modules', '.pnpm'))
-  );
+  // Walk up for monorepos where node_modules/.pnpm lives at the workspace root.
+  let dir = path.resolve(projectRoot);
+  while (dir !== path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, 'node_modules', '.pnpm'))) {
+      return true;
+    }
+    dir = path.dirname(dir);
+  }
+  return false;
 }
 
 function buildApplyFromLine(androidAppDir, gradleScriptPath) {

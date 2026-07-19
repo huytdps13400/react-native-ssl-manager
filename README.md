@@ -239,6 +239,19 @@ library never touches `android/app/build.gradle` or the manifest.
    - Android: `android/app/src/main/assets/ssl_config.json` and
      `res/xml/network_security_config.xml`
 
+5. Validate the layout (CI-friendly):
+
+   ```bash
+   # from the app package
+   npx react-native-ssl-manager monorepo-setup
+   # from this repo
+   npm run test:monorepo
+   ```
+
+A checked-in fixture lives at [`fixtures/pnpm-monorepo`](./fixtures/pnpm-monorepo)
+(pnpm workspace + `apps/mobile` with plugin, `ssl_config.json`, Metro singleton
+config, and a stub `android/app/build.gradle`).
+
 ### Bare RN + pnpm (no Expo)
 
 In `android/app/build.gradle`, apply the setup script with a path that works

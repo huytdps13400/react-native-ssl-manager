@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "ssl-monorepo-mobile",
+    "slug": "ssl-monorepo-mobile",
+    "version": "1.0.0",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.fixture.sslmonorepo"
+    },
+    "android": {
+      "package": "com.fixture.sslmonorepo"
+    },
+    "plugins": [
+      [
+        "react-native-ssl-manager",
+        {
+          "sslConfigPath": "./ssl_config.json"
+        }
+      ]
+    ]
+  }
+}

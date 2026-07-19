@@ -1,0 +1,12 @@
+// Stub consumer android/app/build.gradle for monorepo tests.
+// After `expo prebuild` or bare RN init this file is real; the apply line
+// is validated by scripts/monorepo-setup.js and __tests__/monorepo-fixture.test.js
+
+android {
+    namespace "com.fixture.sslmonorepo"
+}
+
+// react-native-ssl-manager: paste the apply line from
+//   npx react-native-ssl-manager monorepo-setup
+// Example (relative path is computed for your install layout):
+// apply from: "../../../node_modules/react-native-ssl-manager/android/ssl-pinning-setup.gradle"

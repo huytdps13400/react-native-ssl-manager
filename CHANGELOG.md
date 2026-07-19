@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Feature test suite** — `npm run test:features` matrix (JS API mocked against
   Nitro HybridObject, OTA apply path, listeners) + example-expo in-app
   **Run Feature Suite** button for device checks.
+- **Monorepo / pnpm support** — `fixtures/pnpm-monorepo` workspace fixture,
+  `scripts/monorepo-utils.js` + `npx react-native-ssl-manager monorepo-setup`,
+  Gradle `ssl_config.json` search depths for `apps/*` layouts, and
+  `npm run test:monorepo`.
 - **Audit (report-only) mode** — per-domain `enforcePinning: false` in the new
   optional `domains` config map: pins are validated and mismatches reported,
   but connections are never blocked. iOS maps to TrustKit

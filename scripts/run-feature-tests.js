@@ -70,6 +70,11 @@ const MATRIX = [
     suites: ['postinstall-monorepo.test.js', 'postinstall-nsc.test.js'],
   },
   {
+    feature: 'pnpm monorepo fixture + monorepo-setup CLI',
+    suites: ['monorepo-fixture.test.js'],
+    device: 'fixtures/pnpm-monorepo + npm run test:monorepo',
+  },
+  {
     feature: 'CLI pins / verify / sign helpers',
     suites: ['cli-utils.test.js', 'ota-verify.test.js'],
   },

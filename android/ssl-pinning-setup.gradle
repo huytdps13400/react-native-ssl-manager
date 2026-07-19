@@ -3,11 +3,17 @@ import groovy.xml.XmlNodePrinter
 import groovy.xml.MarkupBuilder
 
 def findSslConfigFile() {
+    // Search order covers classic (android/ under app root), Expo prebuild,
+    // and monorepo apps (apps/mobile/android → app root + workspace root).
     def candidates = [
-        file("${project.rootDir}/../ssl_config.json"), // repo root (android/ là thư mục con)
-        file("${project.rootDir}/ssl_config.json"),    // android root
-        file("${projectDir}/../../ssl_config.json"),   // monorepo fallback
-        file("${projectDir}/../ssl_config.json")
+        file("${project.rootDir}/../ssl_config.json"),     // app root (…/apps/mobile)
+        file("${project.rootDir}/ssl_config.json"),        // android/
+        file("${projectDir}/../../ssl_config.json"),       // app root via app/
+        file("${projectDir}/../ssl_config.json"),          // android/ via app/
+        file("${project.rootDir}/../../ssl_config.json"),  // monorepo workspace root
+        file("${project.rootDir}/../../../ssl_config.json"), // deeper monorepo
+        file("${projectDir}/../../../ssl_config.json"),
+        file("${projectDir}/../../../../ssl_config.json")
     ]
     for (f in candidates) {
         if (f.exists()) return f

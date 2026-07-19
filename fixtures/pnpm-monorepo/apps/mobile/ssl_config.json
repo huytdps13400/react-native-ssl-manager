@@ -1,0 +1,14 @@
+{
+  "sha256Keys": {
+    "api.example.com": [
+      "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+    ]
+  },
+  "domains": {
+    "api.example.com": {
+      "enforcePinning": true,
+      "includeSubdomains": true
+    }
+  }
+}
