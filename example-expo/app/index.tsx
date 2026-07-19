@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -20,6 +21,11 @@ import {
   summarizeSuite,
   type FeatureCaseResult,
 } from './featureSuite';
+import {
+  mitmHumanSteps,
+  runMitmAppSteps,
+  type MitmStepResult,
+} from './mitmChecklist';
 
 interface TestResult {
   url: string;
@@ -35,6 +41,7 @@ export default function App() {
   const [domains, setDomains] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [featureResults, setFeatureResults] = useState<FeatureCaseResult[]>([]);
+  const [mitmResults, setMitmResults] = useState<MitmStepResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTest, setCurrentTest] = useState('');
 
@@ -99,6 +106,13 @@ export default function App() {
         timestamp: new Date().toLocaleTimeString(),
         sslEnabled: value,
       });
+      if (Platform.OS === 'ios') {
+        Alert.alert(
+          'iOS: restart required',
+          'TrustKit applies pin on/off on the next cold start.\n\nForce-quit this app and reopen before testing with Proxyman.',
+          [{ text: 'OK' }]
+        );
+      }
     } catch (error) {
       addTestResult({
         url: 'SSL Setting Change',
@@ -186,6 +200,81 @@ export default function App() {
     }
   };
 
+  const onRunMitmDirect = async () => {
+    setIsLoading(true);
+    setCurrentTest('MITM direct (no proxy)');
+    try {
+      const results = await runMitmAppSteps({ mode: 'direct' });
+      setMitmResults(results);
+      await refreshNativeStatus();
+      const failed = results.filter((r) => !r.ok).length;
+      addTestResult({
+        url: 'MITM checklist (direct)',
+        status: failed === 0 ? 'success' : 'error',
+        message: `${results.length - failed}/${results.length} app steps OK`,
+        timestamp: new Date().toLocaleTimeString(),
+        sslEnabled: true,
+      });
+      Alert.alert(
+        'MITM direct path',
+        failed === 0
+          ? 'Pin ON + real cert: GraphQL OK.\n\nNext: enable Proxyman and use "MITM + proxy steps".'
+          : results
+              .filter((r) => !r.ok)
+              .map((r) => `• ${r.title}: ${r.detail}`)
+              .join('\n')
+      );
+    } catch (error) {
+      addTestResult({
+        url: 'MITM checklist (direct)',
+        status: 'error',
+        message: String(error),
+        timestamp: new Date().toLocaleTimeString(),
+        sslEnabled: isSSLEnabled,
+      });
+    } finally {
+      setIsLoading(false);
+      setCurrentTest('');
+    }
+  };
+
+  const onShowMitmProxyGuide = () => {
+    Alert.alert(
+      'MITM + Proxyman (manual)',
+      mitmHumanSteps().join('\n\n'),
+      [
+        {
+          text: 'Run app steps (proxy mode)',
+          onPress: async () => {
+            setIsLoading(true);
+            setCurrentTest('MITM proxy mode');
+            try {
+              const results = await runMitmAppSteps({ mode: 'proxy' });
+              setMitmResults(results);
+              await refreshNativeStatus();
+              Alert.alert(
+                'App steps done',
+                'If iOS: force-quit + reopen with Proxyman SSL ON, then tap UAT GraphQL again.\n\n' +
+                  results
+                    .map(
+                      (r) =>
+                        `${r.ok ? '✓' : '✗'} ${r.title}${
+                          r.needsRestart ? ' [restart]' : ''
+                        }`
+                    )
+                    .join('\n')
+              );
+            } finally {
+              setIsLoading(false);
+              setCurrentTest('');
+            }
+          },
+        },
+        { text: 'OK', style: 'cancel' },
+      ]
+    );
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -233,6 +322,8 @@ export default function App() {
           style={[styles.button, styles.primaryButton]}
           disabled={isLoading}
           accessibilityLabel="Run Feature Suite"
+          accessibilityRole="button"
+          testID="btn-feature-suite"
         >
           <Text style={styles.buttonText}>Run Feature Suite</Text>
         </TouchableOpacity>
@@ -248,6 +339,55 @@ export default function App() {
               >
                 <Text style={styles.suiteTitle}>
                   {r.ok ? 'PASS' : 'FAIL'} · {r.title}
+                </Text>
+                <Text style={styles.suiteDetail}>{r.detail}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.testSection}>
+        <Text style={styles.sectionTitle}>MITM checklist (rebuild test)</Text>
+        <Text style={styles.hint}>
+          Use public demo HTTPS only. Point Proxyman at your own pinned hosts
+          from ssl_config.json after npm run test:rebuild.
+        </Text>
+        <View style={styles.buttonGrid}>
+          <TouchableOpacity
+            onPress={onRunMitmDirect}
+            style={[styles.button, styles.successButton]}
+            disabled={isLoading}
+            accessibilityLabel="MITM direct path"
+            accessibilityRole="button"
+            testID="btn-mitm-direct"
+          >
+            <Text style={styles.buttonText}>1. Pin ON happy path (no proxy)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onShowMitmProxyGuide}
+            style={[styles.button, styles.warningButton]}
+            disabled={isLoading}
+            accessibilityLabel="MITM proxy guide"
+            accessibilityRole="button"
+            testID="btn-mitm-proxy"
+          >
+            <Text style={styles.buttonText}>2. Proxyman ON/OFF guide</Text>
+          </TouchableOpacity>
+        </View>
+        {mitmResults.length > 0 && (
+          <View style={styles.suiteList}>
+            {mitmResults.map((r) => (
+              <View
+                key={r.id}
+                style={[
+                  styles.suiteRow,
+                  r.ok ? styles.suiteOk : styles.suiteFail,
+                ]}
+              >
+                <Text style={styles.suiteTitle}>
+                  {r.ok ? 'PASS' : 'FAIL'} · {r.title}
+                  {r.needsRestart ? ' · restart iOS' : ''}
                 </Text>
                 <Text style={styles.suiteDetail}>{r.detail}</Text>
               </View>
@@ -412,7 +552,14 @@ const styles = StyleSheet.create({
   successButton: { backgroundColor: '#27AE60' },
   infoButton: { backgroundColor: '#3498DB' },
   clearButton: { backgroundColor: '#95A5A6' },
+  warningButton: { backgroundColor: '#E67E22' },
   buttonText: { color: 'white', fontSize: 15, fontWeight: '700' },
+  hint: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    marginBottom: 10,
+    lineHeight: 18,
+  },
   suiteList: { marginTop: 12, gap: 8 },
   suiteRow: {
     borderRadius: 10,

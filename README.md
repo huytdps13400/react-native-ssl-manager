@@ -296,6 +296,19 @@ npx expo prebuild --clean --platform ios
 # expect: ios/<Project>/ssl_config.json present
 ```
 
+**Rebuild + pin / MITM testing (example-expo):**
+
+```bash
+# From library root — live pin verify, sync config, rebuild iOS, assert .app bundle
+npm run test:rebuild
+
+# Verify only (no Xcode rebuild)
+npm run test:rebuild:verify
+```
+
+Then in the app: **MITM checklist** → happy path (no proxy) / Proxyman ON-OFF guide.
+iOS: after toggling SSL Pinning, **force-quit and reopen** before Proxyman tests.
+
 **Nitro runtime (device/simulator):** rebuild a host app that depends on both
 `react-native-ssl-manager` and `react-native-nitro-modules`, then:
 

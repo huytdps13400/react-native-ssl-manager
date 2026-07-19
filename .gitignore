@@ -71,6 +71,12 @@ android/keystores/debug.keystore
 # Expo
 .expo/
 
+# Local customer SSL configs / secrets (never commit real pins or API hosts)
+**/ssl_config.local.json
+**/ssl_config.private.json
+**/*satra*
+example-expo/ssl_config.satra*.json
+
 # Turborepo
 .turbo/
 

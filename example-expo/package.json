@@ -9,7 +9,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "prebuild": "expo prebuild --clean"
+    "prebuild": "expo prebuild --clean",
+    "test:rebuild": "node ../scripts/rebuild-and-test.js",
+    "test:rebuild:verify": "node ../scripts/rebuild-and-test.js --no-build"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

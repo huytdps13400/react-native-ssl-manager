@@ -1,0 +1,22 @@
+# Autonomous SSL smoke test for example-expo (demo hosts only)
+appId: com.huymobilekyanondigital.exampleexpo
+---
+- launchApp:
+    clearState: false
+- openLink: exp+example-expo://expo-development-client/?url=http://127.0.0.1:8081
+- extendedWaitUntil:
+    visible: "SSL Manager Test App"
+    timeout: 90000
+- assertVisible: "linked"
+- assertVisible: "ENABLED"
+- takeScreenshot: 01-home-pin-on
+- scrollUntilVisible:
+    element:
+      text: "Test public HTTPS"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Test public HTTPS"
+- extendedWaitUntil:
+    visible: ".*HTTP 200.*|.*FAILED.*"
+    timeout: 45000
+- takeScreenshot: 02-public-https
