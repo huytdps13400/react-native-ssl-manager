@@ -45,6 +45,7 @@
     "clean": "expo-module clean",
     "lint": "expo-module lint",
     "test": "expo-module test",
+    "test:features": "node scripts/run-feature-tests.js",
     "prepare": "echo 'Skipping prepare script'",
     "typecheck": "tsc --noEmit",
     "specs": "nitrogen",

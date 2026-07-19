@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Expo plugin iOS prebuild crash** — `withXcodeProject` no longer calls the
+  `xcode` package's `addResourceFile`, which throws
+  `Cannot read properties of null (reading 'path')` on modern Expo/RN projects
+  that have no PBXGroup named `Resources`. The plugin now uses
+  `IOSConfig.XcodeUtils.addResourceFileToGroup` so `ssl_config.json` is added
+  to the app group and the Resources build phase correctly.
+- **pnpm / monorepo postinstall safety** — `postinstall` no longer writes a
+  brittle `apply from: '../../node_modules/react-native-ssl-manager/...'` line
+  into consumer `build.gradle` when monorepo or pnpm-isolated `node_modules`
+  are detected. Skip entirely with `SSL_MANAGER_SKIP_POSTINSTALL=1`. Expo apps
+  should rely on the config plugin only.
+
 ### Added
+- Contract tests for the Expo Xcode plugin path, Nitro HybridObject surface,
+  and monorepo/pnpm postinstall helpers; README monorepo & testing guide.
+- **Feature test suite** — `npm run test:features` matrix (JS API mocked against
+  Nitro HybridObject, OTA apply path, listeners) + example-expo in-app
+  **Run Feature Suite** button for device checks.
 - **Audit (report-only) mode** — per-domain `enforcePinning: false` in the new
   optional `domains` config map: pins are validated and mismatches reported,
   but connections are never blocked. iOS maps to TrustKit

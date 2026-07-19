@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -10,7 +9,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getUseSSLPinning, setUseSSLPinning } from 'react-native-ssl-manager';
+import {
+  getPinnedDomains,
+  getUseSSLPinning,
+  isSSLManagerAvailable,
+  setUseSSLPinning,
+} from 'react-native-ssl-manager';
+import {
+  runFeatureSuite,
+  summarizeSuite,
+  type FeatureCaseResult,
+} from './featureSuite';
 
 interface TestResult {
   url: string;
@@ -21,110 +30,114 @@ interface TestResult {
 }
 
 export default function App() {
-  const [imageUri, setImageUri] = useState<string>('');
-  const [isSSLEnabled, setIsSSLEnabled] = useState<boolean>(false);
+  const [isSSLEnabled, setIsSSLEnabled] = useState(false);
+  const [nativeAvailable, setNativeAvailable] = useState(false);
+  const [domains, setDomains] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [currentTest, setCurrentTest] = useState<string>('');
+  const [featureResults, setFeatureResults] = useState<FeatureCaseResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentTest, setCurrentTest] = useState('');
 
-  useEffect(() => {
-    initializeSSLStatus();
+  const addTestResult = useCallback((result: TestResult) => {
+    setTestResults((prev) => [result, ...prev.slice(0, 14)]);
   }, []);
 
-  const initializeSSLStatus = async () => {
+  const refreshNativeStatus = useCallback(async () => {
+    const available = isSSLManagerAvailable();
+    setNativeAvailable(available);
+    if (!available) {
+      setIsSSLEnabled(false);
+      setDomains([]);
+      return;
+    }
     try {
-      const value = await getUseSSLPinning();
-      setIsSSLEnabled(value);
-      addTestResult({
-        url: 'SSL Manager Initialization',
-        status: 'success',
-        message: `SSL Pinning is ${value ? 'ENABLED' : 'DISABLED'}`,
-        timestamp: new Date().toLocaleTimeString(),
-        sslEnabled: value,
-      });
+      const [enabled, pinned] = await Promise.all([
+        getUseSSLPinning(),
+        getPinnedDomains(),
+      ]);
+      setIsSSLEnabled(enabled);
+      setDomains(pinned);
     } catch (error) {
       addTestResult({
-        url: 'SSL Manager Initialization',
+        url: 'Refresh status',
         status: 'error',
-        message: `Failed to get SSL status: ${error}`,
+        message: String(error),
         timestamp: new Date().toLocaleTimeString(),
         sslEnabled: false,
       });
     }
-  };
+  }, [addTestResult]);
 
-  const addTestResult = (result: TestResult) => {
-    setTestResults((prev) => [result, ...prev.slice(0, 9)]); // Keep last 10 results
-  };
+  useEffect(() => {
+    (async () => {
+      await refreshNativeStatus();
+      const available = isSSLManagerAvailable();
+      addTestResult({
+        url: 'SSL Manager Initialization',
+        status: available ? 'success' : 'error',
+        message: available
+          ? `Nitro linked. Pinning ${
+              (await getUseSSLPinning().catch(() => false))
+                ? 'ENABLED'
+                : 'DISABLED'
+            }`
+          : 'Native module NOT available — rebuild the app',
+        timestamp: new Date().toLocaleTimeString(),
+        sslEnabled: false,
+      });
+    })();
+  }, [addTestResult, refreshNativeStatus]);
 
-  // Handle SSL Pinning toggle
   const toggleSSLPinning = async (value: boolean) => {
     try {
       setIsSSLEnabled(value);
       await setUseSSLPinning(value);
-
       addTestResult({
         url: 'SSL Setting Change',
         status: 'success',
-        message: `SSL Pinning ${value ? 'ENABLED' : 'DISABLED'} successfully`,
+        message: `SSL Pinning ${value ? 'ENABLED' : 'DISABLED'}`,
         timestamp: new Date().toLocaleTimeString(),
         sslEnabled: value,
       });
-
-      Alert.alert(
-        'SSL Pinning Updated',
-        `SSL Pinning is now ${value ? 'ENABLED' : 'DISABLED'}.\nTry making API calls to see the difference!`,
-        [{ text: 'OK' }]
-      );
     } catch (error) {
       addTestResult({
         url: 'SSL Setting Change',
         status: 'error',
-        message: `Failed to update SSL setting: ${error}`,
+        message: `Failed: ${error}`,
         timestamp: new Date().toLocaleTimeString(),
         sslEnabled: isSSLEnabled,
       });
     }
   };
 
-  // Test API calls with different URLs
   const testApiCall = async (url: string, description: string) => {
     setIsLoading(true);
     setCurrentTest(description);
-
     const startTime = Date.now();
-
     try {
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers: { Accept: 'application/json' },
       });
-
       const responseTime = Date.now() - startTime;
-      const json = await response.json();
-
-      // Set image if available
-      if (json?.data?.banner_uri) {
-        setImageUri(json.data.banner_uri);
-      }
-
+      const text = await response.text();
       addTestResult({
         url: description,
-        status: 'success',
-        message: `✅ SUCCESS (${responseTime}ms)\nStatus: ${response.status}\nSSL: ${isSSLEnabled ? 'ENABLED' : 'DISABLED'}\nResponse: ${JSON.stringify(json).substring(0, 100)}...`,
+        status: response.ok ? 'success' : 'error',
+        message: `HTTP ${response.status} (${responseTime}ms)\nSSL: ${
+          isSSLEnabled ? 'ON' : 'OFF'
+        }\n${text.slice(0, 120)}…`,
         timestamp: new Date().toLocaleTimeString(),
         sslEnabled: isSSLEnabled,
       });
     } catch (error) {
       const responseTime = Date.now() - startTime;
-
       addTestResult({
         url: description,
         status: 'error',
-        message: `❌ FAILED (${responseTime}ms)\nSSL: ${isSSLEnabled ? 'ENABLED' : 'DISABLED'}\nError: ${error instanceof Error ? error.message : String(error)}`,
+        message: `FAILED (${responseTime}ms)\nSSL: ${
+          isSSLEnabled ? 'ON' : 'OFF'
+        }\n${error instanceof Error ? error.message : String(error)}`,
         timestamp: new Date().toLocaleTimeString(),
         sslEnabled: isSSLEnabled,
       });
@@ -134,9 +147,43 @@ export default function App() {
     }
   };
 
-  const clearResults = () => {
-    setTestResults([]);
-    setImageUri('');
+  const onRunFeatureSuite = async () => {
+    setIsLoading(true);
+    setCurrentTest('Feature Suite');
+    try {
+      const results = await runFeatureSuite();
+      setFeatureResults(results);
+      const { passed, failed, total } = summarizeSuite(results);
+      await refreshNativeStatus();
+      addTestResult({
+        url: 'Feature Suite',
+        status: failed === 0 ? 'success' : 'error',
+        message: `${passed}/${total} passed` + (failed ? ` (${failed} failed)` : ''),
+        timestamp: new Date().toLocaleTimeString(),
+        sslEnabled: isSSLEnabled,
+      });
+      Alert.alert(
+        'Feature Suite',
+        `${passed}/${total} passed` +
+          (failed
+            ? `\nFailed: ${results
+                .filter((r) => !r.ok)
+                .map((r) => r.title)
+                .join(', ')}`
+            : '\nAll automated in-app checks green.')
+      );
+    } catch (error) {
+      addTestResult({
+        url: 'Feature Suite',
+        status: 'error',
+        message: String(error),
+        timestamp: new Date().toLocaleTimeString(),
+        sslEnabled: isSSLEnabled,
+      });
+    } finally {
+      setIsLoading(false);
+      setCurrentTest('');
+    }
   };
 
   return (
@@ -144,11 +191,19 @@ export default function App() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
     >
-      <Text style={styles.title}>🔒 SSL Manager Test App</Text>
+      <Text style={styles.title}>SSL Manager Test App</Text>
 
-      {/* SSL Control Panel */}
       <View style={styles.controlPanel}>
-        <Text style={styles.panelTitle}>🎛️ SSL Control Panel</Text>
+        <Text style={styles.panelTitle}>Native status</Text>
+        <Text style={styles.meta}>
+          Nitro:{' '}
+          <Text style={nativeAvailable ? styles.enabled : styles.disabled}>
+            {nativeAvailable ? 'linked' : 'NOT linked'}
+          </Text>
+        </Text>
+        <Text style={styles.meta}>
+          Domains: {domains.length ? domains.join(', ') : '(none yet)'}
+        </Text>
         <View style={styles.sslContainer}>
           <View style={styles.sslInfo}>
             <Text style={styles.label}>SSL Pinning</Text>
@@ -158,7 +213,7 @@ export default function App() {
                 isSSLEnabled ? styles.enabled : styles.disabled,
               ]}
             >
-              {isSSLEnabled ? '🔒 ENABLED' : '🔓 DISABLED'}
+              {isSSLEnabled ? 'ENABLED' : 'DISABLED'}
             </Text>
           </View>
           <Switch
@@ -166,79 +221,95 @@ export default function App() {
             onValueChange={toggleSSLPinning}
             trackColor={{ false: '#FF6B6B', true: '#4ECDC4' }}
             thumbColor={isSSLEnabled ? '#45B7B8' : '#FF7979'}
-            disabled={isLoading}
+            disabled={isLoading || !nativeAvailable}
           />
         </View>
       </View>
 
-      {/* Test Buttons */}
       <View style={styles.testSection}>
-        <Text style={styles.sectionTitle}>🧪 API Tests</Text>
+        <Text style={styles.sectionTitle}>Feature suite</Text>
+        <TouchableOpacity
+          onPress={onRunFeatureSuite}
+          style={[styles.button, styles.primaryButton]}
+          disabled={isLoading}
+          accessibilityLabel="Run Feature Suite"
+        >
+          <Text style={styles.buttonText}>Run Feature Suite</Text>
+        </TouchableOpacity>
+        {featureResults.length > 0 && (
+          <View style={styles.suiteList}>
+            {featureResults.map((r) => (
+              <View
+                key={r.id}
+                style={[
+                  styles.suiteRow,
+                  r.ok ? styles.suiteOk : styles.suiteFail,
+                ]}
+              >
+                <Text style={styles.suiteTitle}>
+                  {r.ok ? 'PASS' : 'FAIL'} · {r.title}
+                </Text>
+                <Text style={styles.suiteDetail}>{r.detail}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
 
+      <View style={styles.testSection}>
+        <Text style={styles.sectionTitle}>API smoke</Text>
         <View style={styles.buttonGrid}>
           <TouchableOpacity
             onPress={() =>
               testApiCall(
                 'https://jsonplaceholder.typicode.com/posts/1',
-                'Pinned API (Should Work)'
+                'Unpinned public API'
               )
             }
             style={[styles.button, styles.successButton]}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>✅ Test Pinned API</Text>
+            <Text style={styles.buttonText}>Test public HTTPS</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() =>
-              testApiCall(
-                'https://jsonplaceholder.typicode.com/posts/1',
-                'Non-Pinned API (Should Fail if SSL ON)'
-              )
-            }
-            style={[styles.button, styles.warningButton]}
-            disabled={isLoading}
-          >
-            <Text style={styles.buttonText}>⚠️ Test Non-Pinned API</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() =>
-              testApiCall('https://httpbin.org/json', 'HTTP Test API')
+              testApiCall('https://httpbin.org/json', 'httpbin JSON')
             }
             style={[styles.button, styles.infoButton]}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>🌐 Test HTTP API</Text>
+            <Text style={styles.buttonText}>Test httpbin</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={clearResults}
+            onPress={() => {
+              setTestResults([]);
+              setFeatureResults([]);
+            }}
             style={[styles.button, styles.clearButton]}
             disabled={isLoading}
           >
-            <Text style={styles.buttonText}>🗑️ Clear Results</Text>
+            <Text style={styles.buttonText}>Clear results</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Loading Indicator */}
       {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4ECDC4" />
-          <Text style={styles.loadingText}>Testing: {currentTest}</Text>
+          <Text style={styles.loadingText}>Running: {currentTest}</Text>
         </View>
       )}
 
-      {/* Test Results */}
       {testResults.length > 0 && (
         <View style={styles.resultsSection}>
           <Text style={styles.sectionTitle}>
-            📊 Test Results ({testResults.length})
+            Log ({testResults.length})
           </Text>
           {testResults.map((result, index) => (
             <View
-              key={index}
+              key={`${result.url}-${index}`}
               style={[
                 styles.resultCard,
                 result.status === 'success'
@@ -260,284 +331,144 @@ export default function App() {
               >
                 {result.message}
               </Text>
-              <View style={styles.resultFooter}>
-                <Text
-                  style={[
-                    styles.sslBadge,
-                    result.sslEnabled ? styles.sslOn : styles.sslOff,
-                  ]}
-                >
-                  SSL: {result.sslEnabled ? 'ON' : 'OFF'}
-                </Text>
-              </View>
             </View>
           ))}
         </View>
       )}
 
-      {/* Image Display */}
-      {imageUri !== '' && (
-        <View style={styles.imageContainer}>
-          <Text style={styles.sectionTitle}>📸 API Response Image</Text>
-          <Image source={{ uri: imageUri }} style={styles.image} />
-        </View>
-      )}
-
-      {/* Instructions */}
       <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>📝 How to Test</Text>
+        <Text style={styles.instructionsTitle}>How to test features</Text>
         <Text style={styles.instructionsText}>
-          1. 🔓 Turn OFF SSL Pinning → Test all APIs (should work)
+          1. Confirm Nitro shows “linked” (rebuild if not).
         </Text>
         <Text style={styles.instructionsText}>
-          2. 🔒 Turn ON SSL Pinning → Test Pinned API (should work)
+          2. Tap “Run Feature Suite” — covers availability, toggle, setSSLConfig,
+          domains, failure listener, OTA helper, fetch.
         </Text>
         <Text style={styles.instructionsText}>
-          3. 🔒 Test Non-Pinned API (should fail with SSL error)
+          3. From repo: `npm run test:features` for the unit matrix.
         </Text>
         <Text style={styles.instructionsText}>
-          4. 📊 Check results below to see SSL Pinning in action!
+          4. MITM / wrong-pin block still needs Charles/Proxyman (manual).
         </Text>
       </View>
     </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 30,
-  },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  scrollContent: { padding: 16, paddingBottom: 30 },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     color: '#2C3E50',
-    letterSpacing: 0.5,
   },
-
-  // Control Panel
   controlPanel: {
     backgroundColor: 'white',
     borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   panelTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#34495E',
-    marginBottom: 15,
-    textAlign: 'center',
+    marginBottom: 8,
   },
+  meta: { fontSize: 13, color: '#566573', marginBottom: 4 },
   sslContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 10,
   },
-  sslInfo: {
-    flex: 1,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 5,
-  },
-  status: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  enabled: {
-    color: '#27AE60',
-  },
-  disabled: {
-    color: '#E74C3C',
-  },
-
-  // Test Section
-  testSection: {
-    marginBottom: 20,
-  },
+  sslInfo: { flex: 1 },
+  label: { fontSize: 16, fontWeight: '600', color: '#2C3E50' },
+  status: { fontSize: 14, fontWeight: '700', marginTop: 2 },
+  enabled: { color: '#27AE60' },
+  disabled: { color: '#E74C3C' },
+  testSection: { marginBottom: 16 },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#2C3E50',
-    marginBottom: 15,
-    textAlign: 'center',
+    marginBottom: 12,
   },
-  buttonGrid: {
-    gap: 12,
-  },
+  buttonGrid: { gap: 10 },
   button: {
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryButton: { backgroundColor: '#6C5CE7' },
+  successButton: { backgroundColor: '#27AE60' },
+  infoButton: { backgroundColor: '#3498DB' },
+  clearButton: { backgroundColor: '#95A5A6' },
+  buttonText: { color: 'white', fontSize: 15, fontWeight: '700' },
+  suiteList: { marginTop: 12, gap: 8 },
+  suiteRow: {
+    borderRadius: 10,
+    padding: 12,
+    borderLeftWidth: 4,
+    backgroundColor: 'white',
+  },
+  suiteOk: { borderLeftColor: '#27AE60' },
+  suiteFail: { borderLeftColor: '#E74C3C' },
+  suiteTitle: { fontWeight: '700', color: '#2C3E50', marginBottom: 4 },
+  suiteDetail: { fontSize: 12, color: '#566573', fontFamily: 'monospace' },
+  loadingContainer: {
+    backgroundColor: 'white',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    marginBottom: 16,
   },
-  successButton: {
-    backgroundColor: '#27AE60',
-  },
-  warningButton: {
-    backgroundColor: '#F39C12',
-  },
-  infoButton: {
-    backgroundColor: '#3498DB',
-  },
-  clearButton: {
-    backgroundColor: '#95A5A6',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-
-  // Loading
-  loadingContainer: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#7F8C8D',
-    fontWeight: '600',
-  },
-
-  // Results
-  resultsSection: {
-    marginBottom: 20,
-  },
+  loadingText: { marginTop: 8, color: '#7F8C8D', fontWeight: '600' },
+  resultsSection: { marginBottom: 16 },
   resultCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 14,
+    marginBottom: 10,
     borderLeftWidth: 4,
   },
-  successCard: {
-    borderLeftColor: '#27AE60',
-  },
-  errorCard: {
-    borderLeftColor: '#E74C3C',
-  },
+  successCard: { borderLeftColor: '#27AE60' },
+  errorCard: { borderLeftColor: '#E74C3C' },
   resultHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C3E50',
-    flex: 1,
-    marginRight: 10,
-  },
-  resultTime: {
-    fontSize: 12,
-    color: '#7F8C8D',
-    fontWeight: '500',
-  },
-  resultMessage: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 10,
-    fontFamily: 'monospace',
-  },
-  successText: {
-    color: '#27AE60',
-  },
-  errorText: {
-    color: '#E74C3C',
-  },
-  resultFooter: {
-    alignItems: 'flex-end',
-  },
-  sslBadge: {
-    fontSize: 12,
-    fontWeight: '700',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  sslOn: {
-    backgroundColor: '#D5EDDA',
-    color: '#155724',
-  },
-  sslOff: {
-    backgroundColor: '#F8D7DA',
-    color: '#721C24',
-  },
-
-  // Image
-  imageContainer: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  image: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-    resizeMode: 'cover',
-  },
-
-  // Instructions
+  resultTitle: { fontSize: 15, fontWeight: '600', color: '#2C3E50', flex: 1 },
+  resultTime: { fontSize: 12, color: '#7F8C8D' },
+  resultMessage: { fontSize: 13, lineHeight: 18, fontFamily: 'monospace' },
+  successText: { color: '#1E8449' },
+  errorText: { color: '#C0392B' },
   instructionsContainer: {
     backgroundColor: '#EBF3FD',
-    borderRadius: 15,
-    padding: 20,
-    borderLeftWidth: 5,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
     borderLeftColor: '#3498DB',
   },
   instructionsTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 15,
+    marginBottom: 10,
     color: '#2980B9',
-    textAlign: 'center',
   },
   instructionsText: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#34495E',
-    marginBottom: 8,
-    lineHeight: 22,
-    fontWeight: '500',
+    marginBottom: 6,
+    lineHeight: 20,
   },
 });

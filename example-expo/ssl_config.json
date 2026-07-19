@@ -1,16 +1,22 @@
 {
-  "domains": {
-    "development": "api.dev.example.com",
-    "production": "api.example.com"
-  },
   "sha256Keys": {
-    "api.dev.example.com": [
-      "sha256/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=",
-      "sha256/YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY="
-    ],
     "api.example.com": [
-      "sha256/ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ=",
-      "sha256/WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW="
+      "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+    ],
+    "jsonplaceholder.typicode.com": [
+      "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
     ]
+  },
+  "domains": {
+    "api.example.com": {
+      "enforcePinning": true,
+      "includeSubdomains": true
+    },
+    "jsonplaceholder.typicode.com": {
+      "enforcePinning": false,
+      "includeSubdomains": true
+    }
   }
 }

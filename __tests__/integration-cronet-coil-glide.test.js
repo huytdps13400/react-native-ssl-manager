@@ -54,7 +54,8 @@ describe('Integration: Cronet request with valid pin succeeds', () => {
   });
 
   it('README documents Cronet coverage as best-effort via NSC', () => {
-    expect(readmeContent).toMatch(/Cronet.*Best-effort/i);
+    // Table uses ⚠️ best-effort (post-readme-clarity restructure)
+    expect(readmeContent).toMatch(/Cronet[\s\S]*best-effort/i);
     expect(readmeContent).toContain('Network Security Config');
   });
 
@@ -81,13 +82,14 @@ describe('Integration: Cronet request with invalid pin fails', () => {
   });
 
   it('README documents that Cronet may bypass NSC with custom TrustManager', () => {
+    // Dot does not match newlines — use [\s\S] across the Cronet paragraph.
     expect(readmeContent).toMatch(
-      /Cronet.*own TLS stack|Cronet.*custom TrustManager/i
+      /Cronet[\s\S]*own TLS stack|Cronet[\s\S]*custom TrustManager/i
     );
   });
 
   it('README lists Cronet limitation under known limitations', () => {
-    expect(readmeContent).toContain('Known limitation');
+    expect(readmeContent).toMatch(/Known limitations?/i);
   });
 });
 
@@ -116,13 +118,14 @@ describe('Integration: Coil image load with valid pin succeeds', () => {
   });
 
   it('README documents Coil integration pattern', () => {
-    expect(readmeContent).toContain('Coil Integration');
+    expect(readmeContent).toMatch(/\*\*Coil:\*\*|Coil Integration/);
     expect(readmeContent).toContain('ImageLoader.Builder(context)');
     expect(readmeContent).toContain('PinnedOkHttpClient.getInstance(context)');
   });
 
   it('README shows Coil in supported networking stacks table', () => {
-    expect(readmeContent).toMatch(/Coil.*Android.*Yes/);
+    // Coverage column uses ✅ (not the word "Yes") after readme restructure.
+    expect(readmeContent).toMatch(/Coil[\s\S]*?Android[\s\S]*?(✅|Yes)/);
   });
 });
 
@@ -149,13 +152,13 @@ describe('Integration: Glide image load with valid pin succeeds', () => {
   });
 
   it('README documents Glide integration with @GlideModule example', () => {
-    expect(readmeContent).toContain('Glide Integration');
+    expect(readmeContent).toMatch(/\*\*Glide:\*\*|Glide Integration/);
     expect(readmeContent).toContain('@GlideModule');
     expect(readmeContent).toContain('AppGlideModule');
     expect(readmeContent).toContain('OkHttpUrlLoader.Factory(client)');
   });
 
   it('README shows Glide in supported networking stacks table', () => {
-    expect(readmeContent).toMatch(/Glide.*Android.*Yes/);
+    expect(readmeContent).toMatch(/Glide[\s\S]*?Android[\s\S]*?(✅|Yes)/);
   });
 });

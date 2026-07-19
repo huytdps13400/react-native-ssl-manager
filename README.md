@@ -53,6 +53,10 @@ Pinning then turns on **automatically at app launch** — no JavaScript required
 npm install react-native-ssl-manager react-native-nitro-modules
 # or
 yarn add react-native-ssl-manager react-native-nitro-modules
+# or
+pnpm add react-native-ssl-manager react-native-nitro-modules
+# or
+bun add react-native-ssl-manager react-native-nitro-modules
 ```
 
 Then follow **either** the Expo path or the bare React Native path.
@@ -72,7 +76,9 @@ Add the plugin to `app.json` (or `app.config.js`):
 ```
 
 Then regenerate the native projects with `npx expo prebuild --clean` (EAS Build
-does this for you).
+does this for you). The plugin copies `ssl_config.json` into the iOS app group,
+adds it to **Copy Bundle Resources**, copies it into Android `assets/`, and
+generates Network Security Config — no `postinstall` mutation required.
 
 Plugin options:
 
@@ -90,8 +96,15 @@ Install the iOS pods, then rebuild:
 cd ios && pod install
 ```
 
-The config is copied into each platform automatically by the library's build
-scripts — no manual native edits needed.
+On a classic hoisted layout (npm / yarn classic / bun default), the optional
+`postinstall` script can wire Android's `ssl-pinning-setup.gradle` for you.
+On **pnpm** or **monorepos**, that script **does not mutate** your
+`build.gradle` (isolated `node_modules` make hardcoded paths wrong). Either:
+
+1. **Expo prebuild path** (recommended if you use Expo), or
+2. Manually apply the Gradle script once (see [Monorepo & pnpm](#monorepo--pnpm)
+   below), or
+3. Set `SSL_MANAGER_SKIP_POSTINSTALL=1` if you manage native wiring yourself.
 
 ### 2. Create `ssl_config.json`
 
@@ -165,6 +178,123 @@ active, requests to your pinned domains should **fail** the TLS handshake;
 non-pinned domains are unaffected. On iOS you can also watch the launch log
 (`xcrun simctl spawn booted log stream --predicate 'eventMessage CONTAINS "RNSSLManager"'`)
 for `SSL pinning ACTIVE …` or `BLOCKED connection to <host> …`.
+
+---
+
+## Monorepo & pnpm
+
+This library is a **Nitro Module**. It must be present in the app package that
+builds native code, and the app must use the **New Architecture**.
+
+### Why pnpm “isolated” installs look different from bun “hoisted”
+
+| Manager | Default layout | What breaks a naive `postinstall` |
+|---------|----------------|-----------------------------------|
+| **bun** / yarn classic | Hoisted flat `node_modules` | Rarely — `../../node_modules/pkg` often works |
+| **pnpm** | Content-addressable store + symlinks under `node_modules/.pnpm` | Hardcoded `../../node_modules/react-native-ssl-manager/...` often points at nothing |
+| **npm workspaces / pnpm monorepo** | Package may live under `apps/mobile`, deps at root | Walking up to the first `node_modules` can pick the wrong root |
+
+Because of that, **`postinstall` is intentionally non-mutating on monorepo and
+pnpm-isolated installs**. Prefer the Expo config plugin, or apply the Gradle
+script yourself with a path resolved via Node (not a guessed relative path).
+
+### Disable postinstall entirely
+
+```bash
+# one-shot
+SSL_MANAGER_SKIP_POSTINSTALL=1 pnpm install
+
+# or in the app package.json
+"scripts": {
+  "preinstall": "echo skip",
+  "postinstall": "echo 'managed manually'"
+}
+```
+
+You can also set `SSL_MANAGER_SKIP_POSTINSTALL=1` in CI / `.npmrc` env so the
+library never touches `android/app/build.gradle` or the manifest.
+
+### Expo in a monorepo
+
+1. Install in the **app** package (not only the workspace root):
+
+   ```bash
+   pnpm add react-native-ssl-manager react-native-nitro-modules --filter your-app
+   ```
+
+2. Put `ssl_config.json` next to that app’s `app.json` (or set `sslConfigPath`
+   relative to the app root).
+
+3. Register the plugin and prebuild from the app directory:
+
+   ```bash
+   cd apps/your-app
+   npx expo prebuild --clean
+   ```
+
+4. Confirm after prebuild:
+
+   - iOS: `ios/<AppName>/ssl_config.json` exists and is listed under the app
+     target’s **Copy Bundle Resources** in Xcode
+   - Android: `android/app/src/main/assets/ssl_config.json` and
+     `res/xml/network_security_config.xml`
+
+### Bare RN + pnpm (no Expo)
+
+In `android/app/build.gradle`, apply the setup script with a path that works
+under pnpm (relative from the resolved package, or a path you control):
+
+```gradle
+// Example: if the package is linked into this app's node_modules
+apply from: new File([
+  "node", "--print",
+  "require('path').join(require('path').dirname(require.resolve('react-native-ssl-manager/package.json')), 'android/ssl-pinning-setup.gradle')"
+].execute(null, rootDir).text.trim())
+```
+
+iOS does not need that script: the podspec copies `ssl_config.json` at build
+time by searching common monorepo locations under `SRCROOT`.
+
+### Testing this library (maintainers & integrators)
+
+From the repo root:
+
+```bash
+# Unit + contract tests (plugin Xcode wiring, NSC, OTA, Nitro surface, monorepo helpers)
+yarn test
+# or
+./node_modules/.bin/jest
+
+# Typecheck the public TS / Nitro spec
+yarn typecheck
+
+# Regenerate Nitro bindings after editing src/specs/*.nitro.ts
+yarn specs
+```
+
+**Expo prebuild smoke (example app):**
+
+```bash
+cd example-expo
+# ensure peer is present
+yarn add react-native-nitro-modules
+npx expo prebuild --clean --platform ios
+# expect: no "Failed to add ssl_config.json to Xcode project"
+# expect: ios/<Project>/ssl_config.json present
+```
+
+**Nitro runtime (device/simulator):** rebuild a host app that depends on both
+`react-native-ssl-manager` and `react-native-nitro-modules`, then:
+
+```ts
+import { isSSLManagerAvailable, getPinnedDomains } from 'react-native-ssl-manager';
+
+console.log(isSSLManagerAvailable()); // must be true after a native rebuild
+console.log(await getPinnedDomains());
+```
+
+If `isSSLManagerAvailable()` is `false`, the Nitro module is not linked — fix
+autolinking / pods / New Architecture before debugging pins.
 
 ---
 

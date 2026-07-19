@@ -2,6 +2,7 @@ const {
   withDangerousMod,
   withAndroidManifest,
   withXcodeProject,
+  IOSConfig,
 } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
@@ -133,10 +134,81 @@ function withIOSSslPinning(config) {
 }
 
 /**
+ * Resolve the iOS app group directory for the generated native project.
+ * Prefer platformProjectRoot (correct for monorepos / custom ios paths).
+ */
+function resolveIosAppBundleDir(modRequest) {
+  const iosDir = modRequest.platformProjectRoot;
+  const projectName = modRequest.projectName;
+  if (projectName) {
+    const named = path.join(iosDir, projectName);
+    if (fs.existsSync(named)) {
+      return named;
+    }
+  }
+  return iosDir;
+}
+
+/**
+ * Add ssl_config.json to the Xcode project as a bundle resource.
+ *
+ * IMPORTANT: Do NOT use the xcode package's addResourceFile helper.
+ * Modern Expo / RN templates no longer create a PBXGroup named "Resources".
+ * That helper always calls correctForResourcesPath(), which does:
+ *   project.pbxGroupByName('Resources').path
+ * and throws: Cannot read properties of null (reading 'path').
+ *
+ * Expo's IOSConfig.XcodeUtils.addResourceFileToGroup bypasses that path and
+ * wires PBXFileReference + PBXBuildFile + PBXResourcesBuildPhase correctly.
+ */
+function addSslConfigResourceToXcodeProject(project, projectName) {
+  if (!projectName) {
+    throw new Error(
+      'modRequest.projectName is missing; cannot add ssl_config.json to Xcode project'
+    );
+  }
+
+  const fileName = 'ssl_config.json';
+  const groupRelativePath = `${projectName}/${fileName}`;
+
+  // Idempotent prebuild: skip when already referenced.
+  if (
+    project.hasFile(groupRelativePath) ||
+    project.hasFile(fileName) ||
+    project.hasFile(`"${fileName}"`) ||
+    project.hasFile(`"${groupRelativePath}"`)
+  ) {
+    return project;
+  }
+
+  if (
+    !IOSConfig ||
+    !IOSConfig.XcodeUtils ||
+    typeof IOSConfig.XcodeUtils.addResourceFileToGroup !== 'function'
+  ) {
+    throw new Error(
+      '@expo/config-plugins IOSConfig.XcodeUtils.addResourceFileToGroup is unavailable'
+    );
+  }
+
+  const firstTarget = project.getFirstTarget && project.getFirstTarget();
+  const targetUuid = firstTarget && firstTarget.uuid;
+
+  return IOSConfig.XcodeUtils.addResourceFileToGroup({
+    filepath: groupRelativePath,
+    groupName: projectName,
+    project,
+    isBuildFile: true,
+    verbose: false,
+    targetUuid,
+  });
+}
+
+/**
  * Auto-copy SSL config to iOS bundle resources and add to Xcode project
  */
 function withIosAssets(config, options) {
-  // First copy the file
+  // First copy the file into the app source group
   config = withDangerousMod(config, [
     'ios',
     async (config) => {
@@ -147,25 +219,24 @@ function withIosAssets(config, options) {
         const sourceConfigPath = path.resolve(projectRoot, sslConfigPath);
 
         if (fs.existsSync(sourceConfigPath)) {
-          // Create ios directory if it doesn't exist
-          const iosDir = path.join(projectRoot, 'ios');
+          const iosDir = config.modRequest.platformProjectRoot;
           if (!fs.existsSync(iosDir)) {
             fs.mkdirSync(iosDir, { recursive: true });
           }
 
-          // Copy ssl_config.json to ios directory
-          const targetConfigPath = path.join(iosDir, 'ssl_config.json');
-          fs.copyFileSync(sourceConfigPath, targetConfigPath);
+          // Keep a copy at ios/ for tooling that looks there.
+          const iosRootConfigPath = path.join(iosDir, 'ssl_config.json');
+          fs.copyFileSync(sourceConfigPath, iosRootConfigPath);
 
-          // Also copy to app bundle directory for Xcode project
-          const appBundleDir = path.join(iosDir, config.modRequest.projectName);
-          const appBundleConfigPath = path.join(
-            appBundleDir,
-            'ssl_config.json'
-          );
-          if (fs.existsSync(appBundleDir)) {
-            fs.copyFileSync(sourceConfigPath, appBundleConfigPath);
+          // Canonical location: inside the app group so Xcode group path resolves.
+          const appBundleDir = resolveIosAppBundleDir(config.modRequest);
+          if (!fs.existsSync(appBundleDir)) {
+            fs.mkdirSync(appBundleDir, { recursive: true });
           }
+          fs.copyFileSync(
+            sourceConfigPath,
+            path.join(appBundleDir, 'ssl_config.json')
+          );
         } else {
           console.warn(`⚠️  SSL config file not found at: ${sourceConfigPath}`);
           console.warn(
@@ -180,34 +251,22 @@ function withIosAssets(config, options) {
     },
   ]);
 
-  // Add ssl_config.json to the Xcode project using the Xcode project API
-  // (robust) instead of regex string manipulation of project.pbxproj.
+  // Wire the file into the Xcode project (Resources build phase + app group).
   config = withXcodeProject(config, (config) => {
-    const project = config.modResults;
     const projectName = config.modRequest.projectName;
-    const fileName = 'ssl_config.json';
-    const groupRelativePath = projectName
-      ? `${projectName}/${fileName}`
-      : fileName;
-
-    // Skip if the resource is already referenced (idempotent prebuild).
-    if (project.hasFile(groupRelativePath) || project.hasFile(fileName)) {
-      return config;
-    }
 
     try {
-      const target = project.getFirstTarget().uuid;
-      const mainGroup = project.getFirstProject().firstProject.mainGroup;
-
-      // Add as a resource so it is copied into the app bundle at build time.
-      project.addResourceFile(groupRelativePath, { target }, mainGroup);
+      config.modResults = addSslConfigResourceToXcodeProject(
+        config.modResults,
+        projectName
+      );
     } catch (error) {
       console.warn(
         '⚠️  Failed to add ssl_config.json to Xcode project:',
         error.message
       );
       console.warn(
-        '💡 File copied to ios/ directory, manual Xcode setup may be needed'
+        '💡 File was copied under ios/; add ssl_config.json to the app target Copy Bundle Resources manually if needed'
       );
     }
 
@@ -315,4 +374,10 @@ function withAndroidNscManifest(config) {
   });
 }
 
+// Exported for unit tests
 module.exports = withSslManager;
+module.exports.withSslManager = withSslManager;
+module.exports.addSslConfigResourceToXcodeProject =
+  addSslConfigResourceToXcodeProject;
+module.exports.resolveIosAppBundleDir = resolveIosAppBundleDir;
+module.exports.readFullSslConfig = readFullSslConfig;
