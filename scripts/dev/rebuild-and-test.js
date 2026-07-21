@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const root = path.join(__dirname, '..');
+const root = path.join(__dirname, '..', '..');
 const exampleExpo = path.join(root, 'example-expo');
 const configPath = path.join(exampleExpo, 'ssl_config.json');
 

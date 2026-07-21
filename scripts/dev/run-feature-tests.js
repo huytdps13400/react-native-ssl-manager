@@ -13,7 +13,7 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
 
-const root = path.join(__dirname, '..');
+const root = path.join(__dirname, '..', '..');
 const jestBin = path.join(root, 'node_modules', '.bin', 'jest');
 
 /** @type {{ feature: string; suites: string[]; device?: string }[]} */
@@ -68,11 +68,6 @@ const MATRIX = [
   {
     feature: 'pnpm / monorepo postinstall safety',
     suites: ['postinstall-monorepo.test.js', 'postinstall-nsc.test.js'],
-  },
-  {
-    feature: 'pnpm monorepo fixture + monorepo-setup CLI',
-    suites: ['monorepo-fixture.test.js'],
-    device: 'fixtures/pnpm-monorepo + npm run test:monorepo',
   },
   {
     feature: 'CLI pins / verify / sign helpers',
