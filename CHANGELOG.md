@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-07-21
+
 ### Added
 - `applySignedPinBundle(bundle, { publicKey })` — the verify-and-apply half of
   `updatePinsFromUrl`, for callers who fetch the signed bundle themselves
