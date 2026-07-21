@@ -7,7 +7,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
-const script = path.join(root, 'scripts', 'rebuild-and-test.js');
+const script = path.join(root, 'scripts', 'dev', 'rebuild-and-test.js');
 const config = path.join(root, 'example-expo', 'ssl_config.json');
 
 describe('rebuild-and-test script', () => {

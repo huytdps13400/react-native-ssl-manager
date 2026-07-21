@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `applySignedPinBundle(bundle, { publicKey })` — the verify-and-apply half of
+  `updatePinsFromUrl`, for callers who fetch the signed bundle themselves
+  (custom networking/caching, push-delivered bundles, offline tests).
+
+### Changed
+- **Slimmer published package** — the npm tarball now ships only the runtime
+  scripts (`cli`, `cli-utils`, `postinstall`, `postinstall-lib`,
+  `bun-postinstall`, `nsc-utils`) via an explicit `files` allowlist. Dev/test/
+  maintainer scripts moved to `scripts/dev/` and are no longer published. A
+  `pack-contents` test guards against re-bloat.
+- **Docs** — rewrote the OTA section with the signed-bundle format, the
+  `OtaError` code table, the `applySignedPinBundle` / `verifyOtaBundle` +
+  `setSSLConfig` lower-level paths, and a clarification that `isExpired` /
+  `expirationDate` (config fail-open) are unrelated to OTA bundle freshness
+  (`expiresAt` / `maxAgeMs`).
+
+### Removed
+- The `monorepo-setup` CLI command and its `monorepo-setup.js` / `monorepo-utils.js`
+  helpers (plus the `pnpm-monorepo` fixture). Monorepo/pnpm support is unchanged
+  — it lives in the postinstall safety logic; see the README "Monorepo & pnpm"
+  section for the resolved-path Gradle snippet.
+
 ## [2.1.0] - 2026-07-19
 
 ### Fixed

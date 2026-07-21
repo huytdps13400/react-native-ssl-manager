@@ -248,7 +248,6 @@ npx react-native-ssl-manager <command>
 | `pins <host>` | Print live SPKI pins + config snippet |
 | `pins --pem cert.pem` | Pin from a local PEM |
 | `verify [--config …]` | Fail CI when live chain matches none of the pins |
-| `monorepo-setup` | Validate monorepo / pnpm layout + Gradle snippet |
 | `keygen` / `sign` | Author signed OTA pin bundles |
 
 ---
@@ -293,18 +292,25 @@ cd apps/your-app
 npx expo prebuild --clean
 ```
 
+The postinstall step detects monorepo / pnpm-isolated `node_modules` and skips
+the brittle Gradle `apply from` line automatically. You can opt out entirely:
+
 ```sh
-# Recommended in monorepos / pnpm isolated installs
+# Skip postinstall (e.g. CI, or you wire Gradle up yourself)
 export SSL_MANAGER_SKIP_POSTINSTALL=1
 ```
 
-```sh
-npx react-native-ssl-manager monorepo-setup
+**Bare Android (no Expo)** in a monorepo: reference the plugin by resolved path
+in `android/app/build.gradle` — `require.resolve` works across pnpm/hoisted
+layouts:
+
+```gradle
+apply from: new File(
+  ["node", "-e", "process.stdout.write(require.resolve('react-native-ssl-manager/package.json'))"]
+    .execute().text.trim(),
+  "../android/ssl-pinning-setup.gradle"
+)
 ```
-
-Bare Android (no Expo): use the Gradle snippet from `monorepo-setup` (Node `require.resolve` works with pnpm).
-
-Fixture: [`fixtures/pnpm-monorepo`](./fixtures/pnpm-monorepo).
 
 ---
 
@@ -317,7 +323,7 @@ Fixture: [`fixtures/pnpm-monorepo`](./fixtures/pnpm-monorepo).
 | iOS pin toggle does nothing | Kill app and relaunch |
 | Expo Xcode error adding `ssl_config.json` | Upgrade library; `npx expo prebuild --clean` |
 | Metro fails on Android debug | Keep localhost / `10.0.2.2` cleartext in NSC |
-| pnpm Android path issues | Expo plugin or `monorepo-setup`; skip postinstall |
+| pnpm Android path issues | Use the Expo plugin, or the resolved-path Gradle snippet; skip postinstall |
 
 ---
 
@@ -331,7 +337,9 @@ Fixture: [`fixtures/pnpm-monorepo`](./fixtures/pnpm-monorepo).
 | `setSSLConfig(config \| string): Promise<void>` | Runtime config (iOS: next launch) |
 | `getPinnedDomains(): Promise<string[]>` | Active domains |
 | `addPinningFailureListener(fn): () => void` | Subscribe; returns unsubscribe |
-| `updatePinsFromUrl(url, { publicKey }): Promise<OtaResult>` | Apply signed OTA bundle |
+| `updatePinsFromUrl(url, { publicKey }): Promise<OtaResult>` | Fetch + verify + apply a signed OTA bundle |
+| `applySignedPinBundle(bundle, { publicKey }): Promise<OtaResult>` | Verify + apply a bundle you already fetched |
+| `isExpired(date, now): boolean` | Helper: has a `YYYY-MM-DD` `expirationDate` passed? |
 
 <details>
 <summary><strong>TypeScript types</strong></summary>
@@ -365,27 +373,120 @@ interface PinningFailureEvent {
 ## Advanced
 
 <details>
-<summary><strong>OTA pin rotation</strong></summary>
+<summary><strong>OTA pin rotation (signed bundles)</strong></summary>
+
+Rotate pins **without shipping an app update**. You publish a small JSON bundle,
+signed with an Ed25519 key; the app fetches it and applies it only if the
+signature (and freshness) check out. The private key stays offline — only the
+**public** key is embedded in the app.
+
+**Step 1 — generate a keypair once (offline / CI secret):**
 
 ```sh
 npx react-native-ssl-manager keygen
+# → writes ssl-manager-ota.key.pem (PRIVATE — keep it out of git)
+# → prints the public key (base64) to embed in the app
+```
+
+**Step 2 — sign your config into a bundle (in CI, on each rotation):**
+
+```sh
 npx react-native-ssl-manager sign \
   --config ssl_config.json \
   --key ssl-manager-ota.key.pem \
   --expires-in 30d \
   --out ssl-pins-bundle.json
+# host ssl-pins-bundle.json on any HTTPS URL (CDN, S3, your API)
 ```
+
+The bundle is just signed JSON — nothing secret, safe to serve publicly:
+
+```json
+{
+  "payload": "<base64 of the JSON below>",
+  "signature": "<base64 Ed25519 signature over the payload bytes>"
+}
+```
+
+```jsonc
+// the decoded payload
+{
+  "version": 1,
+  "issuedAt": "2026-07-21T10:00:00.000Z",
+  "expiresAt": "2026-08-20T10:00:00.000Z", // optional
+  "config": { "sha256Keys": { "api.example.com": ["sha256/…=", "sha256/…="] } }
+}
+```
+
+**Step 3 — apply it from the app:**
 
 ```ts
 import { updatePinsFromUrl } from 'react-native-ssl-manager'
 
 await updatePinsFromUrl('https://cdn.example.com/ssl-pins-bundle.json', {
-  publicKey: '…', // from keygen — safe to ship in the app
-  maxAgeMs: 7 * 24 * 3600 * 1000,
+  publicKey: 'Z8S8T6o…=',        // from `keygen` — safe to ship in the app
+  maxAgeMs: 7 * 24 * 3600 * 1000, // also reject bundles older than 7 days
 })
 ```
 
-Tampered / expired / rolled-back bundles are rejected; the active config is unchanged.
+`updatePinsFromUrl` = **fetch → verify → apply**. If you'd rather control the
+networking (caching, retries, a bundle delivered over your own channel or a push
+payload), fetch the bundle yourself and call the verify-and-apply half directly:
+
+```ts
+import { applySignedPinBundle } from 'react-native-ssl-manager'
+
+const bundle = await myTransport.getPinBundle() // { payload, signature }
+await applySignedPinBundle(bundle, { publicKey: 'Z8S8T6o…=' })
+```
+
+Both verify the Ed25519 signature against `publicKey`, then check freshness
+(`expiresAt` / `maxAgeMs`) and reject a bundle older than the last one applied
+this session (anti-rollback). **On any failure the active config is left
+untouched** and the call rejects with an `OtaError.code`:
+
+| Code | Meaning |
+|------|---------|
+| `OTA_FETCH_FAILED` | Couldn't download the bundle (network / HTTP error) |
+| `OTA_INVALID_BUNDLE` | Malformed JSON / base64 |
+| `OTA_INVALID_SIGNATURE` | Signature doesn't match `publicKey` |
+| `OTA_EXPIRED` | Past `expiresAt`, or older than `maxAgeMs` |
+| `OTA_ROLLBACK` | Older than the bundle already applied this session |
+
+> **Lower level still?** `verifyOtaBundle(bundle, { publicKey })` (from the same
+> package) verifies and returns the config **without touching pinning**, so you
+> can apply it yourself via `setSSLConfig(config)`. That's the exact seam if you
+> prefer your own crypto/transport around a plain `setSSLConfig`.
+
+</details>
+
+<details>
+<summary><strong>`expirationDate` vs OTA freshness — two different clocks</strong></summary>
+
+These sound similar but are unrelated:
+
+- **`domains.<host>.expirationDate`** (in `ssl_config.json`) is a **per-domain
+  fail-open date**: after it passes, pinning for that host stops being enforced
+  so an abandoned install never bricks. The exported **`isExpired(date, now)`**
+  helper just tells you whether such a date has passed — use it for your own UI /
+  telemetry, e.g. to nudge a rotation:
+
+  ```ts
+  import { isExpired } from 'react-native-ssl-manager'
+
+  const expiresOn = '2026-12-31'
+  if (isExpired(expiresOn, Date.now())) {
+    // pinning for this domain has failed open — fetch fresh pins
+    await updatePinsFromUrl(BUNDLE_URL, { publicKey: OTA_PUBLIC_KEY })
+  }
+  ```
+
+- **OTA freshness** (`expiresAt` / `maxAgeMs` on a *signed bundle*) is about how
+  old an OTA **update** may be before `updatePinsFromUrl` refuses it. It has
+  nothing to do with a domain's `expirationDate`.
+
+In short: `isExpired` inspects your **config**; `maxAgeMs`/`expiresAt` gate an
+**OTA bundle**.
 
 </details>
 

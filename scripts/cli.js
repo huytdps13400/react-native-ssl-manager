@@ -6,7 +6,6 @@
  *   verify           Diff live chains against ssl_config.json (CI-friendly)
  *   keygen           Generate an Ed25519 keypair for OTA pin bundles
  *   sign             Sign ssl_config.json into an OTA bundle
- *   monorepo-setup   Validate monorepo/pnpm app layout + print Gradle snippet
  */
 
 const fs = require('fs');
@@ -122,7 +121,9 @@ async function cmdVerify({ flags }) {
   };
   for (const result of results) {
     console.log(
-      `${icons[result.status]} ${result.host} [${result.status}] ${result.message}`
+      `${icons[result.status]} ${result.host} [${result.status}] ${
+        result.message
+      }`
     );
     if (result.expiresSoon) {
       console.log(
@@ -190,18 +191,7 @@ Commands:
   keygen [--out <dir>] [--force]      Generate an Ed25519 keypair for OTA bundles
   sign --config <path> --key <pem>    Sign the config into an OTA pin bundle
        [--expires-in 30d] [--out bundle.json] [--public-key <b64>]
-  monorepo-setup [--app <path>]       Validate monorepo/pnpm layout + Gradle snippet
 `;
-
-function cmdMonorepoSetup(argv) {
-  // Delegate to the dedicated script so logic stays in one place.
-  const script = path.join(__dirname, 'monorepo-setup.js');
-  const { spawnSync } = require('child_process');
-  const result = spawnSync(process.execPath, [script, ...argv], {
-    stdio: 'inherit',
-  });
-  process.exit(result.status == null ? 1 : result.status);
-}
 
 async function main() {
   const [command, ...rest] = process.argv.slice(2);
@@ -219,9 +209,6 @@ async function main() {
         break;
       case 'sign':
         cmdSign(parsed);
-        break;
-      case 'monorepo-setup':
-        cmdMonorepoSetup(rest);
         break;
       default:
         console.log(HELP);

@@ -144,8 +144,6 @@ export const updatePinsFromUrl = async (
   url: string,
   options: OtaUpdateOptions
 ): Promise<OtaResult> => {
-  const native = requireNative();
-
   const fetchFn = options.fetchFn ?? fetch;
   let bundle: SignedPinBundle;
   try {
@@ -164,6 +162,31 @@ export const updatePinsFromUrl = async (
       `Pin bundle fetch failed: ${String(error)}`
     );
   }
+
+  return applySignedPinBundle(bundle, options);
+};
+
+/**
+ * Verifies an **already-fetched** signed pin bundle and applies it — the
+ * verify-and-apply half of {@link updatePinsFromUrl}, exposed for callers who
+ * obtain the bundle themselves (custom networking/caching, a bundle delivered
+ * in a push payload, or an offline test).
+ *
+ * Verification is identical to {@link updatePinsFromUrl}: the Ed25519 signature
+ * is checked against `options.publicKey`, then freshness (`expiresAt` /
+ * `maxAgeMs`) and session anti-rollback. On ANY failure the active
+ * configuration is left untouched and the promise rejects with an
+ * {@link OtaError}.
+ *
+ * @example
+ * const bundle = await myCache.getLatestPinBundle(); // { payload, signature }
+ * await applySignedPinBundle(bundle, { publicKey: OTA_PUBLIC_KEY });
+ */
+export const applySignedPinBundle = async (
+  bundle: SignedPinBundle,
+  options: OtaVerifyOptions
+): Promise<OtaResult> => {
+  const native = requireNative();
 
   const result = verifyOtaBundle(bundle, {
     ...options,
