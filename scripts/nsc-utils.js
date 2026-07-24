@@ -116,9 +116,14 @@ function mergeNscXml(existingXml, sha256Keys, domains) {
   for (const [domain, pins] of Object.entries(sha256Keys)) {
     const domainConfigBlock = buildDomainConfigBlock(domain, pins, domains);
 
-    // Check if domain already exists in the XML
+    // Check if domain already exists in the XML.
+    // The block's leading indentation (`[^\S\r\n]*`) is part of the match so it
+    // is replaced by the canonical block's own indentation (and fully removed in
+    // audit mode). Without it the replacement re-adds indentation on top of the
+    // existing indentation, so the block drifts right by 4 spaces on every merge
+    // — a non-idempotent rewrite that churns the file on each build.
     const domainRegex = new RegExp(
-      `<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(
+      `[^\\S\\r\\n]*<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(
         /\./g,
         '\\.'
       )}</domain>[\\s\\S]*?</domain-config>`,

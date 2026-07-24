@@ -1,6 +1,3 @@
-import groovy.xml.XmlParser
-import groovy.xml.XmlNodePrinter
-import groovy.xml.MarkupBuilder
 
 def findSslConfigFile() {
     // Search order covers classic (android/ under app root), Expo prebuild,
@@ -145,71 +142,74 @@ def writeNewNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, Map domains) 
  * Preserves existing config (debug-overrides, base-config, other domain-configs)
  * Replaces pin-set for domains that already exist, adds new domain-configs otherwise
  */
+def buildDomainConfigBlock(String domain, List pins, Map options) {
+    def expirationAttr = options.expirationDate ? " expiration=\"${options.expirationDate}\"" : ''
+    def sb = new StringBuilder()
+    sb.append('    <domain-config cleartextTrafficPermitted="false">\n')
+    sb.append("        <domain includeSubdomains=\"${options.includeSubdomains}\">${domain}</domain>\n")
+    sb.append("        <pin-set${expirationAttr}>\n")
+    pins.each { pinValue ->
+        def cleanPin = pinValue.replaceFirst('^sha256/', '')
+        sb.append("            <pin digest=\"SHA-256\">${cleanPin}</pin>")
+        sb.append('\n')
+    }
+    sb.append('        </pin-set>\n')
+    sb.append('    </domain-config>')
+    return sb.toString()
+}
+
 def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, Map domains) {
-    def parser = new XmlParser()
-    def root = parser.parse(xmlFile)
+    // String-based, idempotent merge that mirrors scripts/nsc-utils.js#mergeNscXml.
+    // The previous XmlParser + XmlNodePrinter(preserveWhitespace) approach re-emitted
+    // the whole tree with non-deterministic indentation, so every build rewrote the
+    // committed file with churned whitespace. Editing the text in place instead keeps
+    // untouched blocks (e.g. base-config) byte-identical and makes repeated merges a
+    // no-op, so build output equals the committed file.
+    def xml = xmlFile.text
 
     // Ensure the local dev hosts stay reachable over cleartext (issue #9) without
-    // duplicating a block that RN's debug config (or a previous merge) provides.
-    def hasDevCleartext = root.'domain-config'.any { dc ->
-        dc.'domain'.any { d -> d.text()?.trim() == 'localhost' }
-    }
+    // duplicating a block a previous merge already added.
+    def hasDevCleartext = (xml =~ /<domain[^>]*>\s*localhost\s*<\/domain>/).find()
     if (!hasDevCleartext) {
-        def devConfigNode = new Node(root, 'domain-config', [cleartextTrafficPermitted: 'true'])
-        devCleartextHosts().each { host ->
-            new Node(devConfigNode, 'domain', [includeSubdomains: 'false'], host)
-        }
+        xml = xml.replaceFirst('</network-security-config>',
+            java.util.regex.Matcher.quoteReplacement(buildDevCleartextConfig() + '</network-security-config>'))
     }
 
     sha256Keys.each { domain, pins ->
         def options = nscDomainOptions(domains, domain)
 
-        // Find existing domain-config for this domain
-        def existingDomainConfig = root.'domain-config'.find { dc ->
-            dc.'domain'.any { d -> d.text() == domain }
-        }
+        // Include the existing block's leading indentation in the match so it is
+        // replaced by the canonical block's own indentation (and fully removed in
+        // audit mode). Without this the replacement drifts right by 4 spaces on
+        // every merge — the non-idempotent churn this rewrite fixes.
+        def domainPattern = java.util.regex.Pattern.compile(
+            '[^\\S\\r\\n]*<domain-config[^>]*>\\s*<domain[^>]*>' +
+            java.util.regex.Pattern.quote(domain) +
+            '</domain>[\\s\\S]*?</domain-config>')
+        def matcher = domainPattern.matcher(xml)
+        def exists = matcher.find()
 
         // Audit-mode domains are excluded: NSC has no report-only mode. Drop a
         // pre-existing pinned block so a mode change takes effect on rebuild.
         if (!options.enforcePinning) {
-            if (existingDomainConfig) {
+            if (exists) {
                 println "ℹ️ Removing NSC pin-set for audit-mode domain: ${domain}"
-                root.remove(existingDomainConfig)
+                xml = matcher.replaceFirst('')
             }
             return
         }
 
-        def pinSetAttrs = options.expirationDate ? [expiration: options.expirationDate] : [:]
-
-        if (existingDomainConfig) {
+        def block = buildDomainConfigBlock(domain, pins, options)
+        if (exists) {
             println "⚠️ Replacing existing pin-set for domain: ${domain}"
-            // Remove old pin-set(s)
-            existingDomainConfig.'pin-set'.each { existingDomainConfig.remove(it) }
-            // Add new pin-set
-            def pinSetNode = new Node(existingDomainConfig, 'pin-set', pinSetAttrs)
-            pins.each { pinValue ->
-                def cleanPin = pinValue.replaceFirst('^sha256/', '')
-                new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)
-            }
+            xml = matcher.replaceFirst(java.util.regex.Matcher.quoteReplacement(block))
         } else {
-            // Add new domain-config
-            def domainConfigNode = new Node(root, 'domain-config', [cleartextTrafficPermitted: 'false'])
-            new Node(domainConfigNode, 'domain', [includeSubdomains: "${options.includeSubdomains}"], domain)
-            def pinSetNode = new Node(domainConfigNode, 'pin-set', pinSetAttrs)
-            pins.each { pinValue ->
-                def cleanPin = pinValue.replaceFirst('^sha256/', '')
-                new Node(pinSetNode, 'pin', [digest: 'SHA-256'], cleanPin)
-            }
+            xml = xml.replaceFirst('</network-security-config>',
+                java.util.regex.Matcher.quoteReplacement(block + '\n</network-security-config>'))
         }
     }
 
-    // Write merged XML back
-    def writer = new StringWriter()
-    writer.write('<?xml version="1.0" encoding="utf-8"?>\n')
-    def printer = new XmlNodePrinter(new PrintWriter(writer))
-    printer.setPreserveWhitespace(true)
-    printer.print(root)
-    xmlFile.text = writer.toString()
+    xmlFile.text = xml
     println "✅ Merged pin entries into existing network_security_config.xml"
 }
 

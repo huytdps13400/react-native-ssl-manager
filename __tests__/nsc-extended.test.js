@@ -119,4 +119,29 @@ describe('mergeNscXml with extended domains metadata', () => {
       '<domain includeSubdomains="false">api.example.com</domain>'
     );
   });
+
+  it('is idempotent: re-merging the same pins does not change the output', () => {
+    // Regression: the domain-match regex used to omit the block's leading
+    // indentation, so each merge re-indented the replaced block by 4 spaces —
+    // an ever-growing whitespace drift that rewrote the committed file on every
+    // build. Merging a file that already contains the target pins must be a
+    // byte-for-byte no-op.
+    const keys = { 'api.example.com': [PIN_A, PIN_B] };
+    const once = mergeNscXml(baseXml, keys);
+    const twice = mergeNscXml(once, keys);
+    const thrice = mergeNscXml(twice, keys);
+    expect(twice).toBe(once);
+    expect(thrice).toBe(once);
+  });
+
+  it('is idempotent across all metadata modes (expiration + includeSubdomains)', () => {
+    const keys = { 'api.example.com': [PIN_A], 'cdn.example.com': [PIN_B] };
+    const meta = {
+      'api.example.com': { expirationDate: '2028-01-15' },
+      'cdn.example.com': { includeSubdomains: false },
+    };
+    const once = mergeNscXml(baseXml, keys, meta);
+    const twice = mergeNscXml(once, keys, meta);
+    expect(twice).toBe(once);
+  });
 });
