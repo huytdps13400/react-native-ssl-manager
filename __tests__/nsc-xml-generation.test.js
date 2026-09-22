@@ -152,6 +152,33 @@ describe('Network Security Config XML Generation', () => {
       expect(merged).toContain('api.example.com');
     });
 
+    it('reuses a formatted domain across repeated prebuilds', () => {
+      let xml = `<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <debug-overrides><trust-anchors><certificates src="user" /></trust-anchors></debug-overrides>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">
+            api.example.com
+        </domain>
+        <pin-set><pin digest="SHA-256">OLDPIN=</pin></pin-set>
+    </domain-config>
+</network-security-config>`;
+
+      for (let build = 0; build < 5; build += 1) {
+        xml = mergeNscXml(xml, { 'api.example.com': ['sha256/NEWPIN='] });
+        expect(xml.match(/api\.example\.com/g)).toHaveLength(1);
+        expect(xml.match(/<pin-set/g)).toHaveLength(1);
+        expect(xml.match(/>localhost<\/domain>/g)).toHaveLength(1);
+        expect(xml).toContain('NEWPIN=');
+        expect(xml).not.toContain('OLDPIN=');
+        expect(xml).toContain(
+          '<base-config cleartextTrafficPermitted="false" />'
+        );
+        expect(xml).toContain('<debug-overrides>');
+      }
+    });
+
     it('adds new domain without affecting existing domains', () => {
       const existingXmlWithDomain = `<?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
@@ -188,9 +215,7 @@ describe('Network Security Config XML Generation', () => {
         'api.example.com': ['sha256/AAA='],
       });
 
-      expect(xml).toContain(
-        '<domain-config cleartextTrafficPermitted="true">'
-      );
+      expect(xml).toContain('<domain-config cleartextTrafficPermitted="true">');
       expect(xml).toContain(
         '<domain includeSubdomains="false">localhost</domain>'
       );

@@ -118,10 +118,10 @@ function mergeNscXml(existingXml, sha256Keys, domains) {
 
     // Check if domain already exists in the XML
     const domainRegex = new RegExp(
-      `<domain-config[^>]*>\\s*<domain[^>]*>${domain.replace(
+      `<domain-config[^>]*>\\s*<domain[^>]*>\\s*${domain.replace(
         /\./g,
         '\\.'
-      )}</domain>[\\s\\S]*?</domain-config>`,
+      )}\\s*</domain>[\\s\\S]*?</domain-config>`,
       'g'
     );
 
