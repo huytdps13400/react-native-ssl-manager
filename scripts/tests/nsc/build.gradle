@@ -1,0 +1,48 @@
+import groovy.xml.XmlParser
+
+// Exercise the production Groovy methods without requiring an Android SDK or
+// evaluating the script's Android plugin/task wiring.
+tasks.register('test') {
+    doLast {
+        def setup = new GroovyShell().parse(file('../../../android/ssl-pinning-setup.gradle'))
+        def tempDir = java.nio.file.Files.createTempDirectory('ssl-manager-nsc-').toFile()
+        try {
+            def sslConfig = new File(tempDir, 'ssl_config.json')
+            sslConfig.text = groovy.json.JsonOutput.toJson([
+                sha256Keys: ['api.example.com': ['sha256/NEWPIN=']],
+            ])
+            def xml = new File(tempDir, 'network_security_config.xml')
+            xml.text = '''<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <debug-overrides><trust-anchors><certificates src="user" /></trust-anchors></debug-overrides>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">
+            api.example.com
+        </domain>
+        <pin-set><pin digest="SHA-256">OLDPIN=</pin></pin-set>
+    </domain-config>
+</network-security-config>'''
+            5.times {
+                assert setup.generateNetworkSecurityConfigXml(sslConfig, xml)
+                def root = new XmlParser().parse(xml)
+                def domains = root.'domain-config'.'domain'.collect { it.text().trim() }
+                assert domains.count('api.example.com') == 1 : "Duplicate domain on build ${it + 1}: ${domains}"
+                assert domains.count('localhost') == 1
+                assert root.'domain-config'.'pin-set'.'pin'*.text() == ['NEWPIN=']
+                assert root.'base-config'.size() == 1
+                assert root.'debug-overrides'.size() == 1
+            }
+            // A fresh file must also stay stable across repeated builds.
+            assert xml.delete()
+            5.times {
+                assert setup.generateNetworkSecurityConfigXml(sslConfig, xml)
+                def root = new XmlParser().parse(xml)
+                assert root.'domain-config'.'domain'.count { it.text().trim() == 'api.example.com' } == 1
+                assert root.'domain-config'.'pin-set'.size() == 1
+            }
+            println 'NSC repeated-build regressions passed (10 generations)'
+        } finally {
+            tempDir.deleteDir()
+        }
+    }
+}

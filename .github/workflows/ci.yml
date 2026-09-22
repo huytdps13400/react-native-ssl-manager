@@ -83,6 +83,9 @@ jobs:
         run: |
           /bin/bash -c "yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null" || true
 
+      - name: Test repeated Network Security Config generation
+        run: bash example/android/gradlew -p scripts/tests/nsc test --console=plain
+
       - name: Install example dependencies
         working-directory: example
         run: npm install --legacy-peer-deps
@@ -100,7 +103,7 @@ jobs:
       - name: Build example for Android
         working-directory: example
         env:
-          JAVA_OPTS: "-XX:MaxHeapSize=6g"
+          JAVA_OPTS: '-XX:MaxHeapSize=6g'
         run: npm run build:android
 
   build-ios:

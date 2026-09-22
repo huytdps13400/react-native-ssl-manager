@@ -166,7 +166,7 @@ def mergeNetworkSecurityConfigXml(File xmlFile, Map sha256Keys, Map domains) {
 
         // Find existing domain-config for this domain
         def existingDomainConfig = root.'domain-config'.find { dc ->
-            dc.'domain'.any { d -> d.text() == domain }
+            dc.'domain'.any { d -> d.text().trim() == domain }
         }
 
         // Audit-mode domains are excluded: NSC has no report-only mode. Drop a
