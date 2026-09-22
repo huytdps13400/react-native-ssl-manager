@@ -60,6 +60,7 @@ describe('JS API with linked Nitro HybridObject', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     jest.dontMock('react-native-nitro-modules');
   });
 
@@ -182,6 +183,9 @@ describe('JS API with linked Nitro HybridObject', () => {
       sha256Keys: { 'ota.example.com': [PIN_A, PIN_B] },
     };
     const now = Date.parse('2026-07-16T12:00:00Z');
+    // Signing and verification must use the same clock, independent of when
+    // this suite runs; the fixture expires 30 days after its fixed timestamp.
+    jest.spyOn(Date, 'now').mockReturnValue(now);
     const bundle = signBundle(config, privateKeyPem, {
       version: 7,
       now,
@@ -194,16 +198,14 @@ describe('JS API with linked Nitro HybridObject', () => {
       json: async () => bundle,
     }));
 
-    const result = await api.updatePinsFromUrl('https://cdn.example/pins.json', {
-      publicKey: publicKeyBase64,
-      fetchFn,
-      // inject "now" via maxAge only — verifyOtaBundle uses Date.now unless we
-      // pass through; signBundle issuedAt is Date.now() by default in cli-utils
-      // when now is set. Our sign uses `now` option.
-    });
+    const result = await api.updatePinsFromUrl(
+      'https://cdn.example/pins.json',
+      {
+        publicKey: publicKeyBase64,
+        fetchFn,
+      }
+    );
 
-    // If verify used wall-clock now far from signed `now`, maxAge could fail.
-    // The signBundle with `now` sets issuedAt to that timestamp — allow wide age.
     expect(fetchFn).toHaveBeenCalledWith('https://cdn.example/pins.json');
     expect(hybrid.setSSLConfigJson).toHaveBeenCalled();
     expect(result.domains).toContain('ota.example.com');
