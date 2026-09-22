@@ -71,6 +71,12 @@ jobs:
             exit 1
           fi
 
+      - name: Verify configured npm token identity
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: npm whoami --registry=https://registry.npmjs.org
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish (dry run)
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
         run: npm publish --provenance --access public --dry-run --loglevel=verbose
