@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-09-22
+
+### Fixed
+- Android Gradle and Expo/postinstall Network Security Config merges now match
+  hostnames surrounded by whitespace or line breaks, preventing duplicate domain
+  entries on repeated builds (#25, #26).
+- Added repeated-build regression coverage and fixed the clock of the signed
+  pin-bundle test so its fixture does not expire as time passes.
+
+### Upgrade notes
+- If `network_security_config.xml` already contains duplicate domain entries,
+  remove those duplicates once while preserving custom configuration, then
+  rebuild. This patch prevents new duplicates from formatted hostname text; it
+  does not automatically clean existing duplicates.
+
 ## [2.2.0] - 2026-07-21
 
 ### Added
