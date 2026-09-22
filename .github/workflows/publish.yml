@@ -8,10 +8,8 @@ name: Publish to npm
 #  - Manual run (workflow_dispatch): use `dry_run: true` to validate without
 #    publishing.
 #
-# Required setup (one-time, by a maintainer):
-#  - Create an npm **Automation** access token (npmjs.com -> Access Tokens).
-#  - Add it to the repo: Settings -> Secrets and variables -> Actions ->
-#    New repository secret -> name `NPM_TOKEN`.
+# Authentication: npm prefers a configured Trusted Publisher for this repository
+# and publish.yml via OIDC. NPM_TOKEN remains available as a token fallback.
 
 on:
   release:
@@ -28,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # enables npm provenance
+      id-token: write # enables npm trusted publishing and provenance
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,8 +34,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          # npm trusted publishing requires Node >=22.14 and npm >=11.5.1.
+          # Keep the package's development/test Node version independent.
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup npm with trusted publishing support
+        run: npm install --global npm@11.19.1
 
       # The project pins "packageManager": "yarn@3.6.1" (Yarn Berry); Corepack
       # must be enabled so dependency install uses that version.
